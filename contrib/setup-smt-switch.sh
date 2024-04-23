@@ -3,7 +3,8 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 DEPS=$DIR/../deps
 
-SMT_SWITCH_VERSION=b812cc4bddddde33d2fd05f4044f4fcfb8d648d8
+SMT_SWITCH_VERSION=6ceeb7efacd4f35a750d2e363f8d1ff8a8cb6b3b
+#latest b812cc4bddddde33d2fd05f4044f4fcfb8d648d8
 
 usage () {
     cat <<EOF
@@ -63,11 +64,14 @@ if [ ! -d "$DEPS/smt-switch" ]; then
     cd smt-switch
     git checkout -f $SMT_SWITCH_VERSION
     ./contrib/setup-btor.sh
-    cd deps
-    wget https://github.com/cvc5/cvc5/releases/download/cvc5-1.1.2/cvc5-Linux-static.zip
-    unzip cvc5-Linux-static.zip -d .
-    cd ..
-    CONF_OPTS="$CONF_OPTS --cvc5-home=$(pwd)/deps/cvc5-Linux-static"
+    # cd deps
+    # wget https://github.com/cvc5/cvc5/releases/download/cvc5-1.1.2/cvc5-Linux-static.zip
+    # unzip cvc5-Linux-static.zip -d .
+    # cd ..
+    # CONF_OPTS="$CONF_OPTS --cvc5-home=$(pwd)/deps/cvc5-Linux-static"
+    if [ $cvc5_home = default ]; then
+        ./contrib/setup-cvc5.sh
+    fi
 
     # pass bison/flex directories from smt-switch perspective
     ./configure.sh --btor --cvc5 $CONF_OPTS --prefix=local --static --smtlib-reader --bison-dir=../bison/bison-install --flex-dir=../flex/flex-install

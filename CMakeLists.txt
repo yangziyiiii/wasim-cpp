@@ -270,6 +270,9 @@ target_link_libraries(testtop wasim-lib)
 add_executable(testf32 "apps/idpv/f32multest.cpp")
 target_link_libraries(testf32 wasim-lib)
 
+add_executable(testdiv "apps/idpv/div.cpp")
+target_link_libraries(testdiv wasim-lib)
+
 # add_executable(independence_check_test "independence_check_test.cpp")
 # target_link_libraries(independence_check_test wasim)
 
