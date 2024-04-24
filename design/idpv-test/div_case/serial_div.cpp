@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-void divide(uint32_t dividend, uint32_t divisor, uint32_t *quotient, uint32_t *remainder) {
+void divide(uint16_t dividend, uint8_t divisor, uint16_t *quotient, uint16_t *remainder) {
     if (divisor == 0) {
         printf("Error: Division by zero.\n");
         *quotient = 0;  
@@ -20,10 +20,10 @@ int unknown(){
 }
 
 int main() {
-    uint32_t dividend = unknown();  
-    uint32_t divisor = unknown();   
-    uint32_t quotient = 0;
-    uint32_t remainder = 0;
+    uint16_t dividend = unknown();  
+    uint8_t divisor = unknown();   
+    uint16_t quotient = 0;
+    uint16_t remainder = 0;
 
     divide(dividend, divisor, &quotient, &remainder);
     printf("Quotient: %u\n", quotient);

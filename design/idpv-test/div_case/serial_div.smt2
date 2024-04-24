@@ -3,100 +3,6 @@
 (set-option :produce-models true)
 (set-logic QF_AUFBV)
 
-; find_symbols
-(declare-fun |goto_symex::&92;guard#1| () Bool)
-; convert
-; Converting var_no 0 with expr ID of symbol
-(define-fun B0 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 1 with expr ID of symbol
-(define-fun B1 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 2 with expr ID of symbol
-(define-fun B2 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 3 with expr ID of symbol
-(define-fun B3 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 4 with expr ID of symbol
-(define-fun B4 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 5 with expr ID of symbol
-(define-fun B5 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 6 with expr ID of symbol
-(define-fun B6 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 7 with expr ID of symbol
-(define-fun B7 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 8 with expr ID of symbol
-(define-fun B8 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 9 with expr ID of symbol
-(define-fun B9 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 10 with expr ID of symbol
-(define-fun B10 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 11 with expr ID of symbol
-(define-fun B11 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 12 with expr ID of symbol
-(define-fun B12 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 13 with expr ID of symbol
-(define-fun B13 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 14 with expr ID of symbol
-(define-fun B14 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 15 with expr ID of symbol
-(define-fun B15 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 16 with expr ID of symbol
-(define-fun B16 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 17 with expr ID of symbol
-(define-fun B17 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 18 with expr ID of symbol
-(define-fun B18 () Bool |goto_symex::&92;guard#1|)
-
-; convert
-; Converting var_no 19 with expr ID of not
-(define-fun B19 () Bool (not |goto_symex::&92;guard#1|))
-
-; convert
-; Converting var_no 20 with expr ID of not
-(define-fun B20 () Bool (not |goto_symex::&92;guard#1|))
-
-; convert
-; Converting var_no 21 with expr ID of not
-(define-fun B21 () Bool (not |goto_symex::&92;guard#1|))
-
-; convert
-; Converting var_no 22 with expr ID of not
-(define-fun B22 () Bool (not |goto_symex::&92;guard#1|))
-
 ; set_to true (equal)
 (define-fun |__CPROVER_dead_object#1| () (_ BitVec 64) (_ bv0 64))
 
@@ -115,96 +21,89 @@
 ; set_to true (equal)
 (define-fun |__CPROVER::constant_infinity_uint#1| () (_ BitVec 32) (_ bv0 32))
 
-; find_symbols
-(declare-fun |nondet_symex::nondet0| () (_ BitVec 32))
 ; set_to true (equal)
-(define-fun |goto_symex::return_value::unknown()!0#1| () (_ BitVec 32) |nondet_symex::nondet0|)
+(define-fun |goto_symex::return_value::unknown()!0#1| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true (equal)
-(define-fun |main::$tmp::return_value_unknown!0@1#2| () (_ BitVec 32) |goto_symex::return_value::unknown()!0#1|)
+(define-fun |main::$tmp::return_value_unknown!0@1#2| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true (equal)
-(define-fun |main::1::dividend!0@1#2| () (_ BitVec 32) |main::$tmp::return_value_unknown!0@1#2|)
-
-; find_symbols
-(declare-fun |nondet_symex::nondet1| () (_ BitVec 32))
-; set_to true (equal)
-(define-fun |goto_symex::return_value::unknown()!0#2| () (_ BitVec 32) |nondet_symex::nondet1|)
+(define-fun |main::1::dividend!0@1#2| () (_ BitVec 16) (_ bv0 16))
 
 ; set_to true (equal)
-(define-fun |main::$tmp::return_value_unknown$0!0@1#2| () (_ BitVec 32) |goto_symex::return_value::unknown()!0#2|)
+(define-fun |goto_symex::return_value::unknown()!0#2| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true (equal)
-(define-fun |main::1::divisor!0@1#2| () (_ BitVec 32) |main::$tmp::return_value_unknown$0!0@1#2|)
+(define-fun |main::$tmp::return_value_unknown$0!0@1#2| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true (equal)
-(define-fun |main::1::quotient!0@1#2| () (_ BitVec 32) (_ bv0 32))
+(define-fun |main::1::divisor!0@1#2| () (_ BitVec 8) (_ bv0 8))
 
 ; set_to true (equal)
-(define-fun |main::1::remainder!0@1#2| () (_ BitVec 32) (_ bv0 32))
+(define-fun |main::1::quotient!0@1#2| () (_ BitVec 16) (_ bv0 16))
 
 ; set_to true (equal)
-(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1| () (_ BitVec 32) |main::1::dividend!0@1#2|)
+(define-fun |main::1::remainder!0@1#2| () (_ BitVec 16) (_ bv0 16))
 
 ; set_to true (equal)
-(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1| () (_ BitVec 32) |main::1::divisor!0@1#2|)
+(define-fun |divide(unsigned_short_int,unsigned_char,ptr_unsigned_short_int,ptr_unsigned_short_int)::dividend!0@1#1| () (_ BitVec 16) (_ bv0 16))
+
+; set_to true (equal)
+(define-fun |divide(unsigned_short_int,unsigned_char,ptr_unsigned_short_int,ptr_unsigned_short_int)::divisor!0@1#1| () (_ BitVec 8) (_ bv0 8))
 
 ; find_symbols
-(declare-fun |main::1::quotient!0@1| () (_ BitVec 32))
+(declare-fun |main::1::quotient!0@1| () (_ BitVec 16))
 ; set_to true (equal)
-(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::quotient!0@1#1| () (_ BitVec 64) (concat (_ bv2 8) (_ bv0 56)))
+(define-fun |divide(unsigned_short_int,unsigned_char,ptr_unsigned_short_int,ptr_unsigned_short_int)::quotient!0@1#1| () (_ BitVec 64) (concat (_ bv2 8) (_ bv0 56)))
 
 ; find_symbols
-(declare-fun |main::1::remainder!0@1| () (_ BitVec 32))
+(declare-fun |main::1::remainder!0@1| () (_ BitVec 16))
 ; set_to true (equal)
-(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::remainder!0@1#1| () (_ BitVec 64) (concat (_ bv3 8) (_ bv0 56)))
-
-; set_to true
-(assert (= |goto_symex::&92;guard#1| (= |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1| (_ bv0 32))))
+(define-fun |divide(unsigned_short_int,unsigned_char,ptr_unsigned_short_int,ptr_unsigned_short_int)::remainder!0@1#1| () (_ BitVec 64) (concat (_ bv3 8) (_ bv0 56)))
 
 ; the following is a substitute for a string
-(declare-fun string.2 () (Array (_ BitVec 64) (_ BitVec 8)))
-(assert (= (select string.2 (_ bv0 64)) (_ bv69 8)))
-(assert (= (select string.2 (_ bv1 64)) (_ bv114 8)))
-(assert (= (select string.2 (_ bv2 64)) (_ bv114 8)))
-(assert (= (select string.2 (_ bv3 64)) (_ bv111 8)))
-(assert (= (select string.2 (_ bv4 64)) (_ bv114 8)))
-(assert (= (select string.2 (_ bv5 64)) (_ bv58 8)))
-(assert (= (select string.2 (_ bv6 64)) (_ bv32 8)))
-(assert (= (select string.2 (_ bv7 64)) (_ bv68 8)))
-(assert (= (select string.2 (_ bv8 64)) (_ bv105 8)))
-(assert (= (select string.2 (_ bv9 64)) (_ bv118 8)))
-(assert (= (select string.2 (_ bv10 64)) (_ bv105 8)))
-(assert (= (select string.2 (_ bv11 64)) (_ bv115 8)))
-(assert (= (select string.2 (_ bv12 64)) (_ bv105 8)))
-(assert (= (select string.2 (_ bv13 64)) (_ bv111 8)))
-(assert (= (select string.2 (_ bv14 64)) (_ bv110 8)))
-(assert (= (select string.2 (_ bv15 64)) (_ bv32 8)))
-(assert (= (select string.2 (_ bv16 64)) (_ bv98 8)))
-(assert (= (select string.2 (_ bv17 64)) (_ bv121 8)))
-(assert (= (select string.2 (_ bv18 64)) (_ bv32 8)))
-(assert (= (select string.2 (_ bv19 64)) (_ bv122 8)))
-(assert (= (select string.2 (_ bv20 64)) (_ bv101 8)))
-(assert (= (select string.2 (_ bv21 64)) (_ bv114 8)))
-(assert (= (select string.2 (_ bv22 64)) (_ bv111 8)))
-(assert (= (select string.2 (_ bv23 64)) (_ bv46 8)))
-(assert (= (select string.2 (_ bv24 64)) (_ bv10 8)))
-(assert (= (select string.2 (_ bv25 64)) (_ bv0 8)))
+(declare-fun string.0 () (Array (_ BitVec 64) (_ BitVec 8)))
+(assert (= (select string.0 (_ bv0 64)) (_ bv69 8)))
+(assert (= (select string.0 (_ bv1 64)) (_ bv114 8)))
+(assert (= (select string.0 (_ bv2 64)) (_ bv114 8)))
+(assert (= (select string.0 (_ bv3 64)) (_ bv111 8)))
+(assert (= (select string.0 (_ bv4 64)) (_ bv114 8)))
+(assert (= (select string.0 (_ bv5 64)) (_ bv58 8)))
+(assert (= (select string.0 (_ bv6 64)) (_ bv32 8)))
+(assert (= (select string.0 (_ bv7 64)) (_ bv68 8)))
+(assert (= (select string.0 (_ bv8 64)) (_ bv105 8)))
+(assert (= (select string.0 (_ bv9 64)) (_ bv118 8)))
+(assert (= (select string.0 (_ bv10 64)) (_ bv105 8)))
+(assert (= (select string.0 (_ bv11 64)) (_ bv115 8)))
+(assert (= (select string.0 (_ bv12 64)) (_ bv105 8)))
+(assert (= (select string.0 (_ bv13 64)) (_ bv111 8)))
+(assert (= (select string.0 (_ bv14 64)) (_ bv110 8)))
+(assert (= (select string.0 (_ bv15 64)) (_ bv32 8)))
+(assert (= (select string.0 (_ bv16 64)) (_ bv98 8)))
+(assert (= (select string.0 (_ bv17 64)) (_ bv121 8)))
+(assert (= (select string.0 (_ bv18 64)) (_ bv32 8)))
+(assert (= (select string.0 (_ bv19 64)) (_ bv122 8)))
+(assert (= (select string.0 (_ bv20 64)) (_ bv101 8)))
+(assert (= (select string.0 (_ bv21 64)) (_ bv114 8)))
+(assert (= (select string.0 (_ bv22 64)) (_ bv111 8)))
+(assert (= (select string.0 (_ bv23 64)) (_ bv46 8)))
+(assert (= (select string.0 (_ bv24 64)) (_ bv10 8)))
+(assert (= (select string.0 (_ bv25 64)) (_ bv0 8)))
 ; set_to true (equal)
 (define-fun |printf::format!0@1#1| () (_ BitVec 64) (concat (_ bv4 8) (_ bv0 56)))
 
 ; find_symbols
-(declare-fun |nondet_symex::nondet2| () (_ BitVec 32))
+(declare-fun |nondet_symex::nondet0| () (_ BitVec 32))
 ; set_to true (equal)
-(define-fun |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#2| () (_ BitVec 32) |nondet_symex::nondet2|)
+(define-fun |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#2| () (_ BitVec 32) |nondet_symex::nondet0|)
 
 ; set_to true (equal)
 (define-fun |printf::1::result!0@1#2| () (_ BitVec 32) |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#2|)
 
 ; the following is a substitute for an array constructor
-(declare-fun array.3 () (Array (_ BitVec 64) (_ BitVec 64)))
+(declare-fun array.1 () (Array (_ BitVec 64) (_ BitVec 64)))
 ; set_to true (equal)
-(define-fun |printf::va_args!0#1| () (Array (_ BitVec 64) (_ BitVec 64)) array.3)
+(define-fun |printf::va_args!0#1| () (Array (_ BitVec 64) (_ BitVec 64)) array.1)
 
 ; find_symbols
 (declare-fun |printf::va_args!0| () (Array (_ BitVec 64) (_ BitVec 64)))
@@ -215,63 +114,48 @@
 (define-fun |printf::1::list!0@1#3| () (_ BitVec 64) (_ bv0 64))
 
 ; set_to true (equal)
-(define-fun |main::1::quotient!0@1#3| () (_ BitVec 32) (_ bv0 32))
+(define-fun |main::1::quotient!0@1#3| () (_ BitVec 16) (_ bv0 16))
 
 ; set_to true (equal)
-(define-fun |main::1::remainder!0@1#3| () (_ BitVec 32) (_ bv0 32))
-
-; set_to true (equal)
-(define-fun |main::1::quotient!0@1#4| () (_ BitVec 32) (bvudiv |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1| |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1|))
-
-; set_to true (equal)
-(define-fun |main::1::remainder!0@1#4| () (_ BitVec 32) (bvurem |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1| |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1|))
-
-; set_to true (equal)
-(define-fun |main::1::remainder!0@1#5| () (_ BitVec 32) (ite |goto_symex::&92;guard#1| (_ bv0 32) |main::1::remainder!0@1#4|))
-
-; set_to true (equal)
-(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#3| () (_ BitVec 32) (ite |goto_symex::&92;guard#1| (_ bv0 32) |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1|))
-
-; set_to true (equal)
-(define-fun |main::1::quotient!0@1#5| () (_ BitVec 32) (ite |goto_symex::&92;guard#1| (_ bv0 32) |main::1::quotient!0@1#4|))
+(define-fun |main::1::remainder!0@1#3| () (_ BitVec 16) (_ bv0 16))
 
 ; the following is a substitute for a string
-(declare-fun string.4 () (Array (_ BitVec 64) (_ BitVec 8)))
-(assert (= (select string.4 (_ bv0 64)) (_ bv81 8)))
-(assert (= (select string.4 (_ bv1 64)) (_ bv117 8)))
-(assert (= (select string.4 (_ bv2 64)) (_ bv111 8)))
-(assert (= (select string.4 (_ bv3 64)) (_ bv116 8)))
-(assert (= (select string.4 (_ bv4 64)) (_ bv105 8)))
-(assert (= (select string.4 (_ bv5 64)) (_ bv101 8)))
-(assert (= (select string.4 (_ bv6 64)) (_ bv110 8)))
-(assert (= (select string.4 (_ bv7 64)) (_ bv116 8)))
-(assert (= (select string.4 (_ bv8 64)) (_ bv58 8)))
-(assert (= (select string.4 (_ bv9 64)) (_ bv32 8)))
-(assert (= (select string.4 (_ bv10 64)) (_ bv37 8)))
-(assert (= (select string.4 (_ bv11 64)) (_ bv117 8)))
-(assert (= (select string.4 (_ bv12 64)) (_ bv10 8)))
-(assert (= (select string.4 (_ bv13 64)) (_ bv0 8)))
+(declare-fun string.2 () (Array (_ BitVec 64) (_ BitVec 8)))
+(assert (= (select string.2 (_ bv0 64)) (_ bv81 8)))
+(assert (= (select string.2 (_ bv1 64)) (_ bv117 8)))
+(assert (= (select string.2 (_ bv2 64)) (_ bv111 8)))
+(assert (= (select string.2 (_ bv3 64)) (_ bv116 8)))
+(assert (= (select string.2 (_ bv4 64)) (_ bv105 8)))
+(assert (= (select string.2 (_ bv5 64)) (_ bv101 8)))
+(assert (= (select string.2 (_ bv6 64)) (_ bv110 8)))
+(assert (= (select string.2 (_ bv7 64)) (_ bv116 8)))
+(assert (= (select string.2 (_ bv8 64)) (_ bv58 8)))
+(assert (= (select string.2 (_ bv9 64)) (_ bv32 8)))
+(assert (= (select string.2 (_ bv10 64)) (_ bv37 8)))
+(assert (= (select string.2 (_ bv11 64)) (_ bv117 8)))
+(assert (= (select string.2 (_ bv12 64)) (_ bv10 8)))
+(assert (= (select string.2 (_ bv13 64)) (_ bv0 8)))
 ; set_to true (equal)
 (define-fun |printf::format!0@2#1| () (_ BitVec 64) (concat (_ bv6 8) (_ bv0 56)))
 
 ; set_to true (equal)
-(define-fun |printf::va_arg!0#1| () (_ BitVec 32) |main::1::quotient!0@1#5|)
+(define-fun |printf::va_arg!0#1| () (_ BitVec 16) (_ bv0 16))
 
 ; find_symbols
-(declare-fun |nondet_symex::nondet3| () (_ BitVec 32))
+(declare-fun |nondet_symex::nondet1| () (_ BitVec 32))
 ; set_to true (equal)
-(define-fun |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#2| () (_ BitVec 32) |nondet_symex::nondet3|)
+(define-fun |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#2| () (_ BitVec 32) |nondet_symex::nondet1|)
 
 ; set_to true (equal)
 (define-fun |printf::1::result!0@2#2| () (_ BitVec 32) |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#2|)
 
 ; find_symbols
-(declare-fun |printf::va_arg!0| () (_ BitVec 32))
+(declare-fun |printf::va_arg!0| () (_ BitVec 16))
 ; the following is a substitute for an array constructor
-(declare-fun array.5 () (Array (_ BitVec 64) (_ BitVec 64)))
-(assert (= (select array.5 (_ bv0 64)) (concat (_ bv7 8) (_ bv0 56))))
+(declare-fun array.3 () (Array (_ BitVec 64) (_ BitVec 64)))
+(assert (= (select array.3 (_ bv0 64)) (concat (_ bv7 8) (_ bv0 56))))
 ; set_to true (equal)
-(define-fun |printf::va_args$0!0#1| () (Array (_ BitVec 64) (_ BitVec 64)) array.5)
+(define-fun |printf::va_args$0!0#1| () (Array (_ BitVec 64) (_ BitVec 64)) array.3)
 
 ; set_to true (equal)
 (define-fun |printf::va_args$0!0#1[[0]]| () (_ BitVec 64) (concat (_ bv7 8) (_ bv0 56)))
@@ -285,43 +169,43 @@
 (define-fun |printf::1::list!0@2#3| () (_ BitVec 64) (_ bv0 64))
 
 ; the following is a substitute for a string
-(declare-fun string.6 () (Array (_ BitVec 64) (_ BitVec 8)))
-(assert (= (select string.6 (_ bv0 64)) (_ bv82 8)))
-(assert (= (select string.6 (_ bv1 64)) (_ bv101 8)))
-(assert (= (select string.6 (_ bv2 64)) (_ bv109 8)))
-(assert (= (select string.6 (_ bv3 64)) (_ bv97 8)))
-(assert (= (select string.6 (_ bv4 64)) (_ bv105 8)))
-(assert (= (select string.6 (_ bv5 64)) (_ bv110 8)))
-(assert (= (select string.6 (_ bv6 64)) (_ bv100 8)))
-(assert (= (select string.6 (_ bv7 64)) (_ bv101 8)))
-(assert (= (select string.6 (_ bv8 64)) (_ bv114 8)))
-(assert (= (select string.6 (_ bv9 64)) (_ bv58 8)))
-(assert (= (select string.6 (_ bv10 64)) (_ bv32 8)))
-(assert (= (select string.6 (_ bv11 64)) (_ bv37 8)))
-(assert (= (select string.6 (_ bv12 64)) (_ bv117 8)))
-(assert (= (select string.6 (_ bv13 64)) (_ bv10 8)))
-(assert (= (select string.6 (_ bv14 64)) (_ bv0 8)))
+(declare-fun string.4 () (Array (_ BitVec 64) (_ BitVec 8)))
+(assert (= (select string.4 (_ bv0 64)) (_ bv82 8)))
+(assert (= (select string.4 (_ bv1 64)) (_ bv101 8)))
+(assert (= (select string.4 (_ bv2 64)) (_ bv109 8)))
+(assert (= (select string.4 (_ bv3 64)) (_ bv97 8)))
+(assert (= (select string.4 (_ bv4 64)) (_ bv105 8)))
+(assert (= (select string.4 (_ bv5 64)) (_ bv110 8)))
+(assert (= (select string.4 (_ bv6 64)) (_ bv100 8)))
+(assert (= (select string.4 (_ bv7 64)) (_ bv101 8)))
+(assert (= (select string.4 (_ bv8 64)) (_ bv114 8)))
+(assert (= (select string.4 (_ bv9 64)) (_ bv58 8)))
+(assert (= (select string.4 (_ bv10 64)) (_ bv32 8)))
+(assert (= (select string.4 (_ bv11 64)) (_ bv37 8)))
+(assert (= (select string.4 (_ bv12 64)) (_ bv117 8)))
+(assert (= (select string.4 (_ bv13 64)) (_ bv10 8)))
+(assert (= (select string.4 (_ bv14 64)) (_ bv0 8)))
 ; set_to true (equal)
 (define-fun |printf::format!0@3#1| () (_ BitVec 64) (concat (_ bv9 8) (_ bv0 56)))
 
 ; set_to true (equal)
-(define-fun |printf::va_arg$0!0#1| () (_ BitVec 32) |main::1::remainder!0@1#5|)
+(define-fun |printf::va_arg$0!0#1| () (_ BitVec 16) (_ bv0 16))
 
 ; find_symbols
-(declare-fun |nondet_symex::nondet4| () (_ BitVec 32))
+(declare-fun |nondet_symex::nondet2| () (_ BitVec 32))
 ; set_to true (equal)
-(define-fun |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#2| () (_ BitVec 32) |nondet_symex::nondet4|)
+(define-fun |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#2| () (_ BitVec 32) |nondet_symex::nondet2|)
 
 ; set_to true (equal)
 (define-fun |printf::1::result!0@3#2| () (_ BitVec 32) |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#2|)
 
 ; find_symbols
-(declare-fun |printf::va_arg$0!0| () (_ BitVec 32))
+(declare-fun |printf::va_arg$0!0| () (_ BitVec 16))
 ; the following is a substitute for an array constructor
-(declare-fun array.7 () (Array (_ BitVec 64) (_ BitVec 64)))
-(assert (= (select array.7 (_ bv0 64)) (concat (_ bv10 8) (_ bv0 56))))
+(declare-fun array.5 () (Array (_ BitVec 64) (_ BitVec 64)))
+(assert (= (select array.5 (_ bv0 64)) (concat (_ bv10 8) (_ bv0 56))))
 ; set_to true (equal)
-(define-fun |printf::va_args$1!0#1| () (Array (_ BitVec 64) (_ BitVec 64)) array.7)
+(define-fun |printf::va_args$1!0#1| () (Array (_ BitVec 64) (_ BitVec 64)) array.5)
 
 ; set_to true (equal)
 (define-fun |printf::va_args$1!0#1[[0]]| () (_ BitVec 64) (concat (_ bv10 8) (_ bv0 56)))
@@ -335,230 +219,295 @@
 (define-fun |printf::1::list!0@3#3| () (_ BitVec 64) (_ bv0 64))
 
 ; find_symbols
-(declare-fun |main::1::dividend!0@1#1| () (_ BitVec 32))
+(declare-fun |main::1::dividend!0@1#1| () (_ BitVec 16))
 ; convert
-; Converting var_no 23 with expr ID of =
-(define-fun B23 () Bool (= |main::1::dividend!0@1#1| |main::1::dividend!0@1#1|))
+; Converting var_no 0 with expr ID of =
+(define-fun B0 () Bool (= |main::1::dividend!0@1#1| |main::1::dividend!0@1#1|))
 
 ; convert
-; Converting var_no 24 with expr ID of =
-(define-fun B24 () Bool (= |main::1::dividend!0@1#1| |main::1::dividend!0@1#1|))
+; Converting var_no 1 with expr ID of =
+(define-fun B1 () Bool (= |main::1::dividend!0@1#1| |main::1::dividend!0@1#1|))
 
 ; find_symbols
 (declare-fun |main::$tmp::return_value_unknown!0@1#1| () (_ BitVec 32))
 ; convert
-; Converting var_no 25 with expr ID of =
-(define-fun B25 () Bool (= |main::$tmp::return_value_unknown!0@1#1| |main::$tmp::return_value_unknown!0@1#1|))
+; Converting var_no 2 with expr ID of =
+(define-fun B2 () Bool (= |main::$tmp::return_value_unknown!0@1#1| |main::$tmp::return_value_unknown!0@1#1|))
 
 ; convert
-; Converting var_no 26 with expr ID of =
-(define-fun B26 () Bool (= |main::$tmp::return_value_unknown!0@1#1| |main::$tmp::return_value_unknown!0@1#1|))
+; Converting var_no 3 with expr ID of =
+(define-fun B3 () Bool (= |main::$tmp::return_value_unknown!0@1#1| |main::$tmp::return_value_unknown!0@1#1|))
 
 ; find_symbols
-(declare-fun |main::1::divisor!0@1#1| () (_ BitVec 32))
+(declare-fun |main::1::divisor!0@1#1| () (_ BitVec 8))
 ; convert
-; Converting var_no 27 with expr ID of =
-(define-fun B27 () Bool (= |main::1::divisor!0@1#1| |main::1::divisor!0@1#1|))
+; Converting var_no 4 with expr ID of =
+(define-fun B4 () Bool (= |main::1::divisor!0@1#1| |main::1::divisor!0@1#1|))
 
 ; convert
-; Converting var_no 28 with expr ID of =
-(define-fun B28 () Bool (= |main::1::divisor!0@1#1| |main::1::divisor!0@1#1|))
+; Converting var_no 5 with expr ID of =
+(define-fun B5 () Bool (= |main::1::divisor!0@1#1| |main::1::divisor!0@1#1|))
 
 ; find_symbols
 (declare-fun |main::$tmp::return_value_unknown$0!0@1#1| () (_ BitVec 32))
 ; convert
-; Converting var_no 29 with expr ID of =
-(define-fun B29 () Bool (= |main::$tmp::return_value_unknown$0!0@1#1| |main::$tmp::return_value_unknown$0!0@1#1|))
+; Converting var_no 6 with expr ID of =
+(define-fun B6 () Bool (= |main::$tmp::return_value_unknown$0!0@1#1| |main::$tmp::return_value_unknown$0!0@1#1|))
 
 ; convert
-; Converting var_no 30 with expr ID of =
-(define-fun B30 () Bool (= |main::$tmp::return_value_unknown$0!0@1#1| |main::$tmp::return_value_unknown$0!0@1#1|))
-
-; find_symbols
-(declare-fun |main::1::quotient!0@1#1| () (_ BitVec 32))
-; convert
-; Converting var_no 31 with expr ID of =
-(define-fun B31 () Bool (= |main::1::quotient!0@1#1| |main::1::quotient!0@1#1|))
-
-; convert
-; Converting var_no 32 with expr ID of =
-(define-fun B32 () Bool (= |main::1::quotient!0@1#1| |main::1::quotient!0@1#1|))
+; Converting var_no 7 with expr ID of =
+(define-fun B7 () Bool (= |main::$tmp::return_value_unknown$0!0@1#1| |main::$tmp::return_value_unknown$0!0@1#1|))
 
 ; find_symbols
-(declare-fun |main::1::remainder!0@1#1| () (_ BitVec 32))
+(declare-fun |main::1::quotient!0@1#1| () (_ BitVec 16))
 ; convert
-; Converting var_no 33 with expr ID of =
-(define-fun B33 () Bool (= |main::1::remainder!0@1#1| |main::1::remainder!0@1#1|))
+; Converting var_no 8 with expr ID of =
+(define-fun B8 () Bool (= |main::1::quotient!0@1#1| |main::1::quotient!0@1#1|))
 
 ; convert
-; Converting var_no 34 with expr ID of =
-(define-fun B34 () Bool (= |main::1::remainder!0@1#1| |main::1::remainder!0@1#1|))
+; Converting var_no 9 with expr ID of =
+(define-fun B9 () Bool (= |main::1::quotient!0@1#1| |main::1::quotient!0@1#1|))
+
+; find_symbols
+(declare-fun |main::1::remainder!0@1#1| () (_ BitVec 16))
+; convert
+; Converting var_no 10 with expr ID of =
+(define-fun B10 () Bool (= |main::1::remainder!0@1#1| |main::1::remainder!0@1#1|))
+
+; convert
+; Converting var_no 11 with expr ID of =
+(define-fun B11 () Bool (= |main::1::remainder!0@1#1| |main::1::remainder!0@1#1|))
 
 ; find_symbols
 (declare-fun |printf::1::result!0@1#1| () (_ BitVec 32))
 ; convert
-; Converting var_no 35 with expr ID of =
-(define-fun B35 () Bool (= |printf::1::result!0@1#1| |printf::1::result!0@1#1|))
+; Converting var_no 12 with expr ID of =
+(define-fun B12 () Bool (= |printf::1::result!0@1#1| |printf::1::result!0@1#1|))
 
 ; convert
-; Converting var_no 36 with expr ID of =
-(define-fun B36 () Bool (= |printf::1::result!0@1#1| |printf::1::result!0@1#1|))
+; Converting var_no 13 with expr ID of =
+(define-fun B13 () Bool (= |printf::1::result!0@1#1| |printf::1::result!0@1#1|))
 
 ; find_symbols
 (declare-fun |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1| () (_ BitVec 32))
 ; convert
-; Converting var_no 37 with expr ID of =
-(define-fun B37 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1|))
+; Converting var_no 14 with expr ID of =
+(define-fun B14 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1|))
 
 ; convert
-; Converting var_no 38 with expr ID of =
-(define-fun B38 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1|))
+; Converting var_no 15 with expr ID of =
+(define-fun B15 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1|))
 
 ; find_symbols
 (declare-fun |printf::1::list!0@1#1| () (_ BitVec 64))
 ; convert
-; Converting var_no 39 with expr ID of =
-(define-fun B39 () Bool (= |printf::1::list!0@1#1| |printf::1::list!0@1#1|))
+; Converting var_no 16 with expr ID of =
+(define-fun B16 () Bool (= |printf::1::list!0@1#1| |printf::1::list!0@1#1|))
 
 ; convert
-; Converting var_no 40 with expr ID of =
-(define-fun B40 () Bool (= |printf::1::list!0@1#1| |printf::1::list!0@1#1|))
+; Converting var_no 17 with expr ID of =
+(define-fun B17 () Bool (= |printf::1::list!0@1#1| |printf::1::list!0@1#1|))
 
 ; find_symbols
 (declare-fun |printf::1::result!0@2#1| () (_ BitVec 32))
 ; convert
-; Converting var_no 41 with expr ID of =
-(define-fun B41 () Bool (= |printf::1::result!0@2#1| |printf::1::result!0@2#1|))
+; Converting var_no 18 with expr ID of =
+(define-fun B18 () Bool (= |printf::1::result!0@2#1| |printf::1::result!0@2#1|))
 
 ; convert
-; Converting var_no 42 with expr ID of =
-(define-fun B42 () Bool (= |printf::1::result!0@2#1| |printf::1::result!0@2#1|))
+; Converting var_no 19 with expr ID of =
+(define-fun B19 () Bool (= |printf::1::result!0@2#1| |printf::1::result!0@2#1|))
 
 ; find_symbols
 (declare-fun |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1| () (_ BitVec 32))
 ; convert
-; Converting var_no 43 with expr ID of =
-(define-fun B43 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1|))
+; Converting var_no 20 with expr ID of =
+(define-fun B20 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1|))
 
 ; convert
-; Converting var_no 44 with expr ID of =
-(define-fun B44 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1|))
+; Converting var_no 21 with expr ID of =
+(define-fun B21 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1|))
 
 ; find_symbols
 (declare-fun |printf::1::list!0@2#1| () (_ BitVec 64))
 ; convert
-; Converting var_no 45 with expr ID of =
-(define-fun B45 () Bool (= |printf::1::list!0@2#1| |printf::1::list!0@2#1|))
+; Converting var_no 22 with expr ID of =
+(define-fun B22 () Bool (= |printf::1::list!0@2#1| |printf::1::list!0@2#1|))
 
 ; convert
-; Converting var_no 46 with expr ID of =
-(define-fun B46 () Bool (= |printf::1::list!0@2#1| |printf::1::list!0@2#1|))
+; Converting var_no 23 with expr ID of =
+(define-fun B23 () Bool (= |printf::1::list!0@2#1| |printf::1::list!0@2#1|))
 
 ; find_symbols
 (declare-fun |printf::1::result!0@3#1| () (_ BitVec 32))
 ; convert
-; Converting var_no 47 with expr ID of =
-(define-fun B47 () Bool (= |printf::1::result!0@3#1| |printf::1::result!0@3#1|))
+; Converting var_no 24 with expr ID of =
+(define-fun B24 () Bool (= |printf::1::result!0@3#1| |printf::1::result!0@3#1|))
 
 ; convert
-; Converting var_no 48 with expr ID of =
-(define-fun B48 () Bool (= |printf::1::result!0@3#1| |printf::1::result!0@3#1|))
+; Converting var_no 25 with expr ID of =
+(define-fun B25 () Bool (= |printf::1::result!0@3#1| |printf::1::result!0@3#1|))
 
 ; find_symbols
 (declare-fun |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1| () (_ BitVec 32))
 ; convert
-; Converting var_no 49 with expr ID of =
-(define-fun B49 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1|))
+; Converting var_no 26 with expr ID of =
+(define-fun B26 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1|))
 
 ; convert
-; Converting var_no 50 with expr ID of =
-(define-fun B50 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1|))
+; Converting var_no 27 with expr ID of =
+(define-fun B27 () Bool (= |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1| |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1|))
 
 ; find_symbols
 (declare-fun |printf::1::list!0@3#1| () (_ BitVec 64))
 ; convert
-; Converting var_no 51 with expr ID of =
-(define-fun B51 () Bool (= |printf::1::list!0@3#1| |printf::1::list!0@3#1|))
+; Converting var_no 28 with expr ID of =
+(define-fun B28 () Bool (= |printf::1::list!0@3#1| |printf::1::list!0@3#1|))
 
 ; convert
-; Converting var_no 52 with expr ID of =
-(define-fun B52 () Bool (= |printf::1::list!0@3#1| |printf::1::list!0@3#1|))
-
-; convert
-; Converting var_no 53 with expr ID of not
-(define-fun B53 () Bool (not (= |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1| (_ bv0 32))))
+; Converting var_no 29 with expr ID of =
+(define-fun B29 () Bool (= |printf::1::list!0@3#1| |printf::1::list!0@3#1|))
 
 ; find_symbols
-(declare-fun |symex::args::0| () (_ BitVec 32))
+(declare-fun |symex::args::0| () (_ BitVec 64))
 ; set_to true
-(assert (= |main::1::dividend!0@1#2| |symex::args::0|))
+(assert (= (concat (_ bv2 8) (_ bv0 56)) |symex::args::0|))
 
 ; find_symbols
-(declare-fun |symex::args::1| () (_ BitVec 32))
+(declare-fun |symex::args::1| () (_ BitVec 64))
 ; set_to true
-(assert (= |main::1::divisor!0@1#2| |symex::args::1|))
+(assert (= (concat (_ bv3 8) (_ bv0 56)) |symex::args::1|))
 
 ; find_symbols
 (declare-fun |symex::args::2| () (_ BitVec 64))
 ; set_to true
-(assert (= (concat (_ bv2 8) (_ bv0 56)) |symex::args::2|))
+(assert (= (concat (_ bv4 8) (_ bv0 56)) |symex::args::2|))
 
 ; find_symbols
 (declare-fun |symex::args::3| () (_ BitVec 64))
 ; set_to true
-(assert (= (concat (_ bv3 8) (_ bv0 56)) |symex::args::3|))
+(assert (= (concat (_ bv6 8) (_ bv0 56)) |symex::args::3|))
 
 ; find_symbols
 (declare-fun |symex::args::4| () (_ BitVec 64))
 ; set_to true
-(assert (= (concat (_ bv4 8) (_ bv0 56)) |symex::args::4|))
-
-; find_symbols
-(declare-fun |symex::args::5| () (_ BitVec 64))
-; set_to true
-(assert (= (concat (_ bv6 8) (_ bv0 56)) |symex::args::5|))
-
-; find_symbols
-(declare-fun |symex::args::6| () (_ BitVec 32))
-; set_to true
-(assert (= |main::1::quotient!0@1#5| |symex::args::6|))
-
-; find_symbols
-(declare-fun |symex::args::7| () (_ BitVec 64))
-; set_to true
-(assert (= (concat (_ bv9 8) (_ bv0 56)) |symex::args::7|))
-
-; find_symbols
-(declare-fun |symex::args::8| () (_ BitVec 32))
-; set_to true
-(assert (= |main::1::remainder!0@1#5| |symex::args::8|))
-
-; find_symbols
-(declare-fun |symex::io::0| () (_ BitVec 32))
-; set_to true
-(assert (= |printf::va_arg!0#1| |symex::io::0|))
-
-; find_symbols
-(declare-fun |symex::io::1| () (_ BitVec 32))
-; set_to true
-(assert (= |printf::va_arg$0!0#1| |symex::io::1|))
+(assert (= (concat (_ bv9 8) (_ bv0 56)) |symex::args::4|))
 
 ; set_to false
-(assert (not (= |main::1::quotient!0@1#5| (_ bv1 32))))
-
-; set_to false
-(assert (not (= |main::1::remainder!0@1#5| (_ bv1 32))))
+(assert (not false))
 
 ; convert
-; Converting var_no 54 with expr ID of not
-(define-fun B54 () Bool (not false))
+; Converting var_no 30 with expr ID of not
+(define-fun B30 () Bool (not false))
 
 ; set_to true
-(assert B54)
+(assert B30)
 
 (check-sat)
 
-
+;(get-value (B0))
+;(get-value (B1))
+;(get-value (B10))
+;(get-value (B11))
+;(get-value (B12))
+;(get-value (B13))
+;(get-value (B14))
+;(get-value (B15))
+;(get-value (B16))
+;(get-value (B17))
+;(get-value (B18))
+;(get-value (B19))
+;(get-value (B2))
+;(get-value (B20))
+;(get-value (B21))
+;(get-value (B22))
+;(get-value (B23))
+;(get-value (B24))
+;(get-value (B25))
+;(get-value (B26))
+;(get-value (B27))
+;(get-value (B28))
+;(get-value (B29))
+;(get-value (B3))
+;(get-value (B30))
+;(get-value (B4))
+;(get-value (B5))
+;(get-value (B6))
+;(get-value (B7))
+;(get-value (B8))
+;(get-value (B9))
+;(get-value (|__CPROVER::constant_infinity_uint#1|))
+;(get-value (|__CPROVER_dead_object#1|))
+;(get-value (|__CPROVER_deallocated#1|))
+;(get-value (|__CPROVER_max_malloc_size#1|))
+;(get-value (|__CPROVER_memory_leak#1|))
+;(get-value (|__CPROVER_rounding_mode#1|))
+;(get-value (|divide(unsigned_short_int,unsigned_char,ptr_unsigned_short_int,ptr_unsigned_short_int)::dividend!0@1#1|))
+;(get-value (|divide(unsigned_short_int,unsigned_char,ptr_unsigned_short_int,ptr_unsigned_short_int)::divisor!0@1#1|))
+;(get-value (|divide(unsigned_short_int,unsigned_char,ptr_unsigned_short_int,ptr_unsigned_short_int)::quotient!0@1#1|))
+;(get-value (|divide(unsigned_short_int,unsigned_char,ptr_unsigned_short_int,ptr_unsigned_short_int)::remainder!0@1#1|))
+;(get-value (|goto_symex::return_value::unknown()!0#1|))
+;(get-value (|goto_symex::return_value::unknown()!0#2|))
+;(get-value (|main::$tmp::return_value_unknown!0@1#1|))
+;(get-value (|main::$tmp::return_value_unknown!0@1#2|))
+;(get-value (|main::$tmp::return_value_unknown$0!0@1#1|))
+;(get-value (|main::$tmp::return_value_unknown$0!0@1#2|))
+;(get-value (|main::1::dividend!0@1#1|))
+;(get-value (|main::1::dividend!0@1#2|))
+;(get-value (|main::1::divisor!0@1#1|))
+;(get-value (|main::1::divisor!0@1#2|))
+;(get-value (|main::1::quotient!0@1#1|))
+;(get-value (|main::1::quotient!0@1#2|))
+;(get-value (|main::1::quotient!0@1#3|))
+;(get-value (|main::1::quotient!0@1|))
+;(get-value (|main::1::remainder!0@1#1|))
+;(get-value (|main::1::remainder!0@1#2|))
+;(get-value (|main::1::remainder!0@1#3|))
+;(get-value (|main::1::remainder!0@1|))
+;(get-value (|nondet_symex::nondet0|))
+;(get-value (|nondet_symex::nondet1|))
+;(get-value (|nondet_symex::nondet2|))
+;(get-value (|printf::$tmp::return_value___VERIFIER_nondet_int!0@1#1|))
+;(get-value (|printf::$tmp::return_value___VERIFIER_nondet_int!0@1#2|))
+;(get-value (|printf::$tmp::return_value___VERIFIER_nondet_int!0@2#1|))
+;(get-value (|printf::$tmp::return_value___VERIFIER_nondet_int!0@2#2|))
+;(get-value (|printf::$tmp::return_value___VERIFIER_nondet_int!0@3#1|))
+;(get-value (|printf::$tmp::return_value___VERIFIER_nondet_int!0@3#2|))
+;(get-value (|printf::1::list!0@1#1|))
+;(get-value (|printf::1::list!0@1#2|))
+;(get-value (|printf::1::list!0@1#3|))
+;(get-value (|printf::1::list!0@2#1|))
+;(get-value (|printf::1::list!0@2#2|))
+;(get-value (|printf::1::list!0@2#3|))
+;(get-value (|printf::1::list!0@3#1|))
+;(get-value (|printf::1::list!0@3#2|))
+;(get-value (|printf::1::list!0@3#3|))
+;(get-value (|printf::1::result!0@1#1|))
+;(get-value (|printf::1::result!0@1#2|))
+;(get-value (|printf::1::result!0@2#1|))
+;(get-value (|printf::1::result!0@2#2|))
+;(get-value (|printf::1::result!0@3#1|))
+;(get-value (|printf::1::result!0@3#2|))
+;(get-value (|printf::format!0@1#1|))
+;(get-value (|printf::format!0@2#1|))
+;(get-value (|printf::format!0@3#1|))
+;(get-value (|printf::va_arg!0#1|))
+;(get-value (|printf::va_arg!0|))
+;(get-value (|printf::va_arg$0!0#1|))
+;(get-value (|printf::va_arg$0!0|))
+;(get-value (|printf::va_args!0#1|))
+;(get-value (|printf::va_args!0|))
+;(get-value (|printf::va_args$0!0#1[[0]]|))
+;(get-value (|printf::va_args$0!0#1|))
+;(get-value (|printf::va_args$0!0|))
+;(get-value (|printf::va_args$1!0#1[[0]]|))
+;(get-value (|printf::va_args$1!0#1|))
+;(get-value (|printf::va_args$1!0|))
+;(get-value (|symex::args::0|))
+;(get-value (|symex::args::1|))
+;(get-value (|symex::args::2|))
+;(get-value (|symex::args::3|))
+;(get-value (|symex::args::4|))
 
 (exit)
 ; end of SMT2 file
