@@ -163,17 +163,24 @@ begin
   end
   else if (clk_en_i)
   begin
-    done_o <= 0;
+    // done_o <= 0;
     if (divide_i)       // Start a new division
-    begin
-      quotient <= 0;
-      divide_count <= 0;
-      // dividend placed initially so that remainder bits are zero...
-      grand_dividend <= dividend_i << R_PP;
-      // divisor placed initially for a 1 bit overlap with dividend...
-      // But adjust it back by S_PP, to account for bits that are known
-      // to be leading zeros in the quotient.
-      grand_divisor  <= divisor_i << (N_PP+R_PP-S_PP-1);
+   begin
+    if (dividend_i == 0) 
+      begin
+        quotient <= 0; 
+        done_o <= 1;
+      end
+    else begin
+        quotient <= 0;
+        divide_count <= 0;
+        // dividend placed initially so that remainder bits are zero...
+        grand_dividend <= dividend_i << R_PP;
+        // divisor placed initially for a 1 bit overlap with dividend...
+        // But adjust it back by S_PP, to account for bits that are known
+        // to be leading zeros in the quotient.
+        grand_divisor  <= divisor_i << (N_PP+R_PP-S_PP-1);
+      end
     end
     else if (divide_count == M_PP+R_PP-S_PP-1)
     begin
