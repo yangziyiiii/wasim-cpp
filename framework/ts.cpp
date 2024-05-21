@@ -93,6 +93,36 @@ StateAsmpt::StateAsmpt(const StateAsmpt & another, smt::TermTranslator & tt) {
   assumption_interp_ = another.assumption_interp_; // just make a copy
 }
 
+smt::Term StateAsmpt::interpret_expr_on_curr_state(const smt::Term & expr, smt::SmtSolver & s) const {
+  // first check all variables in expr are contain in the current state
+  // one may accidentally include input variables
+  smt::UnorderedTermSet vars;
+  smt::get_free_symbols(expr, vars);
+  for (const auto & v : vars) {
+    if (sv_.find(v) == sv_.end()) {
+      throw SimulatorException("Variable " + v->to_string() + " is not in the map. Cannot interpret expression.");
+    }
+  }
+  return s->substitute(expr, sv_);
+}
+
+
+smt::Term StateAsmpt::interpret_expr_on_curr_state_and_input(const smt::Term & expr,
+  smt::SmtSolver & s, const smt::UnorderedTermMap & iv_map) const {
+  
+  smt::UnorderedTermMap sv_iv_map = sv_;
+  sv_iv_map.insert(iv_map.begin(), iv_map.end());
+
+  smt::UnorderedTermSet vars;
+  smt::get_free_symbols(expr, vars);
+  for (const auto & v : vars) {
+    if (sv_iv_map.find(v) == sv_iv_map.end()) {
+      throw SimulatorException("Variable " + v->to_string() + " is not in the map. Cannot interpret expression.");
+    }
+  }
+  return s->substitute(expr, sv_iv_map);
+}
+
 // ----------------------------------------------------------------------------------------------
 
 void swap(TransitionSystem & ts1, TransitionSystem & ts2)

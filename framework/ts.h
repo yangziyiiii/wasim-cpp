@@ -63,6 +63,10 @@ public:
   smt::TermVec & update_assumptions() { return asmpt_; }
   std::vector<std::string> & update_assumption_interpretations() { return assumption_interp_; }
 
+  smt::Term interpret_expr_on_curr_state(const smt::Term & expr, smt::SmtSolver & s) const;
+  smt::Term interpret_expr_on_curr_state_and_input(const smt::Term & expr,
+    smt::SmtSolver & s, const smt::UnorderedTermMap & iv_map) const;
+
   // in Python interface, you will not be allowed to update members in place
   // but you can create new ones
 
