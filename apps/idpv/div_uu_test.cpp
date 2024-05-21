@@ -20,7 +20,7 @@ int main() {
     // std::cout << "---------------------------Verilog btor---------------------------" << std::endl;
   
     TransitionSystem sts(solver);
-    BTOR2Encoder btor_parser("../design/idpv-test/div_case/suoglu_div.btor2", sts);
+    BTOR2Encoder btor_parser("../design/idpv-test/div_case/div_uu.btor2", sts);
     std::cout << sts.trans()->to_string() << std::endl;
 
     SymbolicExecutor executor(sts,solver);
@@ -28,9 +28,9 @@ int main() {
     auto initial_state = executor.convert(initdiv);
     executor.init(initial_state);
     auto initial_input = executor.convert(
-        {{"clk",1},{"dividend","a"},{"divisor","b"},{"rst","0"}});
-    auto v_a = initial_input.at(sts.lookup("dividend"));
-    auto v_b = initial_input.at(sts.lookup("divisor"));
+        {{"clk",1},{"z","a"},{"d","b"},{"ena","1"}});
+    auto v_a = initial_input.at(sts.lookup("z"));
+    auto v_b = initial_input.at(sts.lookup("d"));
     std::cout <<"Vlg a expr: " << v_a ->to_string() << std::endl;
     std::cout <<"Vlg b expr: " << v_b ->to_string() << std::endl;
 
@@ -38,18 +38,18 @@ int main() {
     executor.sim_one_step();
 
     auto s1 = executor.get_curr_state();
-    auto v_ret = s1.get_sv().at(sts.lookup("quotient"));
+    auto v_ret = s1.get_sv().at(sts.lookup("q"));
     // auto done_o  = s1.get_sv().at(sts.lookup("done_o"));
 
     for(int i = 0; i < 31; i++){
-        executor.set_input(executor.convert({{"clk",1}}),{});
+        executor.set_input(executor.convert({{"ena",1},{"clk",1}}),{});
         executor.sim_one_step();
 
         s1 = executor.get_curr_state();
         std::cout<<s1.print()<<std::endl; 
         
         // done_o  = s1.get_sv().at(sts.lookup("done_o"));
-        v_ret   = s1.get_sv().at(sts.lookup("quotient"));
+        v_ret   = s1.get_sv().at(sts.lookup("q"));
 
         // std::cout<<"done count: "<< done_o->to_string()<<std::endl;
         std::cout <<"Vlg expr: " << v_ret ->to_string() << std::endl;
@@ -58,7 +58,7 @@ int main() {
     std::cout << "---------------------------C++ smtlib2---------------------------" << std::endl;
 
     smt::SmtLibReader smtlib_reader(solver);
-    smtlib_reader.parse("../design/idpv-test/div_case/suoglu_div.smt2");
+    smtlib_reader.parse("../design/idpv-test/div_case/div_uu.smt2");
 
     auto c_a = smtlib_reader.lookup_symbol("main::1::dividend!0@1#1");
     auto c_b = smtlib_reader.lookup_symbol("main::1::divisor!0@1#1");

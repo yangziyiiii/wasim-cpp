@@ -66,7 +66,7 @@ initial begin
     #20;
     
     dividend_i = 16'b0000000000000000;
-    divisor_i = 8'b00000001;
+    divisor_i = 8'b11111111;
     divide_i = 1;
     
     #20;
