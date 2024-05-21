@@ -21,13 +21,13 @@ void divide(uint32_t dividend, uint32_t divisor, uint32_t *quotient, uint32_t *r
     *remainder = dividend % divisor;
 }
 
-int unknown(){
-    return 0;
-}
+// int unknown(){
+//     return 0;
+// }
 
 int main() {
-    uint32_t dividend = unknown();  
-    uint32_t divisor = unknown();   
+    uint32_t dividend;  
+    uint32_t divisor;   
     uint32_t quotient = 0;
     uint32_t remainder = 0;
 

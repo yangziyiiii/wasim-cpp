@@ -42,7 +42,7 @@ int main() {
     // auto done_o  = s1.get_sv().at(sts.lookup("done_o"));
 
     for(int i = 0; i < 31; i++){
-        executor.set_input(executor.convert({{"ena",1},{"clk",1}}),{});
+        executor.set_input(executor.convert({{"z","a"},{"d","b"},{"ena",1},{"clk",1}}),{});
         executor.sim_one_step();
 
         s1 = executor.get_curr_state();
@@ -62,7 +62,7 @@ int main() {
 
     auto c_a = smtlib_reader.lookup_symbol("main::1::dividend!0@1#1");
     auto c_b = smtlib_reader.lookup_symbol("main::1::divisor!0@1#1");
-    auto c_ret = smtlib_reader.lookup_symbol("main::1::quotient!0@1#1");
+    auto c_ret = smtlib_reader.lookup_symbol("main::1::quotient!0@1#7");
 
     std::cout << "C a:    " << c_a->to_string() << std::endl;
     std::cout << "C b:    " << c_b->to_string() << std::endl;

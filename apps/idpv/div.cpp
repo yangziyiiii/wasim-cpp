@@ -28,7 +28,7 @@ int main() {
     auto initial_state = executor.convert(initdiv);
     executor.init(initial_state);
     auto initial_input = executor.convert(
-        {{"clk",1},{"dividend","a"},{"divisor","b"},{"rst","0"}});
+        {{"clk",1},{"dividend","a"},{"divisor","b"},{"rst",0},{"start",1}});
     auto v_a = initial_input.at(sts.lookup("dividend"));
     auto v_b = initial_input.at(sts.lookup("divisor"));
     std::cout <<"Vlg a expr: " << v_a ->to_string() << std::endl;
@@ -42,27 +42,24 @@ int main() {
     // auto done_o  = s1.get_sv().at(sts.lookup("done_o"));
 
     for(int i = 0; i < 31; i++){
-        executor.set_input(executor.convert({{"clk",1}}),{});
+        executor.set_input(executor.convert({{"clk",1},{"start",0},{"rst",0}}),{});
         executor.sim_one_step();
 
         s1 = executor.get_curr_state();
-        std::cout<<s1.print()<<std::endl; 
-        
-        // done_o  = s1.get_sv().at(sts.lookup("done_o"));
+
         v_ret   = s1.get_sv().at(sts.lookup("quotient"));
 
-        // std::cout<<"done count: "<< done_o->to_string()<<std::endl;
         std::cout <<"Vlg expr: " << v_ret ->to_string() << std::endl;
     }
     
     std::cout << "---------------------------C++ smtlib2---------------------------" << std::endl;
 
     smt::SmtLibReader smtlib_reader(solver);
-    smtlib_reader.parse("../design/idpv-test/div_case/suoglu_div.smt2");
+    smtlib_reader.parse("../design/idpv-test/div_case/aaa.smt2");
 
     auto c_a = smtlib_reader.lookup_symbol("main::1::dividend!0@1#1");
     auto c_b = smtlib_reader.lookup_symbol("main::1::divisor!0@1#1");
-    auto c_ret = smtlib_reader.lookup_symbol("main::1::quotient!0@1#1");
+    auto c_ret = smtlib_reader.lookup_symbol("main::1::quotient!0@1#7");
 
     std::cout << "C a:    " << c_a->to_string() << std::endl;
     std::cout << "C b:    " << c_b->to_string() << std::endl;
@@ -85,7 +82,7 @@ int main() {
         std::cout<<"b equal"<<std::endl;
     }
 
-    auto bvsort8 = solver->make_sort(smt::SortKind::BV, 8);
+    auto bvsort8 = solver->make_sort(smt::SortKind::BV, 32);
     auto divisor_not_eq_0 = solver->make_term(smt::Not,
         solver->make_term(smt::Equal, v_b, solver->make_term(0, bvsort8)));
     solver->assert_formula(divisor_not_eq_0);

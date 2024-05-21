@@ -142,33 +142,33 @@
 (define-fun |__CPROVER::constant_infinity_uint#1| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true (equal)
-(define-fun |main::1::quotient!0@1#2| () (_ BitVec 8) (_ bv0 8))
+(define-fun |main::1::quotient!0@1#2| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true (equal)
-(define-fun |main::1::remainder!0@1#2| () (_ BitVec 8) (_ bv0 8))
-
-; find_symbols
-(declare-fun |main::1::dividend!0@1#1| () (_ BitVec 16))
-; set_to true (equal)
-(define-fun |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::dividend!0@1#1| () (_ BitVec 16) |main::1::dividend!0@1#1|)
+(define-fun |main::1::remainder!0@1#2| () (_ BitVec 32) (_ bv0 32))
 
 ; find_symbols
-(declare-fun |main::1::divisor!0@1#1| () (_ BitVec 8))
+(declare-fun |main::1::dividend!0@1#1| () (_ BitVec 32))
 ; set_to true (equal)
-(define-fun |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::divisor!0@1#1| () (_ BitVec 8) |main::1::divisor!0@1#1|)
+(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1| () (_ BitVec 32) |main::1::dividend!0@1#1|)
 
 ; find_symbols
-(declare-fun |main::1::quotient!0@1| () (_ BitVec 8))
+(declare-fun |main::1::divisor!0@1#1| () (_ BitVec 32))
 ; set_to true (equal)
-(define-fun |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::quotient!0@1#1| () (_ BitVec 64) (concat (_ bv2 8) (_ bv0 56)))
+(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1| () (_ BitVec 32) |main::1::divisor!0@1#1|)
 
 ; find_symbols
-(declare-fun |main::1::remainder!0@1| () (_ BitVec 8))
+(declare-fun |main::1::quotient!0@1| () (_ BitVec 32))
 ; set_to true (equal)
-(define-fun |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::remainder!0@1#1| () (_ BitVec 64) (concat (_ bv3 8) (_ bv0 56)))
+(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::quotient!0@1#1| () (_ BitVec 64) (concat (_ bv2 8) (_ bv0 56)))
+
+; find_symbols
+(declare-fun |main::1::remainder!0@1| () (_ BitVec 32))
+; set_to true (equal)
+(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::remainder!0@1#1| () (_ BitVec 64) (concat (_ bv3 8) (_ bv0 56)))
 
 ; set_to true
-(assert (= |goto_symex::&92;guard#1| (= ((_ zero_extend 24) |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::divisor!0@1#1|) (_ bv0 32))))
+(assert (= |goto_symex::&92;guard#1| (= |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1| (_ bv0 32))))
 
 ; the following is a substitute for a string
 (declare-fun string.4 () (Array (_ BitVec 64) (_ BitVec 8)))
@@ -223,37 +223,46 @@
 (define-fun |printf::1::list!0@1#3| () (_ BitVec 64) (_ bv0 64))
 
 ; set_to true (equal)
-(define-fun |main::1::quotient!0@1#3| () (_ BitVec 8) (_ bv0 8))
+(define-fun |main::1::quotient!0@1#3| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true (equal)
-(define-fun |main::1::remainder!0@1#3| () (_ BitVec 8) (_ bv0 8))
+(define-fun |main::1::remainder!0@1#3| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true
-(assert (= |goto_symex::&92;guard#2| (= ((_ zero_extend 16) |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::dividend!0@1#1|) (_ bv0 32))))
+(assert (= |goto_symex::&92;guard#2| (= |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1| (_ bv0 32))))
 
 ; set_to true (equal)
-(define-fun |main::1::quotient!0@1#4| () (_ BitVec 8) (_ bv0 8))
+(define-fun |main::1::quotient!0@1#4| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true (equal)
-(define-fun |main::1::remainder!0@1#4| () (_ BitVec 8) (_ bv0 8))
+(define-fun |main::1::remainder!0@1#4| () (_ BitVec 32) (_ bv0 32))
 
 ; set_to true (equal)
-(define-fun |main::1::quotient!0@1#5| () (_ BitVec 8) ((_ extract 7 0) (bvsdiv ((_ zero_extend 16) |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::dividend!0@1#1|) ((_ zero_extend 24) |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::divisor!0@1#1|))))
+(define-fun |main::1::quotient!0@1#5| () (_ BitVec 32) (bvudiv |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1| |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1|))
 
 ; set_to true (equal)
-(define-fun |main::1::remainder!0@1#5| () (_ BitVec 8) ((_ extract 7 0) (bvsrem ((_ zero_extend 16) |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::dividend!0@1#1|) ((_ zero_extend 24) |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::divisor!0@1#1|))))
+(define-fun |main::1::remainder!0@1#5| () (_ BitVec 32) (bvurem |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1| |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1|))
 
 ; set_to true (equal)
-(define-fun |main::1::quotient!0@1#6| () (_ BitVec 8) (ite (and (not |goto_symex::&92;guard#1|) |goto_symex::&92;guard#2|) (_ bv0 8) |main::1::quotient!0@1#5|))
+(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#3| () (_ BitVec 32) (ite (and (not |goto_symex::&92;guard#1|) |goto_symex::&92;guard#2|) (_ bv0 32) |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1|))
 
 ; set_to true (equal)
-(define-fun |main::1::remainder!0@1#6| () (_ BitVec 8) (ite (and (not |goto_symex::&92;guard#1|) |goto_symex::&92;guard#2|) (_ bv0 8) |main::1::remainder!0@1#5|))
+(define-fun |main::1::quotient!0@1#6| () (_ BitVec 32) (ite (and (not |goto_symex::&92;guard#1|) |goto_symex::&92;guard#2|) (_ bv0 32) |main::1::quotient!0@1#5|))
 
 ; set_to true (equal)
-(define-fun |main::1::quotient!0@1#7| () (_ BitVec 8) (ite |goto_symex::&92;guard#1| (_ bv0 8) |main::1::quotient!0@1#6|))
+(define-fun |main::1::remainder!0@1#6| () (_ BitVec 32) (ite (and (not |goto_symex::&92;guard#1|) |goto_symex::&92;guard#2|) (_ bv0 32) |main::1::remainder!0@1#5|))
 
 ; set_to true (equal)
-(define-fun |main::1::remainder!0@1#7| () (_ BitVec 8) (ite |goto_symex::&92;guard#1| (_ bv0 8) |main::1::remainder!0@1#6|))
+(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#3| () (_ BitVec 32) (ite |goto_symex::&92;guard#1| (_ bv0 32) |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1|))
+
+; set_to true (equal)
+(define-fun |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#4| () (_ BitVec 32) (ite |goto_symex::&92;guard#1| |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1| |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#3|))
+
+; set_to true (equal)
+(define-fun |main::1::quotient!0@1#7| () (_ BitVec 32) (ite |goto_symex::&92;guard#1| (_ bv0 32) |main::1::quotient!0@1#6|))
+
+; set_to true (equal)
+(define-fun |main::1::remainder!0@1#7| () (_ BitVec 32) (ite |goto_symex::&92;guard#1| (_ bv0 32) |main::1::remainder!0@1#6|))
 
 ; the following is a substitute for a string
 (declare-fun string.6 () (Array (_ BitVec 64) (_ BitVec 8)))
@@ -275,7 +284,7 @@
 (define-fun |printf::format!0@2#1| () (_ BitVec 64) (concat (_ bv6 8) (_ bv0 56)))
 
 ; set_to true (equal)
-(define-fun |printf::va_arg!0#1| () (_ BitVec 8) |main::1::quotient!0@1#7|)
+(define-fun |printf::va_arg!0#1| () (_ BitVec 32) |main::1::quotient!0@1#7|)
 
 ; find_symbols
 (declare-fun |nondet_symex::nondet1| () (_ BitVec 32))
@@ -286,7 +295,7 @@
 (define-fun |printf::1::result!0@2#2| () (_ BitVec 32) |printf::$tmp::return_value___VERIFIER_nondet_int!0@2#2|)
 
 ; find_symbols
-(declare-fun |printf::va_arg!0| () (_ BitVec 8))
+(declare-fun |printf::va_arg!0| () (_ BitVec 32))
 ; the following is a substitute for an array constructor
 (declare-fun array.7 () (Array (_ BitVec 64) (_ BitVec 64)))
 (assert (= (select array.7 (_ bv0 64)) (concat (_ bv7 8) (_ bv0 56))))
@@ -325,7 +334,7 @@
 (define-fun |printf::format!0@3#1| () (_ BitVec 64) (concat (_ bv9 8) (_ bv0 56)))
 
 ; set_to true (equal)
-(define-fun |printf::va_arg$0!0#1| () (_ BitVec 8) |main::1::remainder!0@1#7|)
+(define-fun |printf::va_arg$0!0#1| () (_ BitVec 32) |main::1::remainder!0@1#7|)
 
 ; find_symbols
 (declare-fun |nondet_symex::nondet2| () (_ BitVec 32))
@@ -336,7 +345,7 @@
 (define-fun |printf::1::result!0@3#2| () (_ BitVec 32) |printf::$tmp::return_value___VERIFIER_nondet_int!0@3#2|)
 
 ; find_symbols
-(declare-fun |printf::va_arg$0!0| () (_ BitVec 8))
+(declare-fun |printf::va_arg$0!0| () (_ BitVec 32))
 ; the following is a substitute for an array constructor
 (declare-fun array.9 () (Array (_ BitVec 64) (_ BitVec 64)))
 (assert (= (select array.9 (_ bv0 64)) (concat (_ bv10 8) (_ bv0 56))))
@@ -371,7 +380,7 @@
 (define-fun B32 () Bool (= |main::1::divisor!0@1#1| |main::1::divisor!0@1#1|))
 
 ; find_symbols
-(declare-fun |main::1::quotient!0@1#1| () (_ BitVec 8))
+(declare-fun |main::1::quotient!0@1#1| () (_ BitVec 32))
 ; convert
 ; Converting var_no 33 with expr ID of =
 (define-fun B33 () Bool (= |main::1::quotient!0@1#1| |main::1::quotient!0@1#1|))
@@ -381,7 +390,7 @@
 (define-fun B34 () Bool (= |main::1::quotient!0@1#1| |main::1::quotient!0@1#1|))
 
 ; find_symbols
-(declare-fun |main::1::remainder!0@1#1| () (_ BitVec 8))
+(declare-fun |main::1::remainder!0@1#1| () (_ BitVec 32))
 ; convert
 ; Converting var_no 35 with expr ID of =
 (define-fun B35 () Bool (= |main::1::remainder!0@1#1| |main::1::remainder!0@1#1|))
@@ -482,19 +491,19 @@
 
 ; convert
 ; Converting var_no 55 with expr ID of not
-(define-fun B55 () Bool (not (= ((_ zero_extend 24) |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::divisor!0@1#1|) (_ bv0 32))))
+(define-fun B55 () Bool (not (= |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1| (_ bv0 32))))
 
 ; convert
 ; Converting var_no 56 with expr ID of not
-(define-fun B56 () Bool (not (= ((_ zero_extend 16) |divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::dividend!0@1#1|) (_ bv0 32))))
+(define-fun B56 () Bool (not (= |divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1| (_ bv0 32))))
 
 ; find_symbols
-(declare-fun |symex::args::0| () (_ BitVec 16))
+(declare-fun |symex::args::0| () (_ BitVec 32))
 ; set_to true
 (assert (= |main::1::dividend!0@1#1| |symex::args::0|))
 
 ; find_symbols
-(declare-fun |symex::args::1| () (_ BitVec 8))
+(declare-fun |symex::args::1| () (_ BitVec 32))
 ; set_to true
 (assert (= |main::1::divisor!0@1#1| |symex::args::1|))
 
@@ -519,7 +528,7 @@
 (assert (= (concat (_ bv6 8) (_ bv0 56)) |symex::args::5|))
 
 ; find_symbols
-(declare-fun |symex::args::6| () (_ BitVec 8))
+(declare-fun |symex::args::6| () (_ BitVec 32))
 ; set_to true
 (assert (= |main::1::quotient!0@1#7| |symex::args::6|))
 
@@ -529,25 +538,25 @@
 (assert (= (concat (_ bv9 8) (_ bv0 56)) |symex::args::7|))
 
 ; find_symbols
-(declare-fun |symex::args::8| () (_ BitVec 8))
+(declare-fun |symex::args::8| () (_ BitVec 32))
 ; set_to true
 (assert (= |main::1::remainder!0@1#7| |symex::args::8|))
 
 ; find_symbols
-(declare-fun |symex::io::0| () (_ BitVec 8))
+(declare-fun |symex::io::0| () (_ BitVec 32))
 ; set_to true
 (assert (= |printf::va_arg!0#1| |symex::io::0|))
 
 ; find_symbols
-(declare-fun |symex::io::1| () (_ BitVec 8))
+(declare-fun |symex::io::1| () (_ BitVec 32))
 ; set_to true
 (assert (= |printf::va_arg$0!0#1| |symex::io::1|))
 
 ; set_to false
-(assert (not (= ((_ zero_extend 24) |main::1::quotient!0@1#7|) (_ bv1 32))))
+(assert (not (= |main::1::quotient!0@1#7| (_ bv1 32))))
 
 ; set_to false
-(assert (not (= ((_ zero_extend 24) |main::1::remainder!0@1#7|) (_ bv1 32))))
+(assert (not (= |main::1::remainder!0@1#7| (_ bv1 32))))
 
 ; convert
 ; Converting var_no 57 with expr ID of not
@@ -622,10 +631,13 @@
 (get-value (|__CPROVER_max_malloc_size#1|))
 (get-value (|__CPROVER_memory_leak#1|))
 (get-value (|__CPROVER_rounding_mode#1|))
-(get-value (|divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::dividend!0@1#1|))
-(get-value (|divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::divisor!0@1#1|))
-(get-value (|divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::quotient!0@1#1|))
-(get-value (|divide(unsigned_short_int,unsigned_char,ptr_unsigned_char,ptr_unsigned_char)::remainder!0@1#1|))
+(get-value (|divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1|))
+(get-value (|divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#3|))
+(get-value (|divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#4|))
+(get-value (|divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1|))
+(get-value (|divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#3|))
+(get-value (|divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::quotient!0@1#1|))
+(get-value (|divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::remainder!0@1#1|))
 (get-value (|goto_symex::&92;guard#1|))
 (get-value (|goto_symex::&92;guard#2|))
 (get-value (|main::1::dividend!0@1#1|))
