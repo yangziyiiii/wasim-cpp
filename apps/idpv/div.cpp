@@ -21,7 +21,7 @@ int main() {
   
     TransitionSystem sts(solver);
     BTOR2Encoder btor_parser("../design/idpv-test/div_case/suoglu_div.btor2", sts);
-    std::cout << sts.trans()->to_string() << std::endl;
+    std::cout << "Trans:" << sts.trans()->to_string() << std::endl;
 
     SymbolicExecutor executor(sts,solver);
     assignment_type initdiv = {};
@@ -31,6 +31,8 @@ int main() {
         {{"clk",1},{"dividend","a"},{"divisor","b"},{"rst",0},{"start",1}});
     auto v_a = initial_input.at(sts.lookup("dividend"));
     auto v_b = initial_input.at(sts.lookup("divisor"));
+
+
     std::cout <<"Vlg a expr: " << v_a ->to_string() << std::endl;
     std::cout <<"Vlg b expr: " << v_b ->to_string() << std::endl;
 
@@ -39,17 +41,25 @@ int main() {
 
     auto s1 = executor.get_curr_state();
     auto v_ret = s1.get_sv().at(sts.lookup("quotient"));
+
+    std::vector<decltype(s1)> states;
+    states.push_back(s1);
     // auto done_o  = s1.get_sv().at(sts.lookup("done_o"));
 
-    for(int i = 0; i < 31; i++){
+
+    for(int i = 0; i < 65; i++){
         executor.set_input(executor.convert({{"clk",1},{"start",0},{"rst",0}}),{});
         executor.sim_one_step();
 
         s1 = executor.get_curr_state();
+        states.push_back(s1);
 
         v_ret   = s1.get_sv().at(sts.lookup("quotient"));
+    }
 
-        std::cout <<"Vlg expr: " << v_ret ->to_string() << std::endl;
+    for (const auto & a: s1.get_assumptions() ) {
+        std::cout << "assumption: " << a->to_string() << std::endl;  // HZ: this is the initial constraint
+        solver->assert_formula(a);
     }
     
     std::cout << "---------------------------C++ smtlib2---------------------------" << std::endl;
@@ -117,6 +127,16 @@ int main() {
         std::cout<<"cexpr:"<<solver->get_value(c_ret)<<std::endl;
         
         std::cout << "exist unequal" << std::endl;
+
+        std::ofstream fout("cex.txt");
+        for (size_t i = 0; i<states.size(); ++i) {
+            for(const auto & sv_val_pair : states[i].get_sv()) {
+                fout << sv_val_pair.first->to_string() << " = ";
+                fout << solver->get_value(sv_val_pair.second)->to_string() << " , ";
+            }
+            fout << "\n";
+        }   
+
     }
     return 0;
 }
