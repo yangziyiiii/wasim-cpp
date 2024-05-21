@@ -276,6 +276,9 @@ target_link_libraries(testdiv wasim-lib)
 add_executable(testdivuu "apps/idpv/div_uu_test.cpp")
 target_link_libraries(testdivuu wasim-lib)
 
+add_executable(testdivcondeq "apps/idpv/div_condeq.cpp")
+target_link_libraries(testdivcondeq wasim-lib)
+
 # add_executable(independence_check_test "independence_check_test.cpp")
 # target_link_libraries(independence_check_test wasim)
 
