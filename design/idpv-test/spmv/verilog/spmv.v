@@ -6,7 +6,7 @@
 
 `timescale 1 ns / 1 ps 
 
-(* CORE_GENERATION_INFO="spmv_spmv,hls_ip_2023_2,{HLS_INPUT_TYPE=c,HLS_INPUT_FLOAT=0,HLS_INPUT_FIXED=0,HLS_INPUT_PART=xc7v585t-ffg1761-2,HLS_INPUT_CLOCK=10.000000,HLS_INPUT_ARCH=others,HLS_SYN_CLOCK=7.148000,HLS_SYN_LAT=-1,HLS_SYN_TPT=none,HLS_SYN_MEM=0,HLS_SYN_DSP=0,HLS_SYN_FF=1229,HLS_SYN_LUT=1297,HLS_VERSION=2023_2}" *)
+(* CORE_GENERATION_INFO="spmv_spmv,hls_ip_2023_2,{HLS_INPUT_TYPE=c,HLS_INPUT_FLOAT=0,HLS_INPUT_FIXED=0,HLS_INPUT_PART=xc7v585t-ffg1761-2,HLS_INPUT_CLOCK=10.000000,HLS_INPUT_ARCH=others,HLS_SYN_CLOCK=7.148000,HLS_SYN_LAT=-1,HLS_SYN_TPT=none,HLS_SYN_MEM=0,HLS_SYN_DSP=0,HLS_SYN_FF=1219,HLS_SYN_LUT=1291,HLS_VERSION=2023_2}" *)
 
 module spmv (
         ap_clk,
@@ -48,22 +48,22 @@ input   ap_start;
 output   ap_done;
 output   ap_idle;
 output   ap_ready;
-output  [10:0] val_r_address0;
+output  [3:0] val_r_address0;
 output   val_r_ce0;
 input  [63:0] val_r_q0;
-output  [10:0] cols_address0;
+output  [3:0] cols_address0;
 output   cols_ce0;
 input  [31:0] cols_q0;
-output  [8:0] rowDelimiters_address0;
+output  [3:0] rowDelimiters_address0;
 output   rowDelimiters_ce0;
 input  [31:0] rowDelimiters_q0;
-output  [8:0] rowDelimiters_address1;
+output  [3:0] rowDelimiters_address1;
 output   rowDelimiters_ce1;
 input  [31:0] rowDelimiters_q1;
-output  [8:0] vec_address0;
+output  [3:0] vec_address0;
 output   vec_ce0;
 input  [63:0] vec_q0;
-output  [8:0] out_r_address0;
+output  [3:0] out_r_address0;
 output   out_r_ce0;
 output   out_r_we0;
 output  [63:0] out_r_d0;
@@ -88,11 +88,11 @@ wire    grp_spmv_Pipeline_spmv_2_fu_94_ap_start;
 wire    grp_spmv_Pipeline_spmv_2_fu_94_ap_done;
 wire    grp_spmv_Pipeline_spmv_2_fu_94_ap_idle;
 wire    grp_spmv_Pipeline_spmv_2_fu_94_ap_ready;
-wire   [10:0] grp_spmv_Pipeline_spmv_2_fu_94_val_r_address0;
+wire   [3:0] grp_spmv_Pipeline_spmv_2_fu_94_val_r_address0;
 wire    grp_spmv_Pipeline_spmv_2_fu_94_val_r_ce0;
-wire   [10:0] grp_spmv_Pipeline_spmv_2_fu_94_cols_address0;
+wire   [3:0] grp_spmv_Pipeline_spmv_2_fu_94_cols_address0;
 wire    grp_spmv_Pipeline_spmv_2_fu_94_cols_ce0;
-wire   [8:0] grp_spmv_Pipeline_spmv_2_fu_94_vec_address0;
+wire   [3:0] grp_spmv_Pipeline_spmv_2_fu_94_vec_address0;
 wire    grp_spmv_Pipeline_spmv_2_fu_94_vec_ce0;
 wire   [63:0] grp_spmv_Pipeline_spmv_2_fu_94_sum_out;
 wire    grp_spmv_Pipeline_spmv_2_fu_94_sum_out_ap_vld;
@@ -101,8 +101,8 @@ wire    ap_CS_fsm_state4;
 wire   [0:0] icmp_ln12_fu_117_p2;
 wire   [63:0] zext_ln15_fu_134_p1;
 wire    ap_CS_fsm_state5;
-reg   [8:0] i_fu_48;
-wire   [8:0] add_ln15_fu_123_p2;
+reg   [3:0] i_fu_48;
+wire   [3:0] add_ln15_fu_123_p2;
 reg   [4:0] ap_NS_fsm;
 reg    ap_ST_fsm_state1_blk;
 wire    ap_ST_fsm_state2_blk;
@@ -115,7 +115,7 @@ wire    ap_ce_reg;
 initial begin
 #0 ap_CS_fsm = 5'd1;
 #0 grp_spmv_Pipeline_spmv_2_fu_94_ap_start_reg = 1'b0;
-#0 i_fu_48 = 9'd0;
+#0 i_fu_48 = 4'd0;
 end
 
 spmv_spmv_Pipeline_spmv_2 grp_spmv_Pipeline_spmv_2_fu_94(
@@ -162,7 +162,7 @@ end
 
 always @ (posedge ap_clk) begin
     if (((1'b1 == ap_CS_fsm_state1) & (ap_start == 1'b1))) begin
-        i_fu_48 <= 9'd0;
+        i_fu_48 <= 4'd0;
     end else if (((1'b1 == ap_CS_fsm_state2) & (icmp_ln12_fu_117_p2 == 1'd0))) begin
         i_fu_48 <= add_ln15_fu_123_p2;
     end
@@ -177,7 +177,7 @@ end
 
 always @ (posedge ap_clk) begin
     if ((1'b1 == ap_CS_fsm_state2)) begin
-        zext_ln12_reg_168[8 : 0] <= zext_ln12_fu_129_p1[8 : 0];
+        zext_ln12_reg_168[3 : 0] <= zext_ln12_fu_129_p1[3 : 0];
     end
 end
 
@@ -294,7 +294,7 @@ always @ (*) begin
     endcase
 end
 
-assign add_ln15_fu_123_p2 = (i_fu_48 + 9'd1);
+assign add_ln15_fu_123_p2 = (i_fu_48 + 4'd1);
 
 assign ap_CS_fsm_state1 = ap_CS_fsm[32'd0];
 
@@ -312,7 +312,7 @@ assign cols_ce0 = grp_spmv_Pipeline_spmv_2_fu_94_cols_ce0;
 
 assign grp_spmv_Pipeline_spmv_2_fu_94_ap_start = grp_spmv_Pipeline_spmv_2_fu_94_ap_start_reg;
 
-assign icmp_ln12_fu_117_p2 = ((i_fu_48 == 9'd494) ? 1'b1 : 1'b0);
+assign icmp_ln12_fu_117_p2 = ((i_fu_48 == 4'd10) ? 1'b1 : 1'b0);
 
 assign out_r_address0 = zext_ln12_reg_168;
 
@@ -335,7 +335,7 @@ assign zext_ln12_fu_129_p1 = i_fu_48;
 assign zext_ln15_fu_134_p1 = add_ln15_fu_123_p2;
 
 always @ (posedge ap_clk) begin
-    zext_ln12_reg_168[63:9] <= 55'b0000000000000000000000000000000000000000000000000000000;
+    zext_ln12_reg_168[63:4] <= 60'b000000000000000000000000000000000000000000000000000000000000;
 end
 
 endmodule //spmv

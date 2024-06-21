@@ -32,12 +32,11 @@ always @(posedge clk) begin
     din0_2 <= din0_1;
     din0_3 <= din0_2;
 //1
-    din0_0 <= din0;
-    din0_1 <= din0_0;
-    din0_2 <= din0_1;
-    din0_3 <= din0_2;
+    din1_0 <= din1;
+    din1_1 <= din1_0;
+    din1_2 <= din1_1;
+    din1_3 <= din1_2;
     
-
     dout_reg <= din0_3;
 end
 
