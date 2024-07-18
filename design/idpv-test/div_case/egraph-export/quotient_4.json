@@ -1,0 +1,271 @@
+{
+    "0": {
+        "children": [],
+        "id": 0,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b00",
+        "width": 2
+    },
+    "1": {
+        "children": [],
+        "id": 1,
+        "op": "variable",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "b",
+        "width": 32
+    },
+    "10": {
+        "children": [
+            6,
+            9
+        ],
+        "id": 10,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "11": {
+        "children": [
+            10
+        ],
+        "id": 11,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "12": {
+        "children": [
+            11,
+            8
+        ],
+        "id": 12,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "13": {
+        "children": [
+            12
+        ],
+        "id": 13,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "14": {
+        "children": [
+            5,
+            1
+        ],
+        "id": 14,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "15": {
+        "children": [
+            10,
+            14,
+            3
+        ],
+        "id": 15,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "16": {
+        "children": [
+            6,
+            15
+        ],
+        "id": 16,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "17": {
+        "children": [
+            16
+        ],
+        "id": 17,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "18": {
+        "children": [
+            17,
+            13
+        ],
+        "id": 18,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "19": {
+        "children": [
+            18
+        ],
+        "id": 19,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "2": {
+        "children": [
+            1
+        ],
+        "id": 2,
+        "op": "extract",
+        "opidx0": 30,
+        "opidx1": 0,
+        "width": 31
+    },
+    "20": {
+        "children": [],
+        "id": 20,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b1111111111111111111111111111111",
+        "width": 31
+    },
+    "21": {
+        "children": [
+            20,
+            19
+        ],
+        "id": 21,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 32
+    },
+    "22": {
+        "children": [
+            21
+        ],
+        "id": 22,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 32
+    },
+    "23": {
+        "children": [],
+        "id": 23,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b00000000000000000000000000000000",
+        "width": 32
+    },
+    "24": {
+        "children": [
+            12,
+            23,
+            22
+        ],
+        "id": 24,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 32
+    },
+    "3": {
+        "children": [
+            2,
+            0
+        ],
+        "id": 3,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "4": {
+        "children": [],
+        "id": 4,
+        "op": "variable",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "a",
+        "width": 32
+    },
+    "5": {
+        "children": [],
+        "id": 5,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b0",
+        "width": 1
+    },
+    "6": {
+        "children": [
+            5,
+            4
+        ],
+        "id": 6,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "7": {
+        "children": [
+            6,
+            3
+        ],
+        "id": 7,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "8": {
+        "children": [
+            7
+        ],
+        "id": 8,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "9": {
+        "children": [
+            1,
+            5
+        ],
+        "id": 9,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "allops": [
+        "bvand",
+        "bvnot",
+        "bvult",
+        "concat",
+        "extract",
+        "variable",
+        "ite",
+        "constant"
+    ],
+    "root": 24
+}
