@@ -132,6 +132,7 @@ set(SOURCES
     "${PROJECT_SOURCE_DIR}/framework/term_manip.cpp"
     "${PROJECT_SOURCE_DIR}/framework/sygus_simplify.cpp"
     "${PROJECT_SOURCE_DIR}/framework/state_simplify.cpp"
+    "${PROJECT_SOURCE_DIR}/framework/egraph/json_export.cpp"
     "${PROJECT_SOURCE_DIR}/utils/logger.cpp"
 )
 
@@ -278,6 +279,9 @@ target_link_libraries(testdivuu wasim-lib)
 
 add_executable(testdivcondeq "apps/idpv/div_condeq.cpp")
 target_link_libraries(testdivcondeq wasim-lib)
+
+add_executable(testdivcondeqexport "apps/idpv/div_condeq_rewrite.cpp")
+target_link_libraries(testdivcondeqexport wasim-lib)
 
 add_executable(testspmv "apps/idpv/spmv.cpp")
 target_link_libraries(testspmv wasim-lib)
