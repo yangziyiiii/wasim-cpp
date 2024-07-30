@@ -282,16 +282,11 @@ target_link_libraries(test_ast wasim-lib)
 # add_executable(testdivcondeq "apps/idpv/div_condeq.cpp")
 # target_link_libraries(testdivcondeq wasim-lib)
 
-<<<<<<< HEAD
 add_executable(testdivcondeqexport "apps/idpv/div_condeq_rewrite.cpp")
 target_link_libraries(testdivcondeqexport wasim-lib)
 
 add_executable(testspmv "apps/idpv/spmv.cpp")
 target_link_libraries(testspmv wasim-lib)
-=======
-# add_executable(testspmv "apps/idpv/spmv.cpp")
-# target_link_libraries(testspmv wasim-lib)
->>>>>>> 086c4bb (compare ast nodes and fing eq_node)
 
 # add_executable(independence_check_test "independence_check_test.cpp")
 # target_link_libraries(independence_check_test wasim)
