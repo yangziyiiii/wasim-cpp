@@ -248,43 +248,50 @@ if(NOT TARGET uninstall)
         COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 endif()
 
+add_executable(test_ast "apps/idpv/ast-test.cpp")
+target_link_libraries(test_ast wasim-lib)
 
-add_executable(test1 "apps/idpv/test.cpp")
-target_link_libraries(test1 wasim-lib)
+# add_executable(test1 "apps/idpv/test.cpp")
+# target_link_libraries(test1 wasim-lib)
 
-add_executable(test2 "apps/idpv/unroll-test.cpp")
-target_link_libraries(test2 wasim-lib)
-set(CMAKE_BUILD_TYPE "debug")
+# add_executable(test2 "apps/idpv/unroll-test.cpp")
+# target_link_libraries(test2 wasim-lib)
+# set(CMAKE_BUILD_TYPE "debug")
 
-add_executable(testmul32 "apps/idpv/mul32test.cpp")
-target_link_libraries(testmul32 wasim-lib)
+# add_executable(testmul32 "apps/idpv/mul32test.cpp")
+# target_link_libraries(testmul32 wasim-lib)
 
-add_executable(test2cycle "apps/idpv/2cyclemultest.cpp")
-target_link_libraries(test2cycle wasim-lib)
+# add_executable(test2cycle "apps/idpv/2cyclemultest.cpp")
+# target_link_libraries(test2cycle wasim-lib)
 
-add_executable(testvv "apps/idpv/12cycletest.cpp")
-target_link_libraries(testvv wasim-lib)
+# add_executable(testvv "apps/idpv/12cycletest.cpp")
+# target_link_libraries(testvv wasim-lib)
 
-add_executable(testtop "apps/idpv/toptest.cpp")
-target_link_libraries(testtop wasim-lib)
+# add_executable(testtop "apps/idpv/toptest.cpp")
+# target_link_libraries(testtop wasim-lib)
 
-add_executable(testf32 "apps/idpv/f32multest.cpp")
-target_link_libraries(testf32 wasim-lib)
+# add_executable(testf32 "apps/idpv/f32multest.cpp")
+# target_link_libraries(testf32 wasim-lib)
 
-add_executable(testdiv "apps/idpv/div.cpp")
-target_link_libraries(testdiv wasim-lib)
+# add_executable(testdiv "apps/idpv/div.cpp")
+# target_link_libraries(testdiv wasim-lib)
 
-add_executable(testdivuu "apps/idpv/div_uu_test.cpp")
-target_link_libraries(testdivuu wasim-lib)
+# add_executable(testdivuu "apps/idpv/div_uu_test.cpp")
+# target_link_libraries(testdivuu wasim-lib)
 
-add_executable(testdivcondeq "apps/idpv/div_condeq.cpp")
-target_link_libraries(testdivcondeq wasim-lib)
+# add_executable(testdivcondeq "apps/idpv/div_condeq.cpp")
+# target_link_libraries(testdivcondeq wasim-lib)
 
+<<<<<<< HEAD
 add_executable(testdivcondeqexport "apps/idpv/div_condeq_rewrite.cpp")
 target_link_libraries(testdivcondeqexport wasim-lib)
 
 add_executable(testspmv "apps/idpv/spmv.cpp")
 target_link_libraries(testspmv wasim-lib)
+=======
+# add_executable(testspmv "apps/idpv/spmv.cpp")
+# target_link_libraries(testspmv wasim-lib)
+>>>>>>> 086c4bb (compare ast nodes and fing eq_node)
 
 # add_executable(independence_check_test "independence_check_test.cpp")
 # target_link_libraries(independence_check_test wasim)
