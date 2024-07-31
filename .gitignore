@@ -40,3 +40,6 @@ __pycache__/*
 
 output/
 
+.metals/
+.bsp/
+.scala-build/
