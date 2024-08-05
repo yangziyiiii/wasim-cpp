@@ -1,0 +1,1300 @@
+{
+    "0": {
+        "children": [],
+        "id": 0,
+        "op": "variable",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "a",
+        "width": 32
+    },
+    "1": {
+        "children": [],
+        "id": 1,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b0",
+        "width": 1
+    },
+    "10": {
+        "children": [
+            9,
+            7,
+            6
+        ],
+        "id": 10,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "100": {
+        "children": [
+            99
+        ],
+        "id": 100,
+        "op": "extract",
+        "opidx0": 5,
+        "opidx1": 0,
+        "width": 6
+    },
+    "101": {
+        "children": [
+            43,
+            100,
+            97
+        ],
+        "id": 101,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 6
+    },
+    "102": {
+        "children": [
+            68,
+            98
+        ],
+        "id": 102,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 32
+    },
+    "103": {
+        "children": [
+            102
+        ],
+        "id": 103,
+        "op": "extract",
+        "opidx0": 5,
+        "opidx1": 0,
+        "width": 6
+    },
+    "104": {
+        "children": [
+            55,
+            103,
+            101
+        ],
+        "id": 104,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 6
+    },
+    "105": {
+        "children": [
+            61,
+            104
+        ],
+        "id": 105,
+        "op": "=",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "106": {
+        "children": [
+            80,
+            105
+        ],
+        "id": 106,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "107": {
+        "children": [
+            106,
+            3,
+            79
+        ],
+        "id": 107,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "108": {
+        "children": [
+            49,
+            91
+        ],
+        "id": 108,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "109": {
+        "children": [
+            108,
+            34,
+            79
+        ],
+        "id": 109,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "11": {
+        "children": [
+            10
+        ],
+        "id": 11,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "110": {
+        "children": [
+            92,
+            109,
+            107
+        ],
+        "id": 110,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "111": {
+        "children": [
+            3,
+            79
+        ],
+        "id": 111,
+        "op": "=",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "112": {
+        "children": [
+            111,
+            79,
+            110
+        ],
+        "id": 112,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "113": {
+        "children": [
+            34,
+            112
+        ],
+        "id": 113,
+        "op": "=",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "114": {
+        "children": [
+            86,
+            93
+        ],
+        "id": 114,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "115": {
+        "children": [
+            114
+        ],
+        "id": 115,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "116": {
+        "children": [
+            115,
+            113
+        ],
+        "id": 116,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "117": {
+        "children": [
+            116,
+            96,
+            86
+        ],
+        "id": 117,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "118": {
+        "children": [
+            117
+        ],
+        "id": 118,
+        "op": "extract",
+        "opidx0": 31,
+        "opidx1": 0,
+        "width": 32
+    },
+    "12": {
+        "children": [],
+        "id": 12,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b000000000000000000000000000000001",
+        "width": 33
+    },
+    "13": {
+        "children": [
+            12,
+            11
+        ],
+        "id": 13,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "14": {
+        "children": [
+            2,
+            13
+        ],
+        "id": 14,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "15": {
+        "children": [
+            2,
+            6
+        ],
+        "id": 15,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "16": {
+        "children": [
+            15
+        ],
+        "id": 16,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "17": {
+        "children": [
+            9
+        ],
+        "id": 17,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "18": {
+        "children": [
+            17,
+            16
+        ],
+        "id": 18,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "19": {
+        "children": [
+            18
+        ],
+        "id": 19,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "2": {
+        "children": [
+            1,
+            0
+        ],
+        "id": 2,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "20": {
+        "children": [
+            2,
+            10
+        ],
+        "id": 20,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "21": {
+        "children": [
+            20
+        ],
+        "id": 21,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "22": {
+        "children": [
+            21,
+            19
+        ],
+        "id": 22,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "23": {
+        "children": [
+            22,
+            14,
+            2
+        ],
+        "id": 23,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "24": {
+        "children": [
+            23
+        ],
+        "id": 24,
+        "op": "extract",
+        "opidx0": 31,
+        "opidx1": 0,
+        "width": 32
+    },
+    "25": {
+        "children": [
+            1,
+            24
+        ],
+        "id": 25,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "26": {
+        "children": [
+            10
+        ],
+        "id": 26,
+        "op": "extract",
+        "opidx0": 32,
+        "opidx1": 1,
+        "width": 32
+    },
+    "27": {
+        "children": [
+            1,
+            26
+        ],
+        "id": 27,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "28": {
+        "children": [
+            10
+        ],
+        "id": 28,
+        "op": "extract",
+        "opidx0": 31,
+        "opidx1": 0,
+        "width": 32
+    },
+    "29": {
+        "children": [
+            28,
+            1
+        ],
+        "id": 29,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "3": {
+        "children": [],
+        "id": 3,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b00",
+        "width": 2
+    },
+    "30": {
+        "children": [
+            18,
+            29,
+            27
+        ],
+        "id": 30,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "31": {
+        "children": [
+            30
+        ],
+        "id": 31,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "32": {
+        "children": [
+            12,
+            31
+        ],
+        "id": 32,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "33": {
+        "children": [
+            25,
+            32
+        ],
+        "id": 33,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "34": {
+        "children": [],
+        "id": 34,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b10",
+        "width": 2
+    },
+    "35": {
+        "children": [],
+        "id": 35,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b01",
+        "width": 2
+    },
+    "36": {
+        "children": [
+            18,
+            35,
+            34
+        ],
+        "id": 36,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "37": {
+        "children": [
+            9,
+            3,
+            36
+        ],
+        "id": 37,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "38": {
+        "children": [
+            2,
+            29
+        ],
+        "id": 38,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "39": {
+        "children": [
+            38
+        ],
+        "id": 39,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "4": {
+        "children": [],
+        "id": 4,
+        "op": "variable",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "b",
+        "width": 32
+    },
+    "40": {
+        "children": [
+            18,
+            39
+        ],
+        "id": 40,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "41": {
+        "children": [
+            40,
+            35,
+            34
+        ],
+        "id": 41,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "42": {
+        "children": [
+            18,
+            41,
+            37
+        ],
+        "id": 42,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "43": {
+        "children": [
+            34,
+            42
+        ],
+        "id": 43,
+        "op": "=",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "44": {
+        "children": [
+            25,
+            30
+        ],
+        "id": 44,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "45": {
+        "children": [
+            44
+        ],
+        "id": 45,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "46": {
+        "children": [
+            45,
+            43
+        ],
+        "id": 46,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "47": {
+        "children": [
+            46,
+            33,
+            25
+        ],
+        "id": 47,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "48": {
+        "children": [
+            47
+        ],
+        "id": 48,
+        "op": "extract",
+        "opidx0": 31,
+        "opidx1": 0,
+        "width": 32
+    },
+    "49": {
+        "children": [
+            1,
+            48
+        ],
+        "id": 49,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "5": {
+        "children": [
+            4
+        ],
+        "id": 5,
+        "op": "extract",
+        "opidx0": 30,
+        "opidx1": 0,
+        "width": 31
+    },
+    "50": {
+        "children": [
+            30
+        ],
+        "id": 50,
+        "op": "extract",
+        "opidx0": 32,
+        "opidx1": 1,
+        "width": 32
+    },
+    "51": {
+        "children": [
+            1,
+            50
+        ],
+        "id": 51,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "52": {
+        "children": [
+            43,
+            51,
+            30
+        ],
+        "id": 52,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "53": {
+        "children": [
+            30
+        ],
+        "id": 53,
+        "op": "extract",
+        "opidx0": 31,
+        "opidx1": 0,
+        "width": 32
+    },
+    "54": {
+        "children": [
+            53,
+            1
+        ],
+        "id": 54,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "55": {
+        "children": [
+            35,
+            42
+        ],
+        "id": 55,
+        "op": "=",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "56": {
+        "children": [
+            55,
+            54,
+            52
+        ],
+        "id": 56,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "57": {
+        "children": [
+            56
+        ],
+        "id": 57,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "58": {
+        "children": [
+            12,
+            57
+        ],
+        "id": 58,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "59": {
+        "children": [
+            49,
+            58
+        ],
+        "id": 59,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "6": {
+        "children": [
+            5,
+            3
+        ],
+        "id": 6,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "60": {
+        "children": [],
+        "id": 60,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b000010",
+        "width": 6
+    },
+    "61": {
+        "children": [],
+        "id": 61,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b000000",
+        "width": 6
+    },
+    "62": {
+        "children": [
+            9,
+            61,
+            60
+        ],
+        "id": 62,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 6
+    },
+    "63": {
+        "children": [],
+        "id": 63,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b00000000000000000000000000",
+        "width": 26
+    },
+    "64": {
+        "children": [
+            63,
+            62
+        ],
+        "id": 64,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 32
+    },
+    "65": {
+        "children": [],
+        "id": 65,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b11111111111111111111111111111111",
+        "width": 32
+    },
+    "66": {
+        "children": [
+            65,
+            64
+        ],
+        "id": 66,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 32
+    },
+    "67": {
+        "children": [
+            66
+        ],
+        "id": 67,
+        "op": "extract",
+        "opidx0": 5,
+        "opidx1": 0,
+        "width": 6
+    },
+    "68": {
+        "children": [],
+        "id": 68,
+        "op": "constant",
+        "opidx0": null,
+        "opidx1": null,
+        "value": "#b00000000000000000000000000000001",
+        "width": 32
+    },
+    "69": {
+        "children": [
+            68,
+            64
+        ],
+        "id": 69,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 32
+    },
+    "7": {
+        "children": [
+            1,
+            4
+        ],
+        "id": 7,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "70": {
+        "children": [
+            69
+        ],
+        "id": 70,
+        "op": "extract",
+        "opidx0": 5,
+        "opidx1": 0,
+        "width": 6
+    },
+    "71": {
+        "children": [
+            18,
+            70,
+            67
+        ],
+        "id": 71,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 6
+    },
+    "72": {
+        "children": [
+            61,
+            71
+        ],
+        "id": 72,
+        "op": "=",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "73": {
+        "children": [
+            43,
+            72
+        ],
+        "id": 73,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "74": {
+        "children": [
+            73,
+            3,
+            42
+        ],
+        "id": 74,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "75": {
+        "children": [
+            25,
+            54
+        ],
+        "id": 75,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "76": {
+        "children": [
+            75,
+            34,
+            42
+        ],
+        "id": 76,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "77": {
+        "children": [
+            55,
+            76,
+            74
+        ],
+        "id": 77,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "78": {
+        "children": [
+            3,
+            42
+        ],
+        "id": 78,
+        "op": "=",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "79": {
+        "children": [
+            78,
+            42,
+            77
+        ],
+        "id": 79,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 2
+    },
+    "8": {
+        "children": [
+            4,
+            1
+        ],
+        "id": 8,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "80": {
+        "children": [
+            34,
+            79
+        ],
+        "id": 80,
+        "op": "=",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "81": {
+        "children": [
+            49,
+            56
+        ],
+        "id": 81,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "82": {
+        "children": [
+            81
+        ],
+        "id": 82,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "83": {
+        "children": [
+            82,
+            80
+        ],
+        "id": 83,
+        "op": "bvand",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "84": {
+        "children": [
+            83,
+            59,
+            49
+        ],
+        "id": 84,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "85": {
+        "children": [
+            84
+        ],
+        "id": 85,
+        "op": "extract",
+        "opidx0": 31,
+        "opidx1": 0,
+        "width": 32
+    },
+    "86": {
+        "children": [
+            1,
+            85
+        ],
+        "id": 86,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "87": {
+        "children": [
+            56
+        ],
+        "id": 87,
+        "op": "extract",
+        "opidx0": 32,
+        "opidx1": 1,
+        "width": 32
+    },
+    "88": {
+        "children": [
+            1,
+            87
+        ],
+        "id": 88,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "89": {
+        "children": [
+            80,
+            88,
+            56
+        ],
+        "id": 89,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "9": {
+        "children": [
+            2,
+            8
+        ],
+        "id": 9,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "90": {
+        "children": [
+            56
+        ],
+        "id": 90,
+        "op": "extract",
+        "opidx0": 31,
+        "opidx1": 0,
+        "width": 32
+    },
+    "91": {
+        "children": [
+            90,
+            1
+        ],
+        "id": 91,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "92": {
+        "children": [
+            35,
+            79
+        ],
+        "id": 92,
+        "op": "=",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
+    },
+    "93": {
+        "children": [
+            92,
+            91,
+            89
+        ],
+        "id": 93,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "94": {
+        "children": [
+            93
+        ],
+        "id": 94,
+        "op": "bvnot",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "95": {
+        "children": [
+            12,
+            94
+        ],
+        "id": 95,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "96": {
+        "children": [
+            86,
+            95
+        ],
+        "id": 96,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
+    "97": {
+        "children": [
+            78,
+            61,
+            71
+        ],
+        "id": 97,
+        "op": "ite",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 6
+    },
+    "98": {
+        "children": [
+            63,
+            71
+        ],
+        "id": 98,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 32
+    },
+    "99": {
+        "children": [
+            65,
+            98
+        ],
+        "id": 99,
+        "op": "bvadd",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 32
+    },
+    "allops": [
+        "=",
+        "bvand",
+        "bvadd",
+        "bvnot",
+        "bvult",
+        "extract",
+        "concat",
+        "ite",
+        "constant",
+        "variable"
+    ],
+    "root": 118
+}

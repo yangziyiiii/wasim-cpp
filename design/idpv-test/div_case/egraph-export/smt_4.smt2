@@ -1,0 +1,5 @@
+(declare-fun a () (_ BitVec 32))
+(declare-fun b () (_ BitVec 32))
+(assert (let ((_let_1 (concat ((_ extract 30 0) b) (_ bv0 2)))) (let ((_let_2 (concat (_ bv0 1) a))) (let ((_let_3 (bvult _let_2 (concat b (_ bv0 1))))) (let ((_let_4 (and (not _let_3) (not (bvult _let_2 _let_1))))) (= (_ bv0 2) (ite _let_4 (ite (and _let_4 (not (bvult _let_2 (concat ((_ extract 31 0) (ite _let_3 (concat (_ bv0 1) b) _let_1)) (_ bv0 1))))) (_ bv1 2) (_ bv2 2)) (ite _let_3 (_ bv0 2) (ite _let_4 (_ bv1 2) (_ bv2 2))))))))))
+(assert (let ((_let_1 (concat (_ bv0 1) a))) (let ((_let_2 (concat ((_ extract 30 0) b) (_ bv0 2)))) (let ((_let_3 (bvult _let_1 (concat b (_ bv0 1))))) (let ((_let_4 (ite _let_3 (concat (_ bv0 1) b) _let_2))) (let ((_let_5 (and (not _let_3) (not (bvult _let_1 _let_2))))) (let ((_let_6 (and (not (bvult _let_1 _let_4)) (not _let_5)))) (not (= (bvsub (bvadd (bvmul (ite _let_5 (_ bv0 32) (bvnot (concat (_ bv2147483647 31) (ite (not _let_6) (_ bv1 1) (_ bv0 1))))) b) ((_ extract 31 0) (ite _let_6 (bvadd _let_1 (bvadd (_ bv1 33) (bvnot _let_4))) _let_1))) a) (_ bv0 32))))))))))
+(check-sat)

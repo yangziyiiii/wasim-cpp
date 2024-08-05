@@ -28,11 +28,58 @@ you don't need to have the C++ part
 #include "framework/ts.h"
 #include "smt-switch/boolector_factory.h"
 #include "smt-switch/smtlib_reader.h"
+#include "smt-switch/cvc5_factory.h"
+#include "smt-switch/printing_solver.h"
 
 #include "framework/egraph/json_export.h"
 
 using namespace wasim;
 using namespace smt;
+
+void export_smt(const std::string & fname,
+        const Term & v, const Term & quotient, const Term & remainder, const Term & divisor, const Term & dividend) {
+    std::ofstream fout(fname);
+    if(!fout.is_open())
+        return;
+    auto cvc5solver = Cvc5SolverFactory::create(false);
+    auto printer = cvc5solver;
+    TermTranslator translater(cvc5solver);
+
+    auto v_trans = translater.transfer_term(v);
+    auto quotient_trans = translater.transfer_term(quotient);
+    auto remainder_trans = translater.transfer_term(remainder);
+    auto divisor_trans = translater.transfer_term(divisor);
+    auto dividend_trans = translater.transfer_term(dividend);
+
+    // printer->assert_formula(v_trans);
+    fout << "(declare-fun " << dividend->to_string() << " () " << dividend->get_sort()->to_string()  << ")" << std::endl;
+    fout << "(declare-fun " << divisor->to_string() << " () " << divisor->get_sort()->to_string()  << ")" << std::endl;
+
+    fout << "(" << "assert" << " " << v_trans->to_string() << ")" << std::endl;
+    // v_valid |=> ( v_quotient * v_b + v_remainder - v_a ) == 0
+    auto final_width = dividend_trans->get_sort()->get_width();
+
+    auto q = quotient_trans;
+    auto d = divisor_trans;
+    auto r = remainder_trans;
+
+    auto s1 = printer->make_term(BVMul, q, d);
+    //std::cout << "s1 width=" << s1->get_sort()->get_width() << "\n";
+    auto s2 = printer->make_term(BVAdd, s1, r);
+    //std::cout << "r width=" << r->get_sort()->get_width() << "\n";
+    //std::cout << "s2 width=" << s2->get_sort()->get_width() << "\n";
+    auto s3 = printer->make_term(BVSub, s2, dividend_trans);
+
+            
+    auto zero = printer->make_term(0, printer->make_sort(BV, final_width));
+    
+    auto check = printer->make_term(Not,
+            printer->make_term(Equal, s3, zero));
+
+    fout << "(" << "assert" << " " << check->to_string() << ")" << std::endl;
+    fout << "(check-sat)" << std::endl;
+}
+
 
 int main() {    
     using std::chrono::high_resolution_clock;
@@ -119,24 +166,30 @@ int main() {
             continue;
         }
 
-        std::ofstream f_valid("../design/idpv-test/div_case/egraph-export/valid_"+std::to_string(i+1));
-        f_valid << smt_layered_printing(v_valid);
+        //std::ofstream f_valid("../design/idpv-test/div_case/egraph-export/valid_"+std::to_string(i+1));
+        //f_valid << smt_layered_printing(v_valid);
         smt_to_json(v_valid, "../design/idpv-test/div_case/egraph-export/valid_"+std::to_string(i+1)+".json");
 
-        std::ofstream f_quotient("../design/idpv-test/div_case/egraph-export/quotient_"+std::to_string(i+1));
-        f_quotient << smt_layered_printing(v_quotient);
+        //std::ofstream f_quotient("../design/idpv-test/div_case/egraph-export/quotient_"+std::to_string(i+1));
+        //f_quotient << smt_layered_printing(v_quotient);
         smt_to_json(v_quotient, "../design/idpv-test/div_case/egraph-export/quotient_"+std::to_string(i+1)+".json");
 
-        std::ofstream f_remainder("../design/idpv-test/div_case/egraph-export/remainder_"+std::to_string(i+1));
-        f_remainder << smt_layered_printing(v_remainder);
+        //std::ofstream f_remainder("../design/idpv-test/div_case/egraph-export/remainder_"+std::to_string(i+1));
+        //f_remainder << smt_layered_printing(v_remainder);
         smt_to_json(v_remainder, "../design/idpv-test/div_case/egraph-export/remainder_"+std::to_string(i+1)+".json");
         
-        std::cout << " (exported)\n";
+        std::cout << " (json exported)";
+        std::cout.flush();
+
+        export_smt("../design/idpv-test/div_case/egraph-export/smt_"+std::to_string(i+1)+".smt2",
+            v_valid, v_quotient, v_remainder,  v_b, v_a  );
+
+        std::cout << " (smt2 exported)\n";
 
         // v_valid |=> ( v_quotient * v_b + v_remainder - v_a ) == 0
 
-        if (i == 5)
-            break;
+        // if (i == 10)
+        //    break;
 
 
     }
