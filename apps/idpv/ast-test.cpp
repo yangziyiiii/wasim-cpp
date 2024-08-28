@@ -11,39 +11,52 @@ using namespace smt;
 using namespace std;
 using namespace wasim;
 
-// // find ast nodes
-// void traverse_term(const Term &term, std::unordered_set<std::string> &visited_nodes) {
-//     if (visited_nodes.find(term->to_string()) != visited_nodes.end()) {
-//         return;
-//     }
+struct NodeData {
+    Term term;
+    uint32_t bit_width;
+    std::vector<std::string> simulation_data;
 
-//     visited_nodes.insert(term->to_string());
+    private:
+        NodeData(Term t, uint32_t bw, std::vector<std::string>&& sim_data)
+            : term(t), bit_width(bw), simulation_data(sim_data) {}
 
-//     std::cout << "------Child Term: " << term->to_string() << std::endl;
-//     std::cout << std::endl;
+    public:
+        NodeData() : term(nullptr), bit_width(0), simulation_data() {}
 
-//     for (auto child : *term) {
-//         traverse_term(child, visited_nodes);
-//     }
-// }
+    static NodeData get_simulation_data(const Term& term, SmtSolver& solver) {
+            Term value = solver->get_value(term);
+            uint32_t bit_width = value->get_sort()->get_width();
+            std::vector<std::string> simulation_data;
+            simulation_data.push_back(value->to_string());
 
-std::unordered_set<Term> traverse_and_collect_terms(const Term &term, std::unordered_set<std::string> &visited_nodes) {
-    std::unordered_set<Term> collected_terms;
-
-    if (visited_nodes.find(term->to_string()) != visited_nodes.end()) {
-        return collected_terms;
+            return NodeData(term, bit_width, std::move(simulation_data));
     }
+};
 
-    visited_nodes.insert(term->to_string());
-    collected_terms.insert(term); 
 
-    for (auto child : *term) {
-        auto child_terms = traverse_and_collect_terms(child, visited_nodes);
-        collected_terms.insert(child_terms.begin(), child_terms.end());
+void traverse_and_collect_terms(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map) {
+    std::unordered_set<Term> visited_nodes;
+    std::stack<Term> node_stack;
+    node_stack.push(term);
+
+    while (!node_stack.empty()) {
+        Term current_term = node_stack.top();
+        node_stack.pop();
+
+        if (visited_nodes.find(current_term) != visited_nodes.end()) {
+            continue;
+        }
+
+        visited_nodes.insert(current_term);
+        node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
+
+        for (auto child : *current_term) {
+            node_stack.push(child);
+        }
     }
-
-    return collected_terms;
+    return node_data_map;
 }
+
 
 int main() {
     SmtSolver solver = BoolectorSolverFactory::create(false);
@@ -57,40 +70,17 @@ int main() {
     BTOR2Encoder btor_parser("../design/idpv-test/div_case/suoglu_div.btor2", sts);
     std::cout << "Trans: " << sts.trans()->to_string() << std::endl;
 
-    std::unordered_set<std::string> visited_nodes;
-    std::unordered_set<Term> all_terms;
+    std::unordered_map<Term, NodeData> node_data_map;
+    traverse_and_collect_terms(sts.trans(), solver, node_data_map);
 
-    // for (auto node = sts.trans()->begin(); node != sts.trans()->end(); node++) {
-    //     // find_and_check(*node, solver, visited_nodes);
-    //     traverse_term(*node, visited_nodes);
-    // }
-
-    for (auto node = sts.trans()->begin(); node != sts.trans()->end(); node++) {
-        auto collected_terms = traverse_and_collect_terms(*node, visited_nodes);
-        all_terms.insert(collected_terms.begin(), collected_terms.end());
-    }
-
-    for (auto node1 = all_terms.begin(); node1 != all_terms.end(); ++node1) {
-        for (auto node2 = std::next(node1); node2 != all_terms.end(); ++node2) {
-            Term term1 = *node1;
-            Term term2 = *node2;
-
-            // std::cout<< term1->get_sort()<<std::endl;
-            // std::cout<< term2->get_sort()<<std::endl;
-            
-            if (term1 != term2 && term1->get_sort() == term2->get_sort()) {
-                Term eq_term = solver->make_term(Equal, term1, term2);
-                solver->assert_formula(eq_term);
-                auto result = solver->check_sat();
-                
-                if (result.is_sat()) {
-                    std::cout << "Terms are equivalent:\n";
-                    std::cout << "Term 1: " << term1->to_string() << "\n";
-                    std::cout << "Term 2: " << term2->to_string() << "\n";
-                    std::cout << "--------------------------------------\n";
-                }
-            }
+    for (const auto& [term, data] : node_data_map) {
+        std::cout << "Term: " << term->to_string() << std::endl;
+        std::cout << "Bit Width: " << data.bit_width << std::endl;
+        std::cout << "Simulation Data: ";
+        for (const auto& str : data.simulation_data) {
+            std::cout << str << " ";
         }
+        std::cout << std::endl;
     }
 
     return 0;
