@@ -6,6 +6,8 @@
 #include "framework/ts.h"
 #include "smt-switch/boolector_factory.h"
 #include "smt-switch/smtlib_reader.h"
+#include "smt-switch/utils.h"
+
 
 using namespace smt;
 using namespace std;
@@ -24,15 +26,14 @@ struct NodeData {
         NodeData() : term(nullptr), bit_width(0), simulation_data() {}
 
     static NodeData get_simulation_data(const Term& term, SmtSolver& solver) {
-            Term value = solver->get_value(term);
-            uint32_t bit_width = value->get_sort()->get_width();
-            std::vector<std::string> simulation_data;
-            simulation_data.push_back(value->to_string());
+        Term value = solver->get_value(term);
+        uint32_t bit_width = value->get_sort()->get_width();
+        std::vector<std::string> simulation_data;
+        simulation_data.push_back(value->to_string());
 
-            return NodeData(term, bit_width, std::move(simulation_data));
+        return NodeData(term, bit_width, std::move(simulation_data));
     }
 };
-
 
 void traverse_and_collect_terms(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map) {
     std::unordered_set<Term> visited_nodes;
@@ -54,9 +55,7 @@ void traverse_and_collect_terms(const Term &term, SmtSolver& solver, std::unorde
             node_stack.push(child);
         }
     }
-    return node_data_map;
 }
-
 
 int main() {
     SmtSolver solver = BoolectorSolverFactory::create(false);
@@ -68,20 +67,36 @@ int main() {
 
     TransitionSystem sts(solver);
     BTOR2Encoder btor_parser("../design/idpv-test/div_case/suoglu_div.btor2", sts);
-    std::cout << "Trans: " << sts.trans()->to_string() << std::endl;
 
-    std::unordered_map<Term, NodeData> node_data_map;
-    traverse_and_collect_terms(sts.trans(), solver, node_data_map);
+    smt::UnorderedTermSet free_symbols;
+    get_free_symbols(sts.trans(), free_symbols);
 
-    for (const auto& [term, data] : node_data_map) {
-        std::cout << "Term: " << term->to_string() << std::endl;
-        std::cout << "Bit Width: " << data.bit_width << std::endl;
-        std::cout << "Simulation Data: ";
-        for (const auto& str : data.simulation_data) {
-            std::cout << str << " ";
+    for (auto it1 = free_symbols.begin(); it1 != free_symbols.end(); ++it1) {
+        for (auto it2 = std::next(it1); it2 != free_symbols.end(); ++it2) {
+            Term var1 = *it1;
+            Term var2 = *it2;
+            if(var1->get_sort() == var2->get_sort()){
+                auto equal_var = solver->make_term(smt::Equal,var1,var2);
+                Term equality_formula = solver->make_term(Not,equal_var);
+                solver->assert_formula(equal_var);
+                if (solver->check_sat().is_unsat()) {
+                    std::unordered_map<Term, NodeData> node_data_map;
+                    traverse_and_collect_terms(sts.trans(), solver, node_data_map);
+
+                    for (const auto& [term, data] : node_data_map) {
+                        std::cout << "Term: " << term->to_string() << std::endl;
+                        std::cout << "Bit Width: " << data.bit_width << std::endl;
+                        std::cout << "Simulation Data: ";
+                        for (const auto& str : data.simulation_data) {
+                            std::cout << str << " ";
+                        }
+                        std::cout << std::endl;
+                    }
+                }else{
+                    std::cout << "not equal" << std::endl;
+                }
+            }
         }
-        std::cout << std::endl;
     }
-
     return 0;
 }
