@@ -25,6 +25,10 @@ struct NodeData {
     public:
         NodeData() : term(nullptr), bit_width(0), simulation_data() {}
 
+        bool operator==(const NodeData& other) const {
+            return simulation_data == other.simulation_data;
+        }
+
     static NodeData get_simulation_data(const Term& term, SmtSolver& solver) {
         Term value = solver->get_value(term);
         uint32_t bit_width = value->get_sort()->get_width();
@@ -34,6 +38,7 @@ struct NodeData {
         return NodeData(term, bit_width, std::move(simulation_data));
     }
 };
+
 
 void traverse_and_collect_terms(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map) {
     std::unordered_set<Term> visited_nodes;
@@ -53,6 +58,41 @@ void traverse_and_collect_terms(const Term &term, SmtSolver& solver, std::unorde
 
         for (auto child : *current_term) {
             node_stack.push(child);
+        }
+    }
+}
+
+bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
+    Term not_equal_term = solver->make_term(Not, solver->make_term(smt::Equal, var1, var2));
+    solver->assert_formula(not_equal_term);
+    if (solver->check_sat().is_unsat()) {
+        cout << "These two terms " << var1->to_string() << " and " << var2->to_string() << " are equal" << endl;
+        return true;
+    }else{
+        return false;
+    }
+}
+
+
+void process_terms(const unordered_map<string, vector<Term>>& value_term_map, SmtSolver& solver) {
+    std::unordered_map<Term, Term> term_map;
+    for (const auto& entry : value_term_map) {
+        const vector<Term>& term_list = entry.second;
+
+        for (const auto& term : term_list) {
+            auto it = term_map.find(term);
+            if (it != term_map.end()) {
+                continue;
+            }
+
+            for (const auto& other_term : term_list) {
+                if (term != other_term && compare_terms(term, other_term, solver)) {
+                    term_map[other_term] = term; // merge into one term
+                    cout << "Merge term: " << other_term->to_string() << " with existing term: " << term->to_string() << endl;
+                    break;
+                }
+            }
+
         }
     }
 }
@@ -112,59 +152,36 @@ int main() {
 
     TermVec assumptions{assumption_equal_dividend,assumption_equal_divisor,\
         assumption_equal_rst,assumption_equal_start};
-    auto result = solver->check_sat_assuming(assumptions);
+    auto mid_result = solver->check_sat_assuming(assumptions);
 
-    if(result.is_sat()){
+    if(mid_result.is_sat()){
         cout<< "sat" <<endl;
     }
 
+
+
     std::unordered_map<Term, NodeData> node_data_map;
-    traverse_and_collect_terms(sts.trans(), solver, node_data_map);    
-    for (const auto& [term, data] : node_data_map) {
-        cout << "Term: " << term->to_string() <<endl;
-        cout << "Bit Width: " << data.bit_width <<endl;
-        cout << "Simulation Data: ";
-        for (const auto& str : data.simulation_data) {
-            cout << str << endl;
-        }
-        cout << "-----------------------------------------" << endl;
-    }
-
-
-
-
-    
-
-    // for (auto it1 = free_symbols.begin(); it1 != free_symbols.end(); ++it1) {
-    //     for (auto it2 = std::next(it1); it2 != free_symbols.end(); ++it2) {
-    //         Term var1 = *it1;
-    //         Term var2 = *it2;
-    //         if(var1->get_sort() == var2->get_sort()){
-    //             auto equal_var = solver->make_term(smt::Equal,var1,var2);
-    //             Term equality_formula = solver->make_term(Not,equal_var);
-    //             solver->assert_formula(equal_var);
-    //             if (solver->check_sat().is_unsat()) {
-    //                 std::unordered_map<Term, NodeData> node_data_map;
-    //                 traverse_and_collect_terms(sts.trans(), solver, node_data_map);
-
-    //                 for (const auto& [term, data] : node_data_map) {
-    //                     std::cout << "Term: " << term->to_string() << std::endl;
-    //                     std::cout << "Bit Width: " << data.bit_width << std::endl;
-    //                     std::cout << "Simulation Data: ";
-    //                     for (const auto& str : data.simulation_data) {
-    //                         std::cout << str << " ";
-    //                     }
-    //                     std::cout << std::endl;
-    //                 }
-    //             }else{
-    //                 std::cout << "not equal" << std::endl;
-    //             }
-    //         }
+    traverse_and_collect_terms(sts.trans(), solver, node_data_map);
+    // for (const auto& [term, data] : node_data_map) {
+    //     cout << "Term: " << term->to_string() <<endl;
+    //     cout << "Bit Width: " << data.bit_width <<endl;
+    //     cout << "Simulation Data: ";
+    //     for (const auto& str : data.simulation_data) {
+    //         cout << str << endl;
     //     }
+    //     cout << "-----------------------------------------" << endl;
     // }
 
 
+    //compare simulation data equal or not
+    std::unordered_map<std::string, std::vector<Term>> value_term_map;
+    for (const auto&  [term, data] : node_data_map) {
+        Term value = solver->get_value(term);
+        std::string value_term = value->to_string(); // value 对应的 term
+        value_term_map[value_term].push_back(term);
+    }
 
-
+    process_terms(value_term_map,solver);
+    
     return 0;
 }
