@@ -248,9 +248,6 @@ if(NOT TARGET uninstall)
         COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 endif()
 
-add_executable(test_ast "apps/idpv/ast-test.cpp")
-target_link_libraries(test_ast wasim-lib)
-
 # add_executable(test1 "apps/idpv/test.cpp")
 # target_link_libraries(test1 wasim-lib)
 
@@ -281,6 +278,12 @@ target_link_libraries(test_ast wasim-lib)
 
 # add_executable(testdivcondeq "apps/idpv/div_condeq.cpp")
 # target_link_libraries(testdivcondeq wasim-lib)
+
+add_executable(test_aes "apps/idpv/aes.cpp")
+target_link_libraries(test_aes wasim-lib)
+
+add_executable(test_ast "apps/idpv/ast-test.cpp")
+target_link_libraries(test_ast wasim-lib)
 
 add_executable(testdivcondeqexport "apps/idpv/div_condeq_rewrite.cpp")
 target_link_libraries(testdivcondeqexport wasim-lib)

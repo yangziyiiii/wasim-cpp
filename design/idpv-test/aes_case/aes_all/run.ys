@@ -1,0 +1,9 @@
+read_verilog -formal aes_128.v
+prep -top aes_128
+flatten
+memory -nordff
+uniquify
+hierarchy -check
+setundef -undriven -init -expose
+sim -clock clk -reset rst -w aes_128
+write_btor -s aes_all_one_round.btor2
