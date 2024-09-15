@@ -1,0 +1,9 @@
+read_verilog -formal main.v
+prep -top main
+flatten
+memory -nomap
+uniquify
+hierarchy -check
+setundef -undriven -init -expose
+sim -w main
+write_btor -s 128_bit_verilog_one_round.btor2
