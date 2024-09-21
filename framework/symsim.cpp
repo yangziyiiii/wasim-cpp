@@ -234,14 +234,7 @@ void SymbolicSimulator::set_input(const smt::UnorderedTermMap & invar_assign,
     } else {
       assmpt = solver_->make_term(smt::And, assmpt_vec);
     }
-
-  smt::Term assmpt;
-  if (assmpt_vec.size() == 1) {
-    assmpt = assmpt_vec.back();
-  } else if(assmpt_vec.size() > 1){
-    assmpt = solver_->make_term(smt::And, assmpt_vec);
-  } 
-  if (assmpt) {
+    
     history_assumptions_.back().push_back(assmpt);
     history_assumptions_interp_.back().push_back(
         "ts.asmpt @" + (std::to_string(trace_.size() - 1)));
