@@ -82,97 +82,110 @@ int main() {
     TransitionSystem sts(solver);
     BTOR2Encoder btor_parser1("../design/idpv-test/aes_case/aes_all/aes_all_one_round.btor2", sts);
     cout << "-------" << endl;
-    BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/AES128/RTL/aes128_ecb_encryptor/encrypt_top_one_round.btor2", sts);
+    BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/AES-Verilog/AES_Verilog_one_round.btor2", sts);
+    cout << "-------" << endl;
 
     // cout << sts.trans()->to_string() << endl;
 
-    // smt::UnorderedTermSet free_symbols;
-    // get_free_symbols(sts.trans(), free_symbols);
+    smt::UnorderedTermSet free_symbols;
+    get_free_symbols(sts.trans(), free_symbols);
 
-    // //for AES_Verilog
-    // Term in_term = nullptr;
-    // Term key128_term = nullptr;
+    for (const auto& term : free_symbols) {
+        cout << "Free symbol: " << term->to_string() << endl;
+    }
 
-    // //for aes_all
-    // Term key_term = nullptr;
-    // Term state_term = nullptr;
+    //for AES-Verilog
+    Term in_term = nullptr;
+    Term key128_term = nullptr;
 
-    // for (const auto& term : free_symbols){ 
-    //     std::string term_str = term->to_string();
-    //     if (term_str == "in"){
-    //         in_term = term;
-    //     }else if(term_str == "key128"){
-    //         key128_term = term;
-    //     }else if(term_str == "key"){
-    //         key_term = term;
-    //     }else if(term_str == "state"){
-    //         state_term = term;
-    //     }
+    //for aes_all
+    Term key_term = nullptr;
+    Term state_term = nullptr;
 
-    //     if (in_term && key128_term && key_term && state_term) {
-    //         break;
-    //     }
-    // }
+    for (const auto& term : sts.trans()){ 
+        std::string term_str = term->to_string();
+        if (term_str == "in"){
+            in_term = term;
+            cout<< "in" << endl;
+        }else if(term_str == "key128"){
+            key128_term = term;
+            cout<< "key128" << endl;
+        }else if(term_str == "key"){
+            key_term = term;
+        }else if(term_str == "state"){
+            state_term = term;
+        }
 
-    // //random input for num_iteration times
-    // srand(static_cast<unsigned int>(time(0)));
-    // int num_iterations = 100; 
+        if (in_term && key128_term && key_term && state_term) {
+            break;
+        }
+    }
 
-    //  for (int i = 0; i < num_iterations; ++i) {
-    //     int64_t in_var = rand() % 100 + 1; 
-    //     int64_t key128_var = rand() % 100 + 1;  
-    //     int64_t key_var = rand() % 100 + 1;  
-    //     int64_t state_var = rand() % 100 + 1;  
+    //random input for num_iteration times
+    srand(static_cast<unsigned int>(time(0)));
+    int num_iterations = 1; 
 
-    //     auto in_assumption = solver->make_term(in_var, in_term->get_sort());
-    //     auto key128_assumption = solver->make_term(key128_var, key128_term->get_sort());
-    //     auto key_assumption = solver->make_term(key_var, key_term->get_sort());
-    //     auto state_assumption = solver->make_term(state_var, state_term->get_sort());
+     for (int i = 0; i < num_iterations; ++i) {
+        int64_t in_var = rand() % 100 + 1; 
+        int64_t key128_var = rand() % 100 + 1;  
+        int64_t key_var = rand() % 100 + 1;  
+        int64_t state_var = rand() % 100 + 1;  
 
-    //     Term assumption_equal_in = solver->make_term(smt::Equal, in_term, in_assumption);
-    //     Term assumption_equal_key128 = solver->make_term(smt::Equal, key128_term, key128_assumption);
-    //     Term assumption_equal_key = solver->make_term(smt::Equal, key_term, key_assumption);
-    //     Term assumption_equal_state = solver->make_term(smt::Equal, state_term, state_assumption);
+        if (!in_term) {
+            cerr << "Error: in_term is null." << endl;
+            return EXIT_FAILURE;
+        }
 
-    //     TermVec assumptions{assumption_equal_in, assumption_equal_key128, \
-    //                         assumption_equal_key, assumption_equal_state};
 
-    //     auto mid_result = solver->check_sat_assuming(assumptions);
-    //     if(mid_result.is_sat()){
-    //         cout << "------maybe equal------" << endl;
-    //     }
+        auto in_assumption = solver->make_term(in_var, in_term->get_sort());//Segmentation fault
+        auto key128_assumption = solver->make_term(key128_var, key128_term->get_sort());
+        auto key_assumption = solver->make_term(key_var, key_term->get_sort());
+        auto state_assumption = solver->make_term(state_var, state_term->get_sort());
 
-    //     std::unordered_map<Term, NodeData> node_data_map;
-    //     traverse_and_collect_terms(sts.trans(), solver, node_data_map);
-    //     std::unordered_map<std::string, std::vector<Term>> value_term_map;
-    //     for (const auto&  [term, data] : node_data_map) {
-    //         Term value = solver->get_value(term);
-    //         std::string value_term = value->to_string(); // value 对应的 term
-    //         value_term_map[value_term].push_back(term);
-    //     }
+        Term assumption_equal_in = solver->make_term(smt::Equal, in_term, in_assumption);
+        Term assumption_equal_key128 = solver->make_term(smt::Equal, key128_term, key128_assumption);
+        Term assumption_equal_key = solver->make_term(smt::Equal, key_term, key_assumption);
+        Term assumption_equal_state = solver->make_term(smt::Equal, state_term, state_assumption);
 
-    //     std::unordered_map<Term,Term> term_merge_map;
-    //     for (const auto& entry : value_term_map) {
-    //         const vector<Term>& term_list = entry.second;
+        TermVec assumptions{assumption_equal_in, assumption_equal_key128, \
+                            assumption_equal_key, assumption_equal_state};
 
-    //         for (const auto& term : term_list) {
-    //             auto it = term_merge_map.find(term);
-    //             if (it != term_merge_map.end()) {
-    //                 continue;
-    //             }
+        auto mid_result = solver->check_sat_assuming(assumptions);
+        if(mid_result.is_sat()){
+            cout << "------maybe equal------" << endl;
+        }
 
-    //             for (const auto& other_term : term_list) {
-    //                 if (term != other_term && compare_terms(term, other_term, solver)) {
-    //                     term_merge_map[other_term] = term; // merge into one term
-    //                     cout << "Merge term: " << other_term->to_string() << " with existing term: " << term->to_string() << endl;
-    //                     break;
-    //                 }
-    //             }
+        std::unordered_map<Term, NodeData> node_data_map;
+        traverse_and_collect_terms(sts.trans(), solver, node_data_map);
+        std::unordered_map<std::string, std::vector<Term>> value_term_map;
+        for (const auto&  [term, data] : node_data_map) {
+            Term value = solver->get_value(term);
+            std::string value_term = value->to_string(); // value 对应的 term
+            value_term_map[value_term].push_back(term);
+        }
 
-    //         }
-    //     }
+        std::unordered_map<Term,Term> term_merge_map;
+        for (const auto& entry : value_term_map) {
+            const vector<Term>& term_list = entry.second;
+
+            for (const auto& term : term_list) {
+                auto it = term_merge_map.find(term);
+                if (it != term_merge_map.end()) {
+                    continue;
+                }
+
+                for (const auto& other_term : term_list) {
+                    if (term != other_term && compare_terms(term, other_term, solver)) {
+                        term_merge_map[other_term] = term; // merge into one term
+                        cout << "Merge term: " << other_term->to_string() << " with existing term: " << term->to_string() << endl;
+                        break;
+                    }
+                }
+
+            }
+        }
        
-    // }
+    }
 
 
 
