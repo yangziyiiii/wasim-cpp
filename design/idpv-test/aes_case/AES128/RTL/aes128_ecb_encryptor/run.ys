@@ -1,9 +1,9 @@
-read_verilog -formal encrypt_top.v
-prep -top encrypt_top
+read_verilog -formal encryptor_top.v
+prep -top encryptor_top
 flatten
 memory -nomap
 uniquify
 hierarchy -check
 setundef -undriven -init -expose
-sim -clock clk -reset reset -w encrypt_top
-write_btor -s encrypt_top_one_round.btor2
+sim -clock clk1 -w encryptor_top
+write_btor -s encryptor_top_one_round.btor2

@@ -154,6 +154,15 @@ target_link_libraries(wasim-lib PUBLIC "${GMP_LIBRARIES}")
 target_link_libraries(wasim-lib PUBLIC pthread)
 target_link_libraries(wasim-lib PUBLIC Boost::system)
 
+
+find_library(UNWIND_LIB unwind)
+if(UNWIND_LIB)
+    target_link_libraries(wasim-lib PUBLIC ${UNWIND_LIB})
+endif()
+
+find_package(gflags REQUIRED)
+target_link_libraries(wasim-lib PUBLIC gflags)
+
 # if (LIBRT)
 #   target_link_libraries(wasim-lib PUBLIC ${LIBRT})
 # endif()
@@ -282,14 +291,14 @@ endif()
 add_executable(test_aes "apps/idpv/aes.cpp")
 target_link_libraries(test_aes wasim-lib)
 
-add_executable(test_ast "apps/idpv/ast-test.cpp")
-target_link_libraries(test_ast wasim-lib)
+# add_executable(test_ast "apps/idpv/ast-test.cpp")
+# target_link_libraries(test_ast wasim-lib)
 
-add_executable(testdivcondeqexport "apps/idpv/div_condeq_rewrite.cpp")
-target_link_libraries(testdivcondeqexport wasim-lib)
+# add_executable(testdivcondeqexport "apps/idpv/div_condeq_rewrite.cpp")
+# target_link_libraries(testdivcondeqexport wasim-lib)
 
-add_executable(testspmv "apps/idpv/spmv.cpp")
-target_link_libraries(testspmv wasim-lib)
+# add_executable(testspmv "apps/idpv/spmv.cpp")
+# target_link_libraries(testspmv wasim-lib)
 
 # add_executable(independence_check_test "independence_check_test.cpp")
 # target_link_libraries(independence_check_test wasim)
