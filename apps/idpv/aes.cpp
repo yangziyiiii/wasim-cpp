@@ -83,7 +83,7 @@ int main() {
     // BTOR2Encoder btor_parser1("../design/idpv-test/aes_case/aes_all/aes_all_one_round.btor2", sts);
     // cout << "-------" << endl;
 
-    BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/Hardware-Implementation-of-AES-Verilog/AES-128-Bit-Verilog/aescipher_one_cycle.btor2", sts);
+    BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/AES-128-Bit-Verilog/aescipher_one_cycle.btor2", sts);
     cout << "-------" << endl;
 
     // cout << sts.trans()->to_string() << endl;
