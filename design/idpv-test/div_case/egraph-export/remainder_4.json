@@ -73,7 +73,7 @@
     "15": {
         "children": [
             2,
-            6
+            10
         ],
         "id": 15,
         "op": "bvult",
@@ -93,28 +93,28 @@
     },
     "17": {
         "children": [
-            9
+            2,
+            6
         ],
         "id": 17,
-        "op": "bvnot",
+        "op": "bvult",
         "opidx0": null,
         "opidx1": null,
         "width": 1
     },
     "18": {
         "children": [
-            17,
-            16
+            17
         ],
         "id": 18,
-        "op": "bvand",
+        "op": "bvnot",
         "opidx0": null,
         "opidx1": null,
         "width": 1
     },
     "19": {
         "children": [
-            18
+            9
         ],
         "id": 19,
         "op": "bvnot",
@@ -135,11 +135,11 @@
     },
     "20": {
         "children": [
-            2,
-            10
+            19,
+            18
         ],
         "id": 20,
-        "op": "bvult",
+        "op": "bvand",
         "opidx0": null,
         "opidx1": null,
         "width": 1
@@ -157,7 +157,7 @@
     "22": {
         "children": [
             21,
-            19
+            16
         ],
         "id": 22,
         "op": "bvand",

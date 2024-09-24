@@ -1,132 +1,6 @@
 (_ extract 31 0)
 	ite
 		bvand
-			bvnot
-				bvult
-					concat
-						#b0
-						(_ extract 31 0)
-							ite
-								bvand
-									bvnot
-										bvult
-											concat
-												#b0
-												a
-											ite
-												bvult
-													concat
-														#b0
-														a
-													concat
-														b
-														#b0
-												concat
-													#b0
-													b
-												concat
-													(_ extract 30 0)
-														b
-													#b00
-									bvnot
-										bvand
-											bvnot
-												bvult
-													concat
-														#b0
-														a
-													concat
-														b
-														#b0
-											bvnot
-												bvult
-													concat
-														#b0
-														a
-													concat
-														(_ extract 30 0)
-															b
-														#b00
-								bvadd
-									concat
-										#b0
-										a
-									bvadd
-										#b000000000000000000000000000000001
-										bvnot
-											ite
-												bvult
-													concat
-														#b0
-														a
-													concat
-														b
-														#b0
-												concat
-													#b0
-													b
-												concat
-													(_ extract 30 0)
-														b
-													#b00
-								concat
-									#b0
-									a
-					ite
-						bvand
-							bvnot
-								bvult
-									concat
-										#b0
-										a
-									concat
-										b
-										#b0
-							bvnot
-								bvult
-									concat
-										#b0
-										a
-									concat
-										(_ extract 30 0)
-											b
-										#b00
-						concat
-							(_ extract 31 0)
-								ite
-									bvult
-										concat
-											#b0
-											a
-										concat
-											b
-											#b0
-									concat
-										#b0
-										b
-									concat
-										(_ extract 30 0)
-											b
-										#b00
-							#b0
-						concat
-							#b0
-							(_ extract 32 1)
-								ite
-									bvult
-										concat
-											#b0
-											a
-										concat
-											b
-											#b0
-									concat
-										#b0
-										b
-									concat
-										(_ extract 30 0)
-											b
-										#b00
 			=
 				#b10
 				ite
@@ -223,12 +97,157 @@
 											#b00
 							#b01
 							#b10
+			bvnot
+				bvult
+					concat
+						#b0
+						(_ extract 31 0)
+							ite
+								bvand
+									bvnot
+										bvand
+											bvnot
+												bvult
+													concat
+														#b0
+														a
+													concat
+														b
+														#b0
+											bvnot
+												bvult
+													concat
+														#b0
+														a
+													concat
+														(_ extract 30 0)
+															b
+														#b00
+									bvnot
+										bvult
+											concat
+												#b0
+												a
+											ite
+												bvult
+													concat
+														#b0
+														a
+													concat
+														b
+														#b0
+												concat
+													#b0
+													b
+												concat
+													(_ extract 30 0)
+														b
+													#b00
+								bvadd
+									concat
+										#b0
+										a
+									bvadd
+										#b000000000000000000000000000000001
+										bvnot
+											ite
+												bvult
+													concat
+														#b0
+														a
+													concat
+														b
+														#b0
+												concat
+													#b0
+													b
+												concat
+													(_ extract 30 0)
+														b
+													#b00
+								concat
+									#b0
+									a
+					ite
+						bvand
+							bvnot
+								bvult
+									concat
+										#b0
+										a
+									concat
+										b
+										#b0
+							bvnot
+								bvult
+									concat
+										#b0
+										a
+									concat
+										(_ extract 30 0)
+											b
+										#b00
+						concat
+							(_ extract 31 0)
+								ite
+									bvult
+										concat
+											#b0
+											a
+										concat
+											b
+											#b0
+									concat
+										#b0
+										b
+									concat
+										(_ extract 30 0)
+											b
+										#b00
+							#b0
+						concat
+							#b0
+							(_ extract 32 1)
+								ite
+									bvult
+										concat
+											#b0
+											a
+										concat
+											b
+											#b0
+									concat
+										#b0
+										b
+									concat
+										(_ extract 30 0)
+											b
+										#b00
 		bvadd
 			concat
 				#b0
 				(_ extract 31 0)
 					ite
 						bvand
+							bvnot
+								bvand
+									bvnot
+										bvult
+											concat
+												#b0
+												a
+											concat
+												b
+												#b0
+									bvnot
+										bvult
+											concat
+												#b0
+												a
+											concat
+												(_ extract 30 0)
+													b
+												#b00
 							bvnot
 								bvult
 									concat
@@ -249,25 +268,6 @@
 											(_ extract 30 0)
 												b
 											#b00
-							bvnot
-								bvand
-									bvnot
-										bvult
-											concat
-												#b0
-												a
-											concat
-												b
-												#b0
-									bvnot
-										bvult
-											concat
-												#b0
-												a
-											concat
-												(_ extract 30 0)
-													b
-												#b00
 						bvadd
 							concat
 								#b0
@@ -357,6 +357,25 @@
 				ite
 					bvand
 						bvnot
+							bvand
+								bvnot
+									bvult
+										concat
+											#b0
+											a
+										concat
+											b
+											#b0
+								bvnot
+									bvult
+										concat
+											#b0
+											a
+										concat
+											(_ extract 30 0)
+												b
+											#b00
+						bvnot
 							bvult
 								concat
 									#b0
@@ -376,25 +395,6 @@
 										(_ extract 30 0)
 											b
 										#b00
-						bvnot
-							bvand
-								bvnot
-									bvult
-										concat
-											#b0
-											a
-										concat
-											b
-											#b0
-								bvnot
-									bvult
-										concat
-											#b0
-											a
-										concat
-											(_ extract 30 0)
-												b
-											#b00
 					bvadd
 						concat
 							#b0

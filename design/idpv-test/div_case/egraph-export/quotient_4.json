@@ -19,76 +19,75 @@
     },
     "10": {
         "children": [
-            6,
-            9
+            9,
+            5,
+            3
         ],
         "id": 10,
-        "op": "bvult",
+        "op": "ite",
         "opidx0": null,
         "opidx1": null,
-        "width": 1
+        "width": 33
     },
     "11": {
         "children": [
+            8,
             10
         ],
         "id": 11,
-        "op": "bvnot",
+        "op": "bvult",
         "opidx0": null,
         "opidx1": null,
         "width": 1
     },
     "12": {
         "children": [
-            11,
-            8
+            11
         ],
         "id": 12,
-        "op": "bvand",
+        "op": "bvnot",
         "opidx0": null,
         "opidx1": null,
         "width": 1
     },
     "13": {
         "children": [
-            12
+            8,
+            3
         ],
         "id": 13,
-        "op": "bvnot",
+        "op": "bvult",
         "opidx0": null,
         "opidx1": null,
         "width": 1
     },
     "14": {
         "children": [
-            5,
-            1
+            13
         ],
         "id": 14,
-        "op": "concat",
+        "op": "bvnot",
         "opidx0": null,
         "opidx1": null,
-        "width": 33
+        "width": 1
     },
     "15": {
         "children": [
-            10,
-            14,
-            3
+            9
         ],
         "id": 15,
-        "op": "ite",
+        "op": "bvnot",
         "opidx0": null,
         "opidx1": null,
-        "width": 33
+        "width": 1
     },
     "16": {
         "children": [
-            6,
-            15
+            15,
+            14
         ],
         "id": 16,
-        "op": "bvult",
+        "op": "bvand",
         "opidx0": null,
         "opidx1": null,
         "width": 1
@@ -106,7 +105,7 @@
     "18": {
         "children": [
             17,
-            13
+            12
         ],
         "id": 18,
         "op": "bvand",
@@ -175,7 +174,7 @@
     },
     "24": {
         "children": [
-            12,
+            16,
             23,
             22
         ],
@@ -199,24 +198,26 @@
     "4": {
         "children": [],
         "id": 4,
-        "op": "variable",
-        "opidx0": null,
-        "opidx1": null,
-        "value": "a",
-        "width": 32
-    },
-    "5": {
-        "children": [],
-        "id": 5,
         "op": "constant",
         "opidx0": null,
         "opidx1": null,
         "value": "#b0",
         "width": 1
     },
+    "5": {
+        "children": [
+            4,
+            1
+        ],
+        "id": 5,
+        "op": "concat",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 33
+    },
     "6": {
         "children": [
-            5,
+            1,
             4
         ],
         "id": 6,
@@ -226,36 +227,35 @@
         "width": 33
     },
     "7": {
-        "children": [
-            6,
-            3
-        ],
+        "children": [],
         "id": 7,
-        "op": "bvult",
+        "op": "variable",
         "opidx0": null,
         "opidx1": null,
-        "width": 1
+        "value": "a",
+        "width": 32
     },
     "8": {
         "children": [
+            4,
             7
         ],
         "id": 8,
-        "op": "bvnot",
-        "opidx0": null,
-        "opidx1": null,
-        "width": 1
-    },
-    "9": {
-        "children": [
-            1,
-            5
-        ],
-        "id": 9,
         "op": "concat",
         "opidx0": null,
         "opidx1": null,
         "width": 33
+    },
+    "9": {
+        "children": [
+            8,
+            6
+        ],
+        "id": 9,
+        "op": "bvult",
+        "opidx0": null,
+        "opidx1": null,
+        "width": 1
     },
     "allops": [
         "bvand",

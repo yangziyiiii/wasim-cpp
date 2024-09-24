@@ -24,6 +24,25 @@ ite
 			bvnot
 				bvand
 					bvnot
+						bvand
+							bvnot
+								bvult
+									concat
+										#b0
+										a
+									concat
+										b
+										#b0
+							bvnot
+								bvult
+									concat
+										#b0
+										a
+									concat
+										(_ extract 30 0)
+											b
+										#b00
+					bvnot
 						bvult
 							concat
 								#b0
@@ -43,22 +62,3 @@ ite
 									(_ extract 30 0)
 										b
 									#b00
-					bvnot
-						bvand
-							bvnot
-								bvult
-									concat
-										#b0
-										a
-									concat
-										b
-										#b0
-							bvnot
-								bvult
-									concat
-										#b0
-										a
-									concat
-										(_ extract 30 0)
-											b
-										#b00
