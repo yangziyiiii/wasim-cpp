@@ -9,20 +9,10 @@ module add_round_key(
     output wire [127:0] state_ark_out
 	);
 	
-	
-	
-	
 	//Internal logic
 	reg [127:0] round_key_temp;
 	reg [127:0] state_ark_out_temp; 
 	reg [127:0] state_ark_out_next;
-	
-	
-	
-//	always @(posedge clk)
-//    begin
-//        state_ark_out_reg <= state_ark_out_next;
-//    end
 	
 	always @*
     begin

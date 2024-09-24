@@ -45,15 +45,15 @@ module aes_128(clk, state, key, out,rst);
 	/* verilator lint_on UNUSED */
     /* verilator lint_off PINNOCONNECT */
     expand_key_128    a1 (clk, k0, k1, k0b, 8'h1);  // k0 -> k1 : 2d,  k0-> k0b : 1d
-    expand_key_128    a2 (clk, k1, k2, k1b, 8'h2);
-    expand_key_128    a3 (clk, k2, k3, k2b, 8'h4);
-    expand_key_128    a4 (clk, k3, k4, k3b, 8'h8);
-    expand_key_128    a5 (clk, k4, k5, k4b, 8'h10);
-    expand_key_128    a6 (clk, k5, k6, k5b, 8'h20);
-    expand_key_128    a7 (clk, k6, k7, k6b, 8'h40);
-    expand_key_128    a8 (clk, k7, k8, k7b, 8'h80);
-    expand_key_128    a9 (clk, k8, k9, k8b, 8'h1b); // k0 -> k9 : 18d , k0->k8b : 17d
-    expand_key_128   a10 (clk, k9, nouse, k9b, 8'h36); // k0 -> k9b : 19d
+    // expand_key_128    a2 (clk, k1, k2, k1b, 8'h2);
+    // expand_key_128    a3 (clk, k2, k3, k2b, 8'h4);
+    // expand_key_128    a4 (clk, k3, k4, k3b, 8'h8);
+    // expand_key_128    a5 (clk, k4, k5, k4b, 8'h10);
+    // expand_key_128    a6 (clk, k5, k6, k5b, 8'h20);
+    // expand_key_128    a7 (clk, k6, k7, k6b, 8'h40);
+    // expand_key_128    a8 (clk, k7, k8, k7b, 8'h80);
+    // expand_key_128    a9 (clk, k8, k9, k8b, 8'h1b); // k0 -> k9 : 18d , k0->k8b : 17d
+    // expand_key_128   a10 (clk, k9, nouse, k9b, 8'h36); // k0 -> k9b : 19d
     /* verilator lint_on PINNOCONNECT */
 
     
