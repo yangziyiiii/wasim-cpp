@@ -780,7 +780,7 @@ void BTOR2Encoder::parse(const std::string filename)
   fclose(input_file);
   btor2parser_delete(reader_);
 
-  ts_.extract_initial_statevar_constant();
+  // ts_.extract_initial_statevar_constant();
   for (const auto & p: propvec_)
     ts_.add_prop(p);
 }
