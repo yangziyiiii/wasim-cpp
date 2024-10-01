@@ -183,12 +183,12 @@ TermVec BTOR2Encoder::lazy_convert(const TermVec & tvec) const
   return res;
 }
 
-// to handle the case where yosys generate sth. like this
+// to handle the case where yosys generate something like this
 // state (with no name)
 // output (with name)
 // for Verilog :  output reg xxx;
 
-// this function go over the file and record this case
+// this function goes over the file and record this case
 // when we encounter it again we shall replace the state's name
 void BTOR2Encoder::preprocess(const std::string & filename)
 {
@@ -297,17 +297,17 @@ void BTOR2Encoder::parse(const std::string filename)
     if (l_->tag == BTOR2_TAG_state) {
       if( state_wo_next.find( l_->id ) == state_wo_next.end() ) { // it is a state var
         if (l_->symbol) {
-          symbol_ = l_->symbol;
+          symbol_ = name_prefix + l_->symbol;
           std::cout << "GET SV: " << l_->symbol << std::endl;
         } else {
           auto renaming_lookup_pos = state_renaming_table.find(l_->id);
           if (renaming_lookup_pos != state_renaming_table.end())
-            symbol_ = renaming_lookup_pos->second;
+            symbol_ = name_prefix + (renaming_lookup_pos->second);
           else
-            symbol_ = "state" + to_string(l_->id);
+            symbol_ = name_prefix + "state" + to_string(l_->id);
         }
 
-        Term state = ts_.make_statevar(symbol_, linesort_);
+        Term state = ts_.make_statevar(symbol_, linesort_); // make_statevar will name_term
         terms_[l_->id] = state;
         statesvec_.push_back(state);
         id2statenum[l_->id] = num_states;
@@ -315,30 +315,30 @@ void BTOR2Encoder::parse(const std::string filename)
       } else { // it is actually an input
         if (l_->symbol) std::cout << "STATE --> INVAR: " << l_->symbol << std::endl;
         if (l_->symbol) {
-          symbol_ = l_->symbol;
+          symbol_ = name_prefix + l_->symbol;
         } else {
-          symbol_ = "input" + to_string(l_->id);
+          symbol_ = name_prefix + "input" + to_string(l_->id);
           std::cout << "STATE --> INVAR: " << l_->id << std::endl;
         }
-        Term input = ts_.make_inputvar(symbol_, linesort_);
+        Term input = ts_.make_inputvar(symbol_, linesort_); // make_inputvar will name_term
         terms_[l_->id] = input;
         inputsvec_.push_back(input);
       }
     } else if (l_->tag == BTOR2_TAG_input) {
       if (l_->symbol) std::cout << "GET INVAR: " << l_->symbol << std::endl;
       if (l_->symbol) {
-        symbol_ = l_->symbol;
+        symbol_ = name_prefix + l_->symbol;
       } else {
-        symbol_ = "input" + to_string(l_->id);
+        symbol_ = name_prefix + "input" + to_string(l_->id);
       }
-      Term input = ts_.make_inputvar(symbol_, linesort_);
+      Term input = ts_.make_inputvar(symbol_, linesort_); // make_inputvar will name_term
       terms_[l_->id] = input;
       inputsvec_.push_back(input);
     } else if (l_->tag == BTOR2_TAG_output) {
       if (l_->symbol) {
-        symbol_ = l_->symbol;
+        symbol_ = name_prefix + l_->symbol;
       } else {
-        symbol_ = "output" + to_string(l_->id);
+        symbol_ = name_prefix + "output" + to_string(l_->id);
       }
       try {
         ts_.name_term(symbol_, termargs_[0]);
@@ -766,7 +766,7 @@ void BTOR2Encoder::parse(const std::string filename)
     if (l_->symbol && l_->tag != BTOR2_TAG_input && l_->tag != BTOR2_TAG_output
         && l_->tag != BTOR2_TAG_state && terms_.find(l_->id) != terms_.end()) {
       try {
-        ts_.name_term(l_->symbol, terms_.at(l_->id));
+        ts_.name_term(name_prefix + l_->symbol, terms_.at(l_->id));
       }
       catch (SimulatorException & e) {
         logger.log(1, "BTOR2Encoder Warning: {}", e.what());
@@ -781,6 +781,7 @@ void BTOR2Encoder::parse(const std::string filename)
   btor2parser_delete(reader_);
 
   // ts_.extract_initial_statevar_constant();
+  ts_.extract_initial_statevar_constant_via_init_ast();
   for (const auto & p: propvec_)
     ts_.add_prop(p);
 }

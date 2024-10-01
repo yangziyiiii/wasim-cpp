@@ -37,8 +37,8 @@ namespace wasim {
 class BTOR2Encoder
 {
  public:
-  BTOR2Encoder(const std::string & filename, TransitionSystem & ts)
-      : ts_(ts), solver_(ts.solver())
+  BTOR2Encoder(const std::string & filename, TransitionSystem & ts, const std::string & prefix = "")
+      : ts_(ts), solver_(ts.solver()), name_prefix(prefix)
   {
     preprocess(filename);
     parse(filename);
@@ -95,5 +95,7 @@ class BTOR2Encoder
   int64_t idx_;
   bool negated_;
   size_t witness_id_{ 0 };  ///< id of any introduced witnesses for properties
+
+  std::string name_prefix;
 };
 }  // namespace wasim
