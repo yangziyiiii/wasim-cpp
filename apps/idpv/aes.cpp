@@ -83,30 +83,42 @@ int main() {
     cout << "-------------- AES-Verilog one round --------------" << endl;
     cout << "---------------------------------------------------" << endl;
     TransitionSystem sts1(solver);
-    BTOR2Encoder btor_parser1("../design/idpv-test/aes_case/128_bit_verilog/128_bit_verilog_one_round.btor2", sts1);
-    smt::UnorderedTermSet free_symbols_1;
-    get_free_symbols(sts1.trans(), free_symbols_1);
-    for(auto const &str : free_symbols_1){
-        cout << str->to_string() << endl;
-    }
+    BTOR2Encoder btor_parser1("../design/idpv-test/aes_case/128_bit_verilog/128_bit_verilog_one_round.btor2", sts1, "a::");
+    auto key128_term = sts1.lookup("a::key128");
+    auto data_term = sts1.lookup("a::data");
+    auto output_term = sts1.lookup("a::out128");
 
-    Term in_term = nullptr;
-    Term key128_term = nullptr;
+    std::cout << "key128:" << key128_term->to_string() << std::endl;
+    std::cout << "data:" << data_term->to_string() << std::endl;
+    std::cout << "out128:" << output_term->to_string() << std::endl;
+
+    TransitionSystem sts2(solver);
+    BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/AES128/RTL/aes128_ecb_encryptor/encryptor_top_one_round.btor2", sts2, "b::");
+
+    auto key1_term = sts2.lookup("b::key1");
+    auto in_text_term = sts2.lookup("b::in_text");
+    auto out_128_term = sts2.lookup("b::out_128");    
+
+    std::cout << "key1:" << key1_term->to_string() << std::endl;
+    std::cout << "in_text:" << in_text_term->to_string() << std::endl;
+    std::cout << "out_128:" << out_128_term->to_string() << std::endl;
+
+    solver->assert_formula( sts1.init() );
+    solver->assert_formula( sts2.init() );
+    for (const auto & c : sts1.constraints())
+        solver->assert_formula(c.first);
+    for (const auto & c : sts2.constraints())
+        solver->assert_formula(c.first);
+    solver->assert_formula(solver->make_term(Equal, key128_term, key1_term));
+    solver->assert_formula(solver->make_term(Equal, data_term, in_text_term));
+    solver->assert_formula(solver->make_term(Not, solver->make_term(Equal, output_term, out_128_term)));
+
+    // the result is SAT, there must be something wrong here!
+    std::cout << "Checking..." << std::endl;
+    auto r = solver->check_sat();
+    std::cout << r.to_string() << std::endl;
+
     
-    for (const auto& term : free_symbols_1){ 
-        std::string term_str = term->to_string(); 
-        if(term_str == "key128"){
-            key128_term = term;
-            cout << "find: key128" << endl;
-        }else if(term_str == "in"){
-            in_term = term;
-            cout << "find: in" << endl;
-        }
-        if ( key128_term && in_term) {
-            break;
-        }
-    }
-
     /*
     //random input for num_iteration times
     srand(static_cast<unsigned int>(time(0)));

@@ -532,7 +532,8 @@ class TransitionSystem
 
   /* Populate the map from state variables to its initial value,
      will factor the initial predicate and constraints into consideration */
-  void extract_initial_statevar_constant();
+  void extract_initial_statevar_constant_via_smt_solving();
+  void extract_initial_statevar_constant_via_init_ast();
 
   const smt::UnorderedTermMap & init_constants() { return init_constants_; }
 

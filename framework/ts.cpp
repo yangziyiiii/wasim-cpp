@@ -847,8 +847,56 @@ bool TransitionSystem::known_symbols(const Term & term) const
       UnorderedTermSetPtrVec{ &statevars_, &inputvars_, &next_statevars_ });
 }
 
+void TransitionSystem::extract_initial_statevar_constant_via_init_ast() {
+  // from the AST to get some init assignment
+  TermVec eqs;
+  conjunctive_partition(init_, eqs, true );
+  for (const auto & eq : eqs) {
+    auto op = eq->get_op().prim_op;
+    if (op == Equal ) {
+      Term first_child = *(eq->begin());
+      Term second_child = *(++(eq->begin()));
+      Term var, val;
+      if (first_child->is_symbol()) {
+        var = first_child;
+        val = second_child;
+      } else if (second_child->is_symbol()) {
+        var = second_child;
+        val = first_child;
+      }
+      // in case they are not val == var, then we should ignore
+      if (var && val) {
+        if (var->get_sort()->get_sort_kind() == SortKind::ARRAY) {
+          // array may contain variable in val
+          std::cout << "Loaded array " << var->to_string() << " w. init" << std::endl;
+          init_constants_.emplace(var,val);
+        } else {
+          UnorderedTermSet vars_in_val;
+          get_free_symbolic_consts(val,vars_in_val);
+          if (vars_in_val.empty()) {
+            init_constants_.emplace(var, val);
+          } else {
+            std::cout << "init of " << var->to_string() << " contains non-constant. Ignored by [extract_initial_statevar_constant_via_init_ast]" << std::endl;
+          }
+        }
+      } else
+        std::cout << "Unable to extract var==val from " << eq->to_string() << ". Ignored" << std::endl;
 
-void TransitionSystem::extract_initial_statevar_constant() {
+    } else if (eq->is_symbol()) {
+      assert(eq->get_sort()->get_sort_kind() == SortKind::BOOL ||
+            (eq->get_sort()->get_sort_kind() == SortKind::BV && 
+             eq->get_sort()->get_width() == 1) );
+      init_constants_.emplace(eq, solver_->make_term(true));
+    } else if (op == Not || op == BVNot) {
+      Term first_child = *(eq->begin());
+      if(!first_child->is_symbol()) continue;
+      // ! first_child   means first_child is 1'b0
+      init_constants_.emplace(first_child, solver_->make_term(false));
+    }
+  }
+}
+
+void TransitionSystem::extract_initial_statevar_constant_via_smt_solving() {
   // TODO: check the sv under assumptions. (using `check_if_constant`)
   //       do this after parsing
   TermVec assumptions;
