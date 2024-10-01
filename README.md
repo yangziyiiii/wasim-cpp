@@ -20,7 +20,7 @@
 ### Prerequisite
 
     pip3 install toml
-    sudo apt install build-essential cmake default-jre libgmp-dev libboost-all-dev
+    sudo apt install build-essential cmake default-jre libgmp-dev libboost-all-dev libgflags-dev
 
 ### SETUP
 
