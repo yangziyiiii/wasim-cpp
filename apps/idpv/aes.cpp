@@ -83,25 +83,25 @@ int main() {
     cout << "-------------- AES-Verilog one round --------------" << endl;
     cout << "---------------------------------------------------" << endl;
     TransitionSystem sts1(solver);
-    BTOR2Encoder btor_parser1("../design/idpv-test/aes_case/128_bit_verilog/128_bit_verilog_one_round.btor2", sts1, "a::");
-    auto key128_term = sts1.lookup("a::key128");
-    auto data_term = sts1.lookup("a::data");
-    auto output_term = sts1.lookup("a::out128");
+    BTOR2Encoder btor_parser1("../design/idpv-test/aes_case/AES_TOP.btor2", sts1, "a::");
+    auto a_key_term = sts1.lookup("a::key");
+    auto a_input_term = sts1.lookup("a::datain");
+    auto a_output_term = sts1.lookup("a::finalout");
 
-    std::cout << "key128:" << key128_term->to_string() << std::endl;
-    std::cout << "data:" << data_term->to_string() << std::endl;
-    std::cout << "out128:" << output_term->to_string() << std::endl;
+    std::cout << "a_key:" << a_key_term->to_string() << std::endl;
+    std::cout << "a_input:" << a_input_term->to_string() << std::endl;
+    std::cout << "a_output:" << a_output_term->to_string() << std::endl;
 
     TransitionSystem sts2(solver);
-    BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/AES128/RTL/aes128_ecb_encryptor/encryptor_top_one_round.btor2", sts2, "b::");
+    BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/AES_Verilog.btor2", sts2, "b::");
 
-    auto key1_term = sts2.lookup("b::key1");
-    auto in_text_term = sts2.lookup("b::in_text");
-    auto out_128_term = sts2.lookup("b::out_128");    
+    auto b_key_term = sts2.lookup("b::key");
+    auto b_input_term = sts2.lookup("b::in");
+    auto b_output_term = sts2.lookup("b::out");    
 
-    std::cout << "key1:" << key1_term->to_string() << std::endl;
-    std::cout << "in_text:" << in_text_term->to_string() << std::endl;
-    std::cout << "out_128:" << out_128_term->to_string() << std::endl;
+    std::cout << "b_key:" << b_key_term->to_string() << std::endl;
+    std::cout << "b_input:" << b_input_term->to_string() << std::endl;
+    std::cout << "b_output:" << b_output_term->to_string() << std::endl;
 
     solver->assert_formula( sts1.init() );
     solver->assert_formula( sts2.init() );
@@ -109,11 +109,12 @@ int main() {
         solver->assert_formula(c.first);
     for (const auto & c : sts2.constraints())
         solver->assert_formula(c.first);
-    solver->assert_formula(solver->make_term(Equal, key128_term, key1_term));
-    solver->assert_formula(solver->make_term(Equal, data_term, in_text_term));
-    solver->assert_formula(solver->make_term(Not, solver->make_term(Equal, output_term, out_128_term)));
 
-    // the result is SAT, there must be something wrong here!
+    solver->assert_formula(solver->make_term(Equal, a_key_term, b_key_term));
+    solver->assert_formula(solver->make_term(Equal, a_input_term, b_input_term));
+    solver->assert_formula(solver->make_term(Not, solver->make_term(Equal, a_output_term, b_output_term)));
+
+    // TODO:the result is SAT, there must be something wrong here!
     std::cout << "Checking..." << std::endl;
     auto r = solver->check_sat();
     std::cout << r.to_string() << std::endl;
