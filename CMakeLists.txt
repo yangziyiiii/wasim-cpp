@@ -290,8 +290,8 @@ endif()
 add_executable(test_aes "apps/idpv/aes.cpp")
 target_link_libraries(test_aes wasim-lib)
 
-# add_executable(test_ast "apps/idpv/ast-test.cpp")
-# target_link_libraries(test_ast wasim-lib)
+add_executable(test_ast "apps/idpv/ast-test.cpp")
+target_link_libraries(test_ast wasim-lib)
 
 # add_executable(testdivcondeqexport "apps/idpv/div_condeq_rewrite.cpp")
 # target_link_libraries(testdivcondeqexport wasim-lib)

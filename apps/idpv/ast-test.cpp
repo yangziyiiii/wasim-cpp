@@ -63,15 +63,11 @@ void traverse_and_collect_terms(const Term &term, SmtSolver& solver, std::unorde
 }
 
 bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
-    Term not_equal_term = solver->make_term(Not, solver->make_term(smt::Equal, var1, var2));
-    solver->assert_formula(not_equal_term);
-    if (solver->check_sat().is_unsat()) {
-        cout << "These two terms " << var1->to_string() << " and " << var2->to_string() << " are equal" << endl;
-        return true;
-    }else{
-        return false;
-    }
+    TermVec not_equal_term = {solver->make_term(Not, solver->make_term(smt::Equal, var1, var2))};
+    auto res = solver->check_sat_assuming(not_equal_term);    
+    return res.is_unsat();
 }
+
 
 
 void process_terms(const unordered_map<string, vector<Term>>& value_term_map, SmtSolver& solver) {
@@ -105,63 +101,66 @@ int main() {
     solver->set_opt("produce-models", "true");
     solver->set_opt("produce-unsat-assumptions", "true");
 
-    TransitionSystem sts(solver);
-    BTOR2Encoder btor_parser("../design/idpv-test/div_case/suoglu_div.btor2", sts);
+    TransitionSystem sts1(solver);
+    BTOR2Encoder btor_parser1("../design/idpv-test/aes_case/AES_TOP.btor2", sts1, "a::");
 
-    smt::UnorderedTermSet free_symbols;
-    get_free_symbols(sts.trans(), free_symbols);
+    auto a_key_term = sts1.lookup("a::key");
+    auto a_input_term = sts1.lookup("a::datain");
+    cout << "a_key:" << a_key_term->to_string() << endl;
 
-    Term divisor_term = nullptr;
-    Term dividend_term = nullptr;
-    Term start_term = nullptr;
-    Term rst_term = nullptr;
-    Term clk_term = nullptr;
+    solver->assert_formula( sts1.init() );
 
-    for (const auto& term : free_symbols){ // loop once for all invar
-        std::string term_str = term->to_string();
-        if (term_str == "divisor"){
-            divisor_term = term;
-        }else if(term_str == "dividend"){
-            dividend_term = term;
-        }else if(term_str == "start"){
-            start_term = term;
-        }else if(term_str == "rst"){
-            rst_term = term;
-        }
+    smt::UnorderedTermSet free_symbols_a;
+    get_free_symbols(sts1.trans() , free_symbols_a);
+    cout << free_symbols_a.size()<< endl; // compare before & after sweeping
 
-        if (divisor_term && dividend_term && start_term && rst_term) {
-            break;
-        }
+
+    Term key_ast = nullptr;
+    Term datain_ast = nullptr;
+
+    if (a_key_term != nullptr) {
+        key_ast = a_key_term;
+        cout << key_ast->to_string() << endl;
     }
 
-    int64_t divisor_var = 3;
-    int64_t dividend_var = 4;
-    int64_t start_var = 5;
-    int64_t rst_var = 1;
+    if (a_input_term != nullptr) {
+        datain_ast = a_input_term;
+        cout << datain_ast->to_string() << endl;
+    }
+
+    // for (const auto& term : free_symbols_a){ // loop once for all invar
+    //     std::string term_str = term->to_string();
+    //     if (term_str == sts1.lookup("a::key")->to_string()){
+    //         key_ast = term; // key_ast should be a::key
+    //         cout << key_ast->to_string() << endl;
+    //     }else if(term_str == sts1.lookup("a::datain")->to_string()){
+    //         datain_ast = term;
+    //         cout << datain_ast->to_string() << endl;
+    //     }
+    // }
+
+    srand(static_cast<unsigned int>(time(0)));
+    int num_iterations = 10; 
+
+    for (int i = 0; i < num_iterations; ++i) {
+        int64_t a_key = rand() % 100 + 1;
+        int64_t a_datain = rand() % 100 + 1;
+
+        auto key_assumption = solver->make_term(a_key, key_ast->get_sort());
+        auto datain_assumption = solver->make_term(a_datain, datain_ast->get_sort());
+
+        Term assumption_equal_a_key = solver->make_term(smt::Equal, key_ast, key_assumption);
+        Term assumption_equal_a_datain = solver->make_term(smt::Equal, datain_ast, datain_assumption); 
+        TermVec assumptions{assumption_equal_a_key, assumption_equal_a_datain};
+        // auto sim_data_ast = solver->check_sat_assuming(assumptions);
 
 
-    auto divisor_assumption = solver->make_term(divisor_var, divisor_term->get_sort());
-    auto dividend_assumption = solver->make_term(dividend_var, dividend_term->get_sort());
-    auto start_assumption = solver->make_term(start_var, start_term->get_sort());
-    auto rst_assumption = solver->make_term(rst_var, rst_term->get_sort());
-
-    Term assumption_equal_divisor = solver->make_term(smt::Equal, divisor_term, divisor_assumption);
-    Term assumption_equal_dividend = solver->make_term(smt::Equal, dividend_term, dividend_assumption); 
-    Term assumption_equal_start = solver->make_term(smt::Equal, start_term, start_assumption); 
-    Term assumption_equal_rst = solver->make_term(smt::Equal, rst_term, rst_assumption); 
-
-    TermVec assumptions{assumption_equal_dividend,assumption_equal_divisor,\
-        assumption_equal_rst,assumption_equal_start};
-    auto mid_result = solver->check_sat_assuming(assumptions);
-
-    if(mid_result.is_sat()){
-        cout<< "sat" <<endl;
     }
 
 
 
-    std::unordered_map<Term, NodeData> node_data_map;
-    traverse_and_collect_terms(sts.trans(), solver, node_data_map);
+    // std::unordered_map<Term, NodeData> node_data_map;
+    // traverse_and_collect_terms(sts.trans(), solver, node_data_map);
     // for (const auto& [term, data] : node_data_map) {
     //     cout << "Term: " << term->to_string() <<endl;
     //     cout << "Bit Width: " << data.bit_width <<endl;
@@ -174,14 +173,14 @@ int main() {
 
 
     //compare simulation data equal or not
-    std::unordered_map<std::string, std::vector<Term>> value_term_map;
-    for (const auto&  [term, data] : node_data_map) {
-        Term value = solver->get_value(term);
-        std::string value_term = value->to_string(); // value 对应的 term
-        value_term_map[value_term].push_back(term);
-    }
+    // std::unordered_map<std::string, std::vector<Term>> value_term_map;
+    // for (const auto&  [term, data] : node_data_map) {
+    //     Term value = solver->get_value(term);
+    //     std::string value_term = value->to_string(); // value 对应的 term
+    //     value_term_map[value_term].push_back(term);
+    // }
 
-    process_terms(value_term_map,solver);
+    // process_terms(value_term_map,solver);
     
     return 0;
 }
