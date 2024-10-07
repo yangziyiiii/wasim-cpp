@@ -15,11 +15,11 @@ using namespace wasim;
 
 struct NodeData {
     Term term;
-    uint32_t bit_width;
+    uint64_t bit_width;
     std::vector<std::string> simulation_data;
 
     private:
-        NodeData(Term t, uint32_t bw, std::vector<std::string>&& sim_data)
+        NodeData(Term t, auto bw, std::vector<std::string>&& sim_data)
             : term(t), bit_width(bw), simulation_data(sim_data) {}
 
     public:
@@ -30,8 +30,13 @@ struct NodeData {
         }
 
     static NodeData get_simulation_data(const Term& term, SmtSolver& solver) {
+        SortKind sk = term->get_sort()->get_sort_kind();
+        if(sk == ARRAY){
+            cout << "array" << endl;
+        }
+        
         Term value = solver->get_value(term);
-        uint32_t bit_width = value->get_sort()->get_width();
+        auto bit_width = value->get_sort()->get_width(); 
         std::vector<std::string> simulation_data;
         simulation_data.push_back(value->to_string());
 
@@ -40,7 +45,17 @@ struct NodeData {
 };
 
 
-void traverse_and_collect_terms(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map) {
+struct nodeArrayData
+{
+    Term term;
+    Sort index_sort, elem_sort;
+    std::vector<std::string> simulation_data;
+
+};
+
+
+
+void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map) {
     std::unordered_set<Term> visited_nodes;
     std::stack<Term> node_stack;
     node_stack.push(term);
@@ -54,8 +69,12 @@ void traverse_and_collect_terms(const Term &term, SmtSolver& solver, std::unorde
         }
 
         visited_nodes.insert(current_term);
-        node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
 
+        // if(current_term->get_sort()->get_sort_kind() == BV){
+        //     node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
+        // }
+        node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
+       
         for (auto child : *current_term) {
             node_stack.push(child);
         }
@@ -69,29 +88,6 @@ bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
 }
 
 
-
-void process_terms(const unordered_map<string, vector<Term>>& value_term_map, SmtSolver& solver) {
-    std::unordered_map<Term, Term> term_map;
-    for (const auto& entry : value_term_map) {
-        const vector<Term>& term_list = entry.second;
-
-        for (const auto& term : term_list) {
-            auto it = term_map.find(term);
-            if (it != term_map.end()) {
-                continue;
-            }
-
-            for (const auto& other_term : term_list) {
-                if (term != other_term && compare_terms(term, other_term, solver)) {
-                    term_map[other_term] = term; // merge into one term
-                    cout << "Merge term: " << other_term->to_string() << " with existing term: " << term->to_string() << endl;
-                    break;
-                }
-            }
-
-        }
-    }
-}
 
 int main() {
     SmtSolver solver = BoolectorSolverFactory::create(false);
@@ -107,8 +103,6 @@ int main() {
     auto a_key_term = sts1.lookup("a::key");
     auto a_input_term = sts1.lookup("a::datain");
     cout << "a_key:" << a_key_term->to_string() << endl;
-
-    solver->assert_formula( sts1.init() );
 
     smt::UnorderedTermSet free_symbols_a;
     get_free_symbols(sts1.trans() , free_symbols_a);
@@ -128,17 +122,6 @@ int main() {
         cout << datain_ast->to_string() << endl;
     }
 
-    // for (const auto& term : free_symbols_a){ // loop once for all invar
-    //     std::string term_str = term->to_string();
-    //     if (term_str == sts1.lookup("a::key")->to_string()){
-    //         key_ast = term; // key_ast should be a::key
-    //         cout << key_ast->to_string() << endl;
-    //     }else if(term_str == sts1.lookup("a::datain")->to_string()){
-    //         datain_ast = term;
-    //         cout << datain_ast->to_string() << endl;
-    //     }
-    // }
-
     srand(static_cast<unsigned int>(time(0)));
     int num_iterations = 10; 
 
@@ -152,13 +135,19 @@ int main() {
         Term assumption_equal_a_key = solver->make_term(smt::Equal, key_ast, key_assumption);
         Term assumption_equal_a_datain = solver->make_term(smt::Equal, datain_ast, datain_assumption); 
         TermVec assumptions{assumption_equal_a_key, assumption_equal_a_datain};
-        // auto sim_data_ast = solver->check_sat_assuming(assumptions);
+        auto sim_data_ast = solver->check_sat_assuming(assumptions);
 
+        if(sim_data_ast.is_sat()){
+            std::unordered_map<Term, NodeData> node_data_map;
+            collect_TermData(sts1.trans(),solver,node_data_map);
+            // for(auto & a : free_symbols_a){
+            //     cout << a->get_sort() << endl; // output : array ...
+            // }
 
+        }
     }
 
-
-
+     
     // std::unordered_map<Term, NodeData> node_data_map;
     // traverse_and_collect_terms(sts.trans(), solver, node_data_map);
     // for (const auto& [term, data] : node_data_map) {
