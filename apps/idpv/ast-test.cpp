@@ -19,7 +19,7 @@ struct NodeData {
     std::vector<std::string> simulation_data;
 
     private:
-        NodeData(Term t, auto bw, std::vector<std::string>&& sim_data)
+        NodeData(Term t, uint64_t bw, std::vector<std::string>&& sim_data)
             : term(t), bit_width(bw), simulation_data(sim_data) {}
 
     public:
@@ -33,27 +33,21 @@ struct NodeData {
         SortKind sk = term->get_sort()->get_sort_kind();
         if(sk == ARRAY){
             cout << "array" << endl;
+            return NodeData();
+        }else if(sk ==BV){
+            cout << "BV" << endl;
+            Term value = solver->get_value(term);
+            auto bit_width = value->get_sort()->get_width(); 
+            std::vector<std::string> simulation_data;
+            simulation_data.push_back(value->to_string());
+
+            return NodeData(term, bit_width, std::move(simulation_data));
+        }else{
+            cerr << "other sort" << endl;
         }
         
-        Term value = solver->get_value(term);
-        auto bit_width = value->get_sort()->get_width(); 
-        std::vector<std::string> simulation_data;
-        simulation_data.push_back(value->to_string());
-
-        return NodeData(term, bit_width, std::move(simulation_data));
     }
 };
-
-
-struct nodeArrayData
-{
-    Term term;
-    Sort index_sort, elem_sort;
-    std::vector<std::string> simulation_data;
-
-};
-
-
 
 void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map) {
     std::unordered_set<Term> visited_nodes;
@@ -69,10 +63,6 @@ void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Te
         }
 
         visited_nodes.insert(current_term);
-
-        // if(current_term->get_sort()->get_sort_kind() == BV){
-        //     node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
-        // }
         node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
        
         for (auto child : *current_term) {
@@ -87,7 +77,16 @@ bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
     return res.is_unsat();
 }
 
-
+std::unordered_map<Term, Term> parent_map;
+int get_depth(const Term& term, const Term& root) {
+    int depth = 0;
+    Term current = term;
+    while (current != root && parent_map.count(current)) {
+        current = parent_map.at(current);
+        depth++;
+    }
+    return (current == root) ? depth : -1;
+}
 
 int main() {
     SmtSolver solver = BoolectorSolverFactory::create(false);
@@ -125,6 +124,8 @@ int main() {
     srand(static_cast<unsigned int>(time(0)));
     int num_iterations = 10; 
 
+    std::map<std::pair<Term, Term>, int> equivalence_counts;
+
     for (int i = 0; i < num_iterations; ++i) {
         int64_t a_key = rand() % 100 + 1;
         int64_t a_datain = rand() % 100 + 1;
@@ -140,36 +141,44 @@ int main() {
         if(sim_data_ast.is_sat()){
             std::unordered_map<Term, NodeData> node_data_map;
             collect_TermData(sts1.trans(),solver,node_data_map);
-            // for(auto & a : free_symbols_a){
-            //     cout << a->get_sort() << endl; // output : array ...
-            // }
+            
+            for (const auto& entry1 : node_data_map) {
+                for (const auto& entry2 : node_data_map) {
+                    cout << entry1.first->get_sort()->to_string() << endl;
+                    cout << entry2.first->get_sort()->to_string() << endl;
+
+                    if (entry1.first != entry2.first \
+                        && entry1.first->get_sort()->to_string() == entry2.first->get_sort()->to_string() \
+                        && compare_terms(entry1.first, entry2.first, solver)) {
+                         equivalence_counts[{entry1.first, entry2.first}]++;
+                    }
+                }
+            }
+
+            std::unordered_map<Term, Term> term_merge_map;
+            for (const auto& pair_count : equivalence_counts) {
+                if (pair_count.second == num_iterations) {
+                    Term term1 = pair_count.first.first;
+                    Term term2 = pair_count.first.second;
+
+                    int depth1 = get_depth(term1, sts1.trans());
+                    int depth2 = get_depth(term2, sts1.trans());
+
+                    if (depth1 >=0 && depth2 >= 0 ) {
+                    if (depth1 < depth2) {
+                        term_merge_map[term2] = term1;
+                    } else {
+                        term_merge_map[term1] = term2;
+                    }
+                    cout << "Merging: " << (depth1 < depth2 ? term2 : term1)->to_string() 
+                        << " into " << (depth1 < depth2 ? term1 : term2)->to_string() << endl;
+                    }
+
+                }
+            }
 
         }
     }
-
-     
-    // std::unordered_map<Term, NodeData> node_data_map;
-    // traverse_and_collect_terms(sts.trans(), solver, node_data_map);
-    // for (const auto& [term, data] : node_data_map) {
-    //     cout << "Term: " << term->to_string() <<endl;
-    //     cout << "Bit Width: " << data.bit_width <<endl;
-    //     cout << "Simulation Data: ";
-    //     for (const auto& str : data.simulation_data) {
-    //         cout << str << endl;
-    //     }
-    //     cout << "-----------------------------------------" << endl;
-    // }
-
-
-    //compare simulation data equal or not
-    // std::unordered_map<std::string, std::vector<Term>> value_term_map;
-    // for (const auto&  [term, data] : node_data_map) {
-    //     Term value = solver->get_value(term);
-    //     std::string value_term = value->to_string(); // value 对应的 term
-    //     value_term_map[value_term].push_back(term);
-    // }
-
-    // process_terms(value_term_map,solver);
     
     return 0;
 }
