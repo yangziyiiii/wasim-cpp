@@ -8,67 +8,19 @@
 #include "smt-switch/smtlib_reader.h"
 #include "smt-switch/utils.h"
 
+#include <gmp.h>
 
 using namespace smt;
 using namespace std;
 using namespace wasim;
 
-struct NodeData {
-    Term term;
-    uint64_t bit_width;
-    std::vector<std::string> simulation_data;
+struct NodeData{
 
-    private:
-        NodeData(Term t, uint64_t bw, std::vector<std::string>&& sim_data)
-            : term(t), bit_width(bw), simulation_data(sim_data) {}
-
-    public:
-        NodeData() : term(nullptr), bit_width(0), simulation_data() {}
-
-        bool operator==(const NodeData& other) const {
-            return simulation_data == other.simulation_data;
-        }
-
-    static NodeData get_simulation_data(const Term& term, SmtSolver& solver) {
-        SortKind sk = term->get_sort()->get_sort_kind();
-        if(sk == ARRAY){
-            cout << "array" << endl;
-            return NodeData();
-        }else if(sk ==BV){
-            cout << "BV" << endl;
-            Term value = solver->get_value(term);
-            auto bit_width = value->get_sort()->get_width(); 
-            std::vector<std::string> simulation_data;
-            simulation_data.push_back(value->to_string());
-
-            return NodeData(term, bit_width, std::move(simulation_data));
-        }else{
-            cerr << "other sort" << endl;
-        }
-        
-    }
 };
 
-void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map) {
-    std::unordered_set<Term> visited_nodes;
-    std::stack<Term> node_stack;
-    node_stack.push(term);
-
-    while (!node_stack.empty()) {
-        Term current_term = node_stack.top();
-        node_stack.pop();
-
-        if (visited_nodes.find(current_term) != visited_nodes.end()) {
-            continue;
-        }
-
-        visited_nodes.insert(current_term);
-        node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
-       
-        for (auto child : *current_term) {
-            node_stack.push(child);
-        }
-    }
+size_t hash_term(const Term& term) {
+    cout << term->to_string() << endl;
+    return std::hash<string>()(term->to_string());
 }
 
 bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
@@ -77,15 +29,13 @@ bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
     return res.is_unsat();
 }
 
-std::unordered_map<Term, Term> parent_map;
-int get_depth(const Term& term, const Term& root) {
-    int depth = 0;
-    Term current = term;
-    while (current != root && parent_map.count(current)) {
-        current = parent_map.at(current);
-        depth++;
-    }
-    return (current == root) ? depth : -1;
+gmp_randstate_t state;
+int random_128(){
+    mpz_t rand_num;
+    mpz_init2(rand_num, 128); 
+    mpz_urandomb(rand_num, state, 128); 
+    gmp_printf("%032Zx\n", rand_num);
+    return 0;
 }
 
 int main() {
@@ -101,83 +51,97 @@ int main() {
 
     auto a_key_term = sts1.lookup("a::key");
     auto a_input_term = sts1.lookup("a::datain");
-    cout << "a_key:" << a_key_term->to_string() << endl;
+    auto a_output_term = sts1.lookup("a::finalout");
 
     smt::UnorderedTermSet free_symbols_a;
     get_free_symbols(sts1.trans() , free_symbols_a);
     cout << free_symbols_a.size()<< endl; // compare before & after sweeping
 
+    TransitionSystem sts2(solver);
+    BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/AES_Verilog.btor2", sts2, "b::");
 
-    Term key_ast = nullptr;
-    Term datain_ast = nullptr;
+    auto b_key_term = sts2.lookup("b::key");
+    auto b_input_term = sts2.lookup("b::in");
+    auto b_output_term = sts2.lookup("b::out");    
 
-    if (a_key_term != nullptr) {
-        key_ast = a_key_term;
-        cout << key_ast->to_string() << endl;
-    }
+    Term a_key_ast = nullptr;
+    Term a_datain_ast = nullptr;
+    Term b_key_ast = nullptr;
+    Term b_in_ast = nullptr;
 
-    if (a_input_term != nullptr) {
-        datain_ast = a_input_term;
-        cout << datain_ast->to_string() << endl;
-    }
 
-    srand(static_cast<unsigned int>(time(0)));
-    int num_iterations = 10; 
+    if (a_key_term != nullptr \
+        && a_input_term != nullptr \
+        && b_input_term != nullptr \
+        && b_key_term != nullptr) {
+            a_key_ast = a_key_term;
+            a_datain_ast = a_input_term;
+            b_key_ast = b_input_term;
+            b_key_ast = b_key_term;
+        }
+
+    gmp_randinit_default(state);
+    gmp_randseed_ui(state, time(NULL)); 
 
     std::map<std::pair<Term, Term>, int> equivalence_counts;
+    auto res_ast = solver->make_term(Equal, a_output_term, b_output_term);
 
+    int num_iterations = 1;
     for (int i = 0; i < num_iterations; ++i) {
-        int64_t a_key = rand() % 100 + 1;
-        int64_t a_datain = rand() % 100 + 1;
+        auto a_key = random_128();
+        auto a_datain = random_128();
+        auto b_key = random_128();
+        auto b_in = random_128();
 
-        auto key_assumption = solver->make_term(a_key, key_ast->get_sort());
-        auto datain_assumption = solver->make_term(a_datain, datain_ast->get_sort());
+        auto key_assumption = solver->make_term(a_key, a_key_ast->get_sort());
+        auto datain_assumption = solver->make_term(a_datain, a_datain_ast->get_sort());
+        // auto 
 
-        Term assumption_equal_a_key = solver->make_term(smt::Equal, key_ast, key_assumption);
-        Term assumption_equal_a_datain = solver->make_term(smt::Equal, datain_ast, datain_assumption); 
+        Term assumption_equal_a_key = solver->make_term(smt::Equal, a_key_ast, key_assumption);
+        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_datain_ast, datain_assumption); 
         TermVec assumptions{assumption_equal_a_key, assumption_equal_a_datain};
         auto sim_data_ast = solver->check_sat_assuming(assumptions);
 
         if(sim_data_ast.is_sat()){
-            std::unordered_map<Term, NodeData> node_data_map;
-            collect_TermData(sts1.trans(),solver,node_data_map);
-            
-            for (const auto& entry1 : node_data_map) {
-                for (const auto& entry2 : node_data_map) {
-                    cout << entry1.first->get_sort()->to_string() << endl;
-                    cout << entry2.first->get_sort()->to_string() << endl;
+            cout << "sim_data_ast.is_sat()" << endl;
+            std::unordered_set<Term> visited_nodes;
+            std::stack<Term> node_stack;
+            node_stack.push(res_ast);
 
-                    if (entry1.first != entry2.first \
-                        && entry1.first->get_sort()->to_string() == entry2.first->get_sort()->to_string() \
-                        && compare_terms(entry1.first, entry2.first, solver)) {
-                         equivalence_counts[{entry1.first, entry2.first}]++;
+            std::unordered_map<size_t, Term> term_map; 
+
+            while(!node_stack.empty()){
+                Term current_term = node_stack.top();
+                node_stack.pop();
+                if(visited_nodes.find(current_term) != visited_nodes.end())
+                    continue;
+                visited_nodes.insert(current_term);
+
+                size_t term_hash =hash_term(current_term);
+
+                if(term_map.find(term_hash) != term_map.end()){
+                    Term existing_term = term_map[term_hash];
+                    if (hash_term(current_term) == hash_term(existing_term)) {
+                        cout << "find two nodes maybe equal" << endl;
+                        equivalence_counts[{current_term, existing_term}]++;
                     }
+                }else{
+                    term_map[term_hash] = current_term;
                 }
             }
-
-            std::unordered_map<Term, Term> term_merge_map;
-            for (const auto& pair_count : equivalence_counts) {
-                if (pair_count.second == num_iterations) {
-                    Term term1 = pair_count.first.first;
-                    Term term2 = pair_count.first.second;
-
-                    int depth1 = get_depth(term1, sts1.trans());
-                    int depth2 = get_depth(term2, sts1.trans());
-
-                    if (depth1 >=0 && depth2 >= 0 ) {
-                    if (depth1 < depth2) {
-                        term_merge_map[term2] = term1;
-                    } else {
-                        term_merge_map[term1] = term2;
-                    }
-                    cout << "Merging: " << (depth1 < depth2 ? term2 : term1)->to_string() 
-                        << " into " << (depth1 < depth2 ? term1 : term2)->to_string() << endl;
-                    }
-
-                }
-            }
-
         }
+    }
+
+    for (const auto& pair_count : equivalence_counts) {
+        if(pair_count.second == num_iterations){
+            if(compare_terms(pair_count.first.first, pair_count.first.second, solver)){
+                equivalence_counts[pair_count.first] = pair_count.second; //这里应该改成一些启发式的方法，不能直接这样merge
+            }
+        }
+    }
+
+    for (const auto& pair : equivalence_counts) {
+        cout << equivalence_counts.size() << endl;
     }
     
     return 0;
