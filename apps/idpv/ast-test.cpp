@@ -9,19 +9,44 @@
 #include "smt-switch/utils.h"
 
 #include <gmp.h>
+#include <gmpxx.h>
 
 using namespace smt;
 using namespace std;
 using namespace wasim;
 
 struct NodeData{
+    Term term;
+    uint64_t bit_width;
+    std::vector<std::string> simulation_data;
 
+    private:
+        NodeData(Term t, uint64_t bw, std::vector<std::string>&& sim_data)
+            : term(t), bit_width(bw), simulation_data(sim_data) {}
+
+    public:
+        NodeData() : term(nullptr), bit_width(0), simulation_data() {}
+
+        bool operator==(const NodeData& other) const {
+            return term->hash() == other.term->hash();
+        }
+
+        static NodeData get_simulation_data(const Term& term, SmtSolver& solver) {
+            SortKind sk = term->get_sort()->get_sort_kind();
+            if(sk == ARRAY){
+                return NodeData();
+            }else if(sk ==BV){
+                Term value = solver->get_value(term);
+                auto bit_width = value->get_sort()->get_width(); 
+                std::vector<std::string> simulation_data;
+                simulation_data.push_back(value->to_string());
+                return NodeData(term, bit_width, std::move(simulation_data));
+            }else{
+                cerr << "Unsupported sort: " << sk << std::endl;
+                return NodeData();
+            }
+        }
 };
-
-size_t hash_term(const Term& term) {
-    cout << term->to_string() << endl;
-    return std::hash<string>()(term->to_string());
-}
 
 bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
     TermVec not_equal_term = {solver->make_term(Not, solver->make_term(smt::Equal, var1, var2))};
@@ -30,12 +55,10 @@ bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
 }
 
 gmp_randstate_t state;
-int random_128(){
-    mpz_t rand_num;
+void random_128(mpz_t& rand_num){
     mpz_init2(rand_num, 128); 
     mpz_urandomb(rand_num, state, 128); 
-    gmp_printf("%032Zx\n", rand_num);
-    return 0;
+    // gmp_printf("%032Zx\n", rand_num);
 }
 
 int main() {
@@ -53,10 +76,6 @@ int main() {
     auto a_input_term = sts1.lookup("a::datain");
     auto a_output_term = sts1.lookup("a::finalout");
 
-    smt::UnorderedTermSet free_symbols_a;
-    get_free_symbols(sts1.trans() , free_symbols_a);
-    cout << free_symbols_a.size()<< endl; // compare before & after sweeping
-
     TransitionSystem sts2(solver);
     BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/AES_Verilog.btor2", sts2, "b::");
 
@@ -73,10 +92,11 @@ int main() {
     if (a_key_term != nullptr \
         && a_input_term != nullptr \
         && b_input_term != nullptr \
-        && b_key_term != nullptr) {
+        && b_key_term != nullptr) 
+        {
             a_key_ast = a_key_term;
             a_datain_ast = a_input_term;
-            b_key_ast = b_input_term;
+            b_in_ast = b_input_term;
             b_key_ast = b_key_term;
         }
 
@@ -84,31 +104,44 @@ int main() {
     gmp_randseed_ui(state, time(NULL)); 
 
     std::map<std::pair<Term, Term>, int> equivalence_counts;
-    auto res_ast = solver->make_term(Equal, a_output_term, b_output_term);
 
-    int num_iterations = 1;
+    int num_iterations = 10;
     for (int i = 0; i < num_iterations; ++i) {
-        auto a_key = random_128();
-        auto a_datain = random_128();
-        auto b_key = random_128();
-        auto b_in = random_128();
+        mpz_t a_key_mpz, a_datain_mpz, b_key_mpz, b_in_mpz; 
 
-        auto key_assumption = solver->make_term(a_key, a_key_ast->get_sort());
-        auto datain_assumption = solver->make_term(a_datain, a_datain_ast->get_sort());
-        // auto 
+        random_128(a_key_mpz);
+        random_128(a_datain_mpz);
+        random_128(b_key_mpz);
+        random_128(b_in_mpz);
 
-        Term assumption_equal_a_key = solver->make_term(smt::Equal, a_key_ast, key_assumption);
-        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_datain_ast, datain_assumption); 
-        TermVec assumptions{assumption_equal_a_key, assumption_equal_a_datain};
+        char* a_key_str = mpz_get_str(NULL, 10, a_key_mpz);
+        char* a_datain_str = mpz_get_str(NULL, 10, a_datain_mpz);
+        char* b_key_str = mpz_get_str(NULL, 10, b_key_mpz);
+        char* b_in_str = mpz_get_str(NULL, 10, b_in_mpz);
+
+        auto a_key_assumption = solver->make_term(a_key_str, a_key_ast->get_sort());
+        auto a_input_assumption = solver->make_term(a_datain_str, a_datain_ast->get_sort());
+        auto b_key_assumption = solver->make_term(b_key_str, b_key_ast->get_sort());
+        auto b_input_assumption = solver->make_term(b_in_str, b_in_ast->get_sort());
+
+        Term assumption_equal_a_key = solver->make_term(smt::Equal, a_key_ast, a_key_assumption);
+        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_datain_ast, a_input_assumption); 
+        Term assumption_equal_b_in = solver->make_term(smt::Equal, b_in_ast, b_input_assumption); 
+        Term assumption_equal_b_key = solver->make_term(smt::Equal, b_key_ast, b_key_assumption); 
+       
+        
+        TermVec assumptions{assumption_equal_a_key, assumption_equal_a_datain, assumption_equal_b_in, assumption_equal_b_key};
         auto sim_data_ast = solver->check_sat_assuming(assumptions);
 
+        auto res_ast = solver->make_term(Equal, a_output_term, b_output_term);
+
+        std::unordered_map<size_t, NodeData> term_hash_map;
+
         if(sim_data_ast.is_sat()){
-            cout << "sim_data_ast.is_sat()" << endl;
+            cout << "--------maybe equal-------" << endl;
             std::unordered_set<Term> visited_nodes;
             std::stack<Term> node_stack;
             node_stack.push(res_ast);
-
-            std::unordered_map<size_t, Term> term_map; 
 
             while(!node_stack.empty()){
                 Term current_term = node_stack.top();
@@ -117,32 +150,54 @@ int main() {
                     continue;
                 visited_nodes.insert(current_term);
 
-                size_t term_hash =hash_term(current_term);
-
-                if(term_map.find(term_hash) != term_map.end()){
-                    Term existing_term = term_map[term_hash];
-                    if (hash_term(current_term) == hash_term(existing_term)) {
-                        cout << "find two nodes maybe equal" << endl;
-                        equivalence_counts[{current_term, existing_term}]++;
-                    }
-                }else{
-                    term_map[term_hash] = current_term;
+                size_t current_term_hash = current_term->hash();
+                cout << "current_term_hash: " << current_term_hash << endl;
+                if (term_hash_map.find(current_term_hash) != term_hash_map.end()) {
+                    cout << "Term has been seen before, skipping..." << endl;
+                    continue;
                 }
-            }
+                
+                NodeData data_temp = NodeData::get_simulation_data(current_term, solver);
+                auto a = data_temp.term->hash();
+                cout << a << endl;
+
+
+                term_hash_map[current_term_hash] = data_temp;
+                // if (data_temp.bit_width > 0) {
+                //     for (const auto& data : data_temp.simulation_data) {
+                //         std::cout << "data:" << data << " ";
+                //     }
+                //     std::cout << std::endl;
+                // } else {
+                //     std::cerr << "Failed to get simulation data." << std::endl;
+                // }
+            }          
         }
+
+
+        delete[] a_key_str;
+        delete[] a_datain_str;
+        delete[] b_key_str;
+        delete[] b_in_str;
+
+        mpz_clear(a_key_mpz);
+        mpz_clear(a_datain_mpz);
+        mpz_clear(b_key_mpz);
+        mpz_clear(b_in_mpz);
     }
 
-    for (const auto& pair_count : equivalence_counts) {
-        if(pair_count.second == num_iterations){
-            if(compare_terms(pair_count.first.first, pair_count.first.second, solver)){
-                equivalence_counts[pair_count.first] = pair_count.second; //这里应该改成一些启发式的方法，不能直接这样merge
-            }
-        }
-    }
+    // for (const auto& pair_count : equivalence_counts) {
+    //     if(pair_count.second == num_iterations){
+    //         if(compare_terms(pair_count.first.first, pair_count.first.second, solver)){
+    //             equivalence_counts[pair_count.first] = pair_count.second; //这里应该改成一些启发式的方法，不能直接这样merge
+    //         }
+    //     }
+    // }
 
-    for (const auto& pair : equivalence_counts) {
-        cout << equivalence_counts.size() << endl;
-    }
+    // for (const auto& pair : equivalence_counts) {
+    //     cout << equivalence_counts.size() << endl;
+    // }
     
+    gmp_randclear(state);
     return 0;
 }
