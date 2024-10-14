@@ -48,6 +48,35 @@ struct NodeData{
         }
 };
 
+
+void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map,std::map<std::pair<Term, Term>, int> equivalence_counts) {
+    std::unordered_set<Term> visited_nodes;
+    std::stack<Term> node_stack;
+    node_stack.push(term);
+
+    while (!node_stack.empty()) {
+        Term current_term = node_stack.top();
+        node_stack.pop();
+
+        if (visited_nodes.find(current_term) != visited_nodes.end()) {
+            continue;
+        }
+
+        visited_nodes.insert(current_term);
+
+        if(!node_data_map.find(current_term->hash())){
+            node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
+        }else{
+            auto finding_term = 
+            equivalence_counts[{current_term, finding_term}] ++;
+        }
+
+        for (auto child : *current_term) {
+            node_stack.push(child);
+        }
+    }
+}
+
 bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
     TermVec not_equal_term = {solver->make_term(Not, solver->make_term(smt::Equal, var1, var2))};
     auto res = solver->check_sat_assuming(not_equal_term);    
@@ -135,45 +164,32 @@ int main() {
 
         auto res_ast = solver->make_term(Equal, a_output_term, b_output_term);
 
-        std::unordered_map<size_t, NodeData> term_hash_map;
+        std::unordered_map<size_t, Term> hash_term_map;
 
-        if(sim_data_ast.is_sat()){
-            cout << "--------maybe equal-------" << endl;
-            std::unordered_set<Term> visited_nodes;
-            std::stack<Term> node_stack;
-            node_stack.push(res_ast);
+        std::stack<Term> node_stack;
+        node_stack.push(res_ast);
 
-            while(!node_stack.empty()){
-                Term current_term = node_stack.top();
-                node_stack.pop();
-                if(visited_nodes.find(current_term) != visited_nodes.end())
-                    continue;
-                visited_nodes.insert(current_term);
+        while (!node_stack.empty()) {
+            Term current_term = node_stack.top();
+            node_stack.pop();
 
-                size_t current_term_hash = current_term->hash();
-                cout << "current_term_hash: " << current_term_hash << endl;
-                if (term_hash_map.find(current_term_hash) != term_hash_map.end()) {
-                    cout << "Term has been seen before, skipping..." << endl;
-                    continue;
-                }
+            if (term_hash_map.find(current_term->hash()) != term_hash_map.end()) {
+                cout << "existing this term hash num, count + 1" << endl;
+                return 
+            }
+
+            visited_nodes.insert(current_term);
+            if(term_hash_map.find(current_term->hash())){
                 
-                NodeData data_temp = NodeData::get_simulation_data(current_term, solver);
-                auto a = data_temp.term->hash();
-                cout << a << endl;
+                auto finding
+            }
 
 
-                term_hash_map[current_term_hash] = data_temp;
-                // if (data_temp.bit_width > 0) {
-                //     for (const auto& data : data_temp.simulation_data) {
-                //         std::cout << "data:" << data << " ";
-                //     }
-                //     std::cout << std::endl;
-                // } else {
-                //     std::cerr << "Failed to get simulation data." << std::endl;
-                // }
-            }          
+
+
         }
 
+        
 
         delete[] a_key_str;
         delete[] a_datain_str;
@@ -201,3 +217,32 @@ int main() {
     gmp_randclear(state);
     return 0;
 }
+
+
+        // std::unordered_map<Term, NodeData> node_data_map;
+
+        // if(sim_data_ast.is_sat()){
+        //     cout << "--------maybe equal-------" << endl;
+        //     std::unordered_set<Term> visited_nodes;
+        //     std::stack<Term> node_stack;
+        //     node_stack.push(res_ast);
+
+        //     while(!node_stack.empty()){
+        //         Term current_term = node_stack.top();
+        //         node_stack.pop();
+        //         if(visited_nodes.find(current_term) != visited_nodes.end())
+        //             continue;
+        //         visited_nodes.insert(current_term);
+
+        //         size_t current_term_hash = current_term->hash();
+
+                
+                
+        //         NodeData data_temp = NodeData::get_simulation_data(current_term, solver);
+        //         data_temp.term->hash()
+
+
+
+                
+        //         auto range = term_hash_map.equal_range(a);
+                
