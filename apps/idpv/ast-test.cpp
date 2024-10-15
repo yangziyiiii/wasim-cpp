@@ -16,40 +16,60 @@ using namespace std;
 using namespace wasim;
 
 struct NodeData{
-    Term term;
+    Term term; // will be nullptr if it is for a term with array sort
     uint64_t bit_width;
     std::vector<std::string> simulation_data;
 
     private:
-        NodeData(Term t, uint64_t bw, std::vector<std::string>&& sim_data)
-            : term(t), bit_width(bw), simulation_data(sim_data) {}
+        NodeData(Term t, uint64_t bw)
+            : term(t), bit_width(bw) {}
 
     public:
-        NodeData() : term(nullptr), bit_width(0), simulation_data() {}
+        void extend_val(SmtSolver& solver) {
+            if (term == nullptr)
+                return; // array
+
+            Term value = solver->get_value(term);
+            auto valstr = value->to_string();
+            if (valstr == "true")
+                valstr = "#b1";
+            else if (valstr == "false")
+                valstr = "#b0";
+            // maybe other format conversions?
+            simulation_data.push_back(valstr);
+        }
+
+        size_t hash() const {
+            size_t hash_val = 0;
+            for (const auto & v : simulation_data) {
+                (hash_val << 6) + (hash_val >> 2) + 0x9e3779b9 + std::hash<std::string>{} (v);
+            }
+            return hash_val;
+        }
 
         bool operator==(const NodeData& other) const {
-            return term->hash() == other.term->hash();
+            if (term == nullptr)
+                return false; // for array
+            return simulation_data == other.simulation_data;
         }
 
-        static NodeData get_simulation_data(const Term& term, SmtSolver& solver) {
+        static NodeData from_term(const Term& term) {
             SortKind sk = term->get_sort()->get_sort_kind();
             if(sk == ARRAY){
-                return NodeData();
+                return NodeData(nullptr, 0);
             }else if(sk ==BV){
-                Term value = solver->get_value(term);
-                auto bit_width = value->get_sort()->get_width(); 
-                std::vector<std::string> simulation_data;
-                simulation_data.push_back(value->to_string());
-                return NodeData(term, bit_width, std::move(simulation_data));
-            }else{
-                cerr << "Unsupported sort: " << sk << std::endl;
-                return NodeData();
+                auto bit_width = term->get_sort()->get_width(); 
+                return NodeData(term, bit_width);
+            } else if(sk==BOOL) {
+                return NodeData(term, 1);
+            } else{
+                throw std::exception("Unsupported sort: " + term->get_sort()->to_string());
             }
         }
+        
 };
 
-
-void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map,std::map<std::pair<Term, Term>, int> equivalence_counts, std::unordered_map<size_t, Term> hash_term_map) {
+void collect_terms(const Term &term, std::unordered_map<Term, NodeData>& node_data_map ) {
     std::unordered_set<Term> visited_nodes;
     std::stack<Term> node_stack;
     node_stack.push(term);
@@ -57,28 +77,21 @@ void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Te
     while (!node_stack.empty()) {
         Term current_term = node_stack.top();
         node_stack.pop();
-
         if (visited_nodes.find(current_term) != visited_nodes.end()) {
             continue;
         }
-
         visited_nodes.insert(current_term);
-        auto current_hash = current_term->hash();
-        auto finding_term = hash_term_map.find(current_hash);
-
-        if(finding_term == hash_term_map.end()){
-            hash_term_map.emplace(current_hash, current_term);
-            node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
-        }else{
-            auto finding_term = hash_term_map.find(current_term->hash());
-            equivalence_counts[std::make_pair(current_term, finding_term->second)] ++;
-        }
-
-        for (auto child : *current_term) {
-            node_stack.push(child);
-        }
+        auto res = node_data_map.emplace(term, NodeData::from_term(term));
+        assert (res.second);
     }
 }
+
+void collect_termdata(SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map ) {
+    for (auto & term_data_pair : node_data_map) {
+        term_data_pair.second.extend_val(solver);
+    }
+}
+
 
 bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
     TermVec not_equal_term = {solver->make_term(Not, solver->make_term(smt::Equal, var1, var2))};
@@ -115,6 +128,8 @@ int main() {
     auto b_input_term = sts2.lookup("b::in");
     auto b_output_term = sts2.lookup("b::out");    
 
+    #warning "Add constraint and init to the solver"
+
     Term a_key_ast = nullptr;
     Term a_datain_ast = nullptr;
     Term b_key_ast = nullptr;
@@ -132,6 +147,13 @@ int main() {
             b_key_ast = b_key_term;
         }
 
+
+    auto res_ast = solver->make_term(Equal, a_output_term, b_output_term); // move the outer of the loop
+
+    std::unordered_map<Term, NodeData> node_data_map;
+    collect_terms(res_ast, node_data_map);
+
+    // simulation iterations below    
     gmp_randinit_default(state);
     gmp_randseed_ui(state, time(NULL)); 
 
@@ -151,26 +173,22 @@ int main() {
         char* b_key_str = mpz_get_str(NULL, 10, b_key_mpz);
         char* b_in_str = mpz_get_str(NULL, 10, b_in_mpz);
 
-        auto a_key_assumption = solver->make_term(a_key_str, a_key_ast->get_sort());
-        auto a_input_assumption = solver->make_term(a_datain_str, a_datain_ast->get_sort());
-        auto b_key_assumption = solver->make_term(b_key_str, b_key_ast->get_sort());
-        auto b_input_assumption = solver->make_term(b_in_str, b_in_ast->get_sort());
+        auto a_key_val = solver->make_term(a_key_str, a_key_ast->get_sort());
+        auto a_input_val = solver->make_term(a_datain_str, a_datain_ast->get_sort());
+        auto b_key_val = solver->make_term(b_key_str, b_key_ast->get_sort());
+        auto b_input_val = solver->make_term(b_in_str, b_in_ast->get_sort());
 
-        Term assumption_equal_a_key = solver->make_term(smt::Equal, a_key_ast, a_key_assumption);
-        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_datain_ast, a_input_assumption); 
-        Term assumption_equal_b_in = solver->make_term(smt::Equal, b_in_ast, b_input_assumption); 
-        Term assumption_equal_b_key = solver->make_term(smt::Equal, b_key_ast, b_key_assumption); 
+        Term assumption_equal_a_key = solver->make_term(smt::Equal, a_key_ast, a_key_val);
+        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_datain_ast, a_input_val); 
+        Term assumption_equal_b_key = solver->make_term(smt::Equal, b_key_ast, b_key_val); 
+        Term assumption_equal_b_in = solver->make_term(smt::Equal, b_in_ast, b_input_val); 
        
         
         TermVec assumptions{assumption_equal_a_key, assumption_equal_a_datain, assumption_equal_b_in, assumption_equal_b_key};
-        auto sim_data_ast = solver->check_sat_assuming(assumptions);
+        auto check_result = solver->check_sat_assuming(assumptions);
+        assert(check_result.is_sat());
 
-        auto res_ast = solver->make_term(Equal, a_output_term, b_output_term);
-
-        std::unordered_map<size_t, Term> hash_term_map;
-        std::unordered_map<Term, NodeData> node_data_map;
-
-        collect_TermData(res_ast, solver, node_data_map, equivalence_counts, hash_term_map);
+        collect_termdata(solver, node_data_map);
 
         delete[] a_key_str;
         delete[] a_datain_str;
@@ -181,6 +199,24 @@ int main() {
         mpz_clear(a_datain_mpz);
         mpz_clear(b_key_mpz);
         mpz_clear(b_in_mpz);
+    } // end of simulation
+
+    std::unordered_map<size_t, TermVec> hash_term_map; // the hash of nodeData
+
+    for (const auto & node_data_pair : node_data_map) {
+        auto data_hash = node_data_pair.second.hash();
+        auto hash_term_map_pos = hash_term_map.find(data_hash);
+        if (hash_term_map_pos == hash_term_map.end()) {
+            hash_term_map.emplace(data_hash, TermVec({node_data_pair.first}));
+        } else {
+            assert(!hash_term_map_pos->second.empty());
+            for (const auto & t : hash_term_map_pos->second) {
+                const auto & other_sim_data = node_data_map.at(t);
+                if (other_sim_data == node_data_pair.second) {
+                    // potentially, check SMT equivalence
+                }
+            }
+        }
     }
 
     for (const auto& pair : equivalence_counts) {
