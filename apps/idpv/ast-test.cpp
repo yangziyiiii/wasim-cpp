@@ -49,7 +49,7 @@ struct NodeData{
 };
 
 
-void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map,std::map<std::pair<Term, Term>, int> equivalence_counts) {
+void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Term, NodeData>& node_data_map,std::map<std::pair<Term, Term>, int> equivalence_counts, std::unordered_map<size_t, Term> hash_term_map) {
     std::unordered_set<Term> visited_nodes;
     std::stack<Term> node_stack;
     node_stack.push(term);
@@ -63,12 +63,15 @@ void collect_TermData(const Term &term, SmtSolver& solver, std::unordered_map<Te
         }
 
         visited_nodes.insert(current_term);
+        auto current_hash = current_term->hash();
+        auto finding_term = hash_term_map.find(current_hash);
 
-        if(!node_data_map.find(current_term->hash())){
+        if(finding_term == hash_term_map.end()){
+            hash_term_map.emplace(current_hash, current_term);
             node_data_map.emplace(current_term, NodeData::get_simulation_data(current_term, solver));
         }else{
-            auto finding_term = 
-            equivalence_counts[{current_term, finding_term}] ++;
+            auto finding_term = hash_term_map.find(current_term->hash());
+            equivalence_counts[std::make_pair(current_term, finding_term->second)] ++;
         }
 
         for (auto child : *current_term) {
@@ -165,31 +168,9 @@ int main() {
         auto res_ast = solver->make_term(Equal, a_output_term, b_output_term);
 
         std::unordered_map<size_t, Term> hash_term_map;
+        std::unordered_map<Term, NodeData> node_data_map;
 
-        std::stack<Term> node_stack;
-        node_stack.push(res_ast);
-
-        while (!node_stack.empty()) {
-            Term current_term = node_stack.top();
-            node_stack.pop();
-
-            if (term_hash_map.find(current_term->hash()) != term_hash_map.end()) {
-                cout << "existing this term hash num, count + 1" << endl;
-                return 
-            }
-
-            visited_nodes.insert(current_term);
-            if(term_hash_map.find(current_term->hash())){
-                
-                auto finding
-            }
-
-
-
-
-        }
-
-        
+        collect_TermData(res_ast, solver, node_data_map, equivalence_counts, hash_term_map);
 
         delete[] a_key_str;
         delete[] a_datain_str;
@@ -201,6 +182,11 @@ int main() {
         mpz_clear(b_key_mpz);
         mpz_clear(b_in_mpz);
     }
+
+    for (const auto& pair : equivalence_counts) {
+        std::cout << " Count: " << pair.second << std::endl;
+    }
+
 
     // for (const auto& pair_count : equivalence_counts) {
     //     if(pair_count.second == num_iterations){
@@ -217,32 +203,3 @@ int main() {
     gmp_randclear(state);
     return 0;
 }
-
-
-        // std::unordered_map<Term, NodeData> node_data_map;
-
-        // if(sim_data_ast.is_sat()){
-        //     cout << "--------maybe equal-------" << endl;
-        //     std::unordered_set<Term> visited_nodes;
-        //     std::stack<Term> node_stack;
-        //     node_stack.push(res_ast);
-
-        //     while(!node_stack.empty()){
-        //         Term current_term = node_stack.top();
-        //         node_stack.pop();
-        //         if(visited_nodes.find(current_term) != visited_nodes.end())
-        //             continue;
-        //         visited_nodes.insert(current_term);
-
-        //         size_t current_term_hash = current_term->hash();
-
-                
-                
-        //         NodeData data_temp = NodeData::get_simulation_data(current_term, solver);
-        //         data_temp.term->hash()
-
-
-
-                
-        //         auto range = term_hash_map.equal_range(a);
-                
