@@ -63,7 +63,7 @@ struct NodeData{
             } else if(sk==BOOL) {
                 return NodeData(term, 1);
             } else{
-                throw std::exception("Unsupported sort: " + term->get_sort()->to_string());
+                throw std::invalid_argument("Unsupported sort: " + term->get_sort()->to_string());
             }
         }
         
@@ -129,6 +129,12 @@ int main() {
     auto b_output_term = sts2.lookup("b::out");    
 
     #warning "Add constraint and init to the solver"
+    solver->assert_formula( sts1.init() );
+    solver->assert_formula( sts2.init() );
+    for (const auto & c : sts1.constraints())
+        solver->assert_formula(c.first);
+    for (const auto & c : sts2.constraints())
+        solver->assert_formula(c.first);
 
     Term a_key_ast = nullptr;
     Term a_datain_ast = nullptr;
@@ -205,23 +211,32 @@ int main() {
 
     for (const auto & node_data_pair : node_data_map) {
         auto data_hash = node_data_pair.second.hash();
+        cout << data_hash << endl;
         auto hash_term_map_pos = hash_term_map.find(data_hash);
         if (hash_term_map_pos == hash_term_map.end()) {
             hash_term_map.emplace(data_hash, TermVec({node_data_pair.first}));
+            cout << "add new term" << endl;
         } else {
             assert(!hash_term_map_pos->second.empty());
             for (const auto & t : hash_term_map_pos->second) {
+                cout << t->to_string() << endl;
                 const auto & other_sim_data = node_data_map.at(t);
                 if (other_sim_data == node_data_pair.second) {
                     // potentially, check SMT equivalence
+                    cout << other_sim_data.term->to_string() << endl;
+                    if (compare_terms(other_sim_data.term, node_data_pair.first, solver)){
+                        cout << "these two terms are equivalent" << endl;
+                    }
+                }else{
+                    cout << "no equal nodes" << endl;
                 }
             }
         }
     }
 
-    for (const auto& pair : equivalence_counts) {
-        std::cout << " Count: " << pair.second << std::endl;
-    }
+    // for (const auto& pair : equivalence_counts) {
+    //     std::cout << " Count: " << pair.second << std::endl;
+    // }
 
 
     // for (const auto& pair_count : equivalence_counts) {
