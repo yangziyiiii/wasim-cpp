@@ -137,7 +137,7 @@ int main() {
         solver->assert_formula(c.first);
 
     Term a_key_ast = nullptr;
-    Term a_datain_ast = nullptr;
+    Term a_in_ast = nullptr;
     Term b_key_ast = nullptr;
     Term b_in_ast = nullptr;
 
@@ -148,11 +148,10 @@ int main() {
         && b_key_term != nullptr) 
         {
             a_key_ast = a_key_term;
-            a_datain_ast = a_input_term;
+            a_in_ast = a_input_term;
             b_in_ast = b_input_term;
             b_key_ast = b_key_term;
         }
-
 
     auto res_ast = solver->make_term(Equal, a_output_term, b_output_term); // move the outer of the loop
 
@@ -167,27 +166,32 @@ int main() {
 
     int num_iterations = 10;
     for (int i = 0; i < num_iterations; ++i) {
-        mpz_t a_key_mpz, a_datain_mpz, b_key_mpz, b_in_mpz; 
+        mpz_t a_key_mpz, a_in_mpz, b_key_mpz, b_in_mpz; 
 
         random_128(a_key_mpz);
-        random_128(a_datain_mpz);
+        random_128(a_in_mpz);
         random_128(b_key_mpz);
         random_128(b_in_mpz);
 
         char* a_key_str = mpz_get_str(NULL, 10, a_key_mpz);
-        char* a_datain_str = mpz_get_str(NULL, 10, a_datain_mpz);
+        char* a_in_str = mpz_get_str(NULL, 10, a_in_mpz);
         char* b_key_str = mpz_get_str(NULL, 10, b_key_mpz);
         char* b_in_str = mpz_get_str(NULL, 10, b_in_mpz);
 
         auto a_key_val = solver->make_term(a_key_str, a_key_ast->get_sort());
-        auto a_input_val = solver->make_term(a_datain_str, a_datain_ast->get_sort());
+        cout <<"a_key_val"<< a_key_val ->to_string() << endl;
+        
+        auto a_input_val = solver->make_term(a_in_str, a_in_ast->get_sort());
         auto b_key_val = solver->make_term(b_key_str, b_key_ast->get_sort());
         auto b_input_val = solver->make_term(b_in_str, b_in_ast->get_sort());
 
         Term assumption_equal_a_key = solver->make_term(smt::Equal, a_key_ast, a_key_val);
-        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_datain_ast, a_input_val); 
+        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_in_ast, a_input_val); 
         Term assumption_equal_b_key = solver->make_term(smt::Equal, b_key_ast, b_key_val); 
         Term assumption_equal_b_in = solver->make_term(smt::Equal, b_in_ast, b_input_val); 
+
+
+
        
         
         TermVec assumptions{assumption_equal_a_key, assumption_equal_a_datain, assumption_equal_b_in, assumption_equal_b_key};
@@ -195,19 +199,23 @@ int main() {
         assert(check_result.is_sat());
 
         collect_termdata(solver, node_data_map);
+        cout << node_data_map.size() << endl;
 
         delete[] a_key_str;
-        delete[] a_datain_str;
+        delete[] a_in_str;
         delete[] b_key_str;
         delete[] b_in_str;
 
         mpz_clear(a_key_mpz);
-        mpz_clear(a_datain_mpz);
+        mpz_clear(a_in_mpz);
         mpz_clear(b_key_mpz);
         mpz_clear(b_in_mpz);
     } // end of simulation
 
     std::unordered_map<size_t, TermVec> hash_term_map; // the hash of nodeData
+
+    cout << node_data_map.size() << endl;
+    cout << hash_term_map.size() << endl;
 
     for (const auto & node_data_pair : node_data_map) {
         auto data_hash = node_data_pair.second.hash();
@@ -224,7 +232,8 @@ int main() {
                 if (other_sim_data == node_data_pair.second) {
                     // potentially, check SMT equivalence
                     cout << other_sim_data.term->to_string() << endl;
-                    if (compare_terms(other_sim_data.term, node_data_pair.first, solver)){
+                    if (compare_terms(other_sim_data.term, node_data_pair.first, solver)){// 不是等价的-->反例， 加入激励中 //SAT model -> model counting -> next iterations
+                    //rarity simulation --> ?
                         cout << "these two terms are equivalent" << endl;
                     }
                 }else{
@@ -233,6 +242,8 @@ int main() {
             }
         }
     }
+
+
 
     // for (const auto& pair : equivalence_counts) {
     //     std::cout << " Count: " << pair.second << std::endl;
