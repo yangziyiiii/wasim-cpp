@@ -42,7 +42,7 @@ struct NodeData{
         size_t hash() const {
             size_t hash_val = 0;
             for (const auto & v : simulation_data) {
-                (hash_val << 6) + (hash_val >> 2) + 0x9e3779b9 + std::hash<std::string>{} (v);
+                hash_val ^= (hash_val << 6) + (hash_val >> 2) + 0x9e3779b9 + std::hash<std::string>{} (v);
             }
             return hash_val;
         }
@@ -81,8 +81,12 @@ void collect_terms(const Term &term, std::unordered_map<Term, NodeData>& node_da
             continue;
         }
         visited_nodes.insert(current_term);
-        auto res = node_data_map.emplace(term, NodeData::from_term(term));
+        auto res = node_data_map.emplace(current_term, NodeData::from_term(term));
         assert (res.second);
+
+        for(auto child : current_term){
+            node_stack.push(child);
+        }
     }
 }
 
@@ -164,58 +168,52 @@ int main() {
 
     std::map<std::pair<Term, Term>, int> equivalence_counts;
 
-    int num_iterations = 10;
+    int num_iterations = 1;
     for (int i = 0; i < num_iterations; ++i) {
-        mpz_t a_key_mpz, a_in_mpz, b_key_mpz, b_in_mpz; 
+        mpz_t key_mpz, input_mpz;
+        random_128(key_mpz);
+        random_128(input_mpz);
+        char* key_str = mpz_get_str(NULL, 10, key_mpz);
+        char* input_str = mpz_get_str(NULL, 10, input_mpz);
 
-        random_128(a_key_mpz);
-        random_128(a_in_mpz);
-        random_128(b_key_mpz);
-        random_128(b_in_mpz);
+        auto input_val = solver->make_term(key_str, a_key_ast->get_sort());
+        auto key_val = solver->make_term(input_str, a_in_ast->get_sort());
 
-        char* a_key_str = mpz_get_str(NULL, 10, a_key_mpz);
-        char* a_in_str = mpz_get_str(NULL, 10, a_in_mpz);
-        char* b_key_str = mpz_get_str(NULL, 10, b_key_mpz);
-        char* b_in_str = mpz_get_str(NULL, 10, b_in_mpz);
+        Term assumption_equal_a_key = solver->make_term(smt::Equal, a_key_ast, key_val);
+        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_in_ast, input_val); 
+        Term assumption_equal_b_key = solver->make_term(smt::Equal, b_key_ast, key_val); 
+        Term assumption_equal_b_in = solver->make_term(smt::Equal, b_in_ast, input_val); 
 
-        auto a_key_val = solver->make_term(a_key_str, a_key_ast->get_sort());
-        cout <<"a_key_val"<< a_key_val ->to_string() << endl;
-        
-        auto a_input_val = solver->make_term(a_in_str, a_in_ast->get_sort());
-        auto b_key_val = solver->make_term(b_key_str, b_key_ast->get_sort());
-        auto b_input_val = solver->make_term(b_in_str, b_in_ast->get_sort());
-
-        Term assumption_equal_a_key = solver->make_term(smt::Equal, a_key_ast, a_key_val);
-        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_in_ast, a_input_val); 
-        Term assumption_equal_b_key = solver->make_term(smt::Equal, b_key_ast, b_key_val); 
-        Term assumption_equal_b_in = solver->make_term(smt::Equal, b_in_ast, b_input_val); 
-
-
-
-       
-        
         TermVec assumptions{assumption_equal_a_key, assumption_equal_a_datain, assumption_equal_b_in, assumption_equal_b_key};
         auto check_result = solver->check_sat_assuming(assumptions);
         assert(check_result.is_sat());
 
         collect_termdata(solver, node_data_map);
-        cout << node_data_map.size() << endl;
-
-        delete[] a_key_str;
-        delete[] a_in_str;
-        delete[] b_key_str;
-        delete[] b_in_str;
-
-        mpz_clear(a_key_mpz);
-        mpz_clear(a_in_mpz);
-        mpz_clear(b_key_mpz);
-        mpz_clear(b_in_mpz);
+        
+        delete[] key_str;
+        delete[] input_str;
+        mpz_clear(key_mpz);
+        mpz_clear(input_mpz);
     } // end of simulation
+
+    cout << node_data_map.size() << endl;
 
     std::unordered_map<size_t, TermVec> hash_term_map; // the hash of nodeData
 
-    cout << node_data_map.size() << endl;
-    cout << hash_term_map.size() << endl;
+    for (const auto& entry : node_data_map) {
+        auto entry_first = entry.first;
+        const NodeData& node_data = entry.second;
+        size_t hash_val = node_data.hash();
+        std::cout << "Hash: " << hash_val << " for NodeData with simulation_data: ";
+        for (const auto& v : node_data.simulation_data) {
+            std::cout << v << " ";
+        }
+        std::cout << std::endl;
+        hash_term_map[hash_val].push_back(entry_first);
+    }
+
+
+    cout << hash_term_map.size() << endl;//FIXME: 1?
 
     for (const auto & node_data_pair : node_data_map) {
         auto data_hash = node_data_pair.second.hash();
@@ -227,23 +225,27 @@ int main() {
         } else {
             assert(!hash_term_map_pos->second.empty());
             for (const auto & t : hash_term_map_pos->second) {
-                cout << t->to_string() << endl;
                 const auto & other_sim_data = node_data_map.at(t);
                 if (other_sim_data == node_data_pair.second) {
                     // potentially, check SMT equivalence
-                    cout << other_sim_data.term->to_string() << endl;
-                    if (compare_terms(other_sim_data.term, node_data_pair.first, solver)){// 不是等价的-->反例， 加入激励中 //SAT model -> model counting -> next iterations
-                    //rarity simulation --> ?
-                        cout << "these two terms are equivalent" << endl;
-                    }
-                }else{
-                    cout << "no equal nodes" << endl;
+                    auto sort1 = other_sim_data.term->get_sort();
+                    auto sort2 = node_data_pair.first->get_sort();
+                    cout << sort1 << " " << sort2 << endl;
+                    if(sort1 == sort2){
+                        auto res_eq = compare_terms(other_sim_data.term, node_data_pair.first, solver);
+                        if (res_eq){
+                                cout << "these two terms are equivalent" << endl;
+                            }
+                        }else{
+                            cout << "no equal nodes" << endl;
+                        }
                 }
             }
         }
     }
 
-
+    // 不是等价的-->反例， 加入激励中 //SAT model -> model counting -> next iterations
+    //rarity simulation --> ?
 
     // for (const auto& pair : equivalence_counts) {
     //     std::cout << " Count: " << pair.second << std::endl;
