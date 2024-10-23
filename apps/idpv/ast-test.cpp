@@ -15,6 +15,14 @@ using namespace smt;
 using namespace std;
 using namespace wasim;
 
+
+template <typename T, typename... Rest>
+inline void hashCombine(std::size_t &seed, T const &v, Rest &&... rest) {
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    (int[]){0, (hashCombine(seed, std::forward<Rest>(rest)), 0)...};
+}
+
 struct NodeData{
     Term term; // will be nullptr if it is for a term with array sort
     uint64_t bit_width;
@@ -42,7 +50,8 @@ struct NodeData{
         size_t hash() const {
             size_t hash_val = 0;
             for (const auto & v : simulation_data) {
-                hash_val ^= (hash_val << 6) + (hash_val >> 2) + 0x9e3779b9 + std::hash<std::string>{} (v);
+                // hash_val ^= (hash_val << 6) + (hash_val >> 2) + 0x9e3779b9 + std::hash<std::string>{} (v);
+                hashCombine(hash_val, v);
             }
             return hash_val;
         }
@@ -204,11 +213,7 @@ int main() {
         auto entry_first = entry.first;
         const NodeData& node_data = entry.second;
         size_t hash_val = node_data.hash();
-        std::cout << "Hash: " << hash_val << " for NodeData with simulation_data: ";
-        for (const auto& v : node_data.simulation_data) {
-            std::cout << v << " ";
-        }
-        std::cout << std::endl;
+        cout << hash_val << endl;//FIXME: the same hash value for every node
         hash_term_map[hash_val].push_back(entry_first);
     }
 
@@ -243,9 +248,10 @@ int main() {
             }
         }
     }
-
-    // 不是等价的-->反例， 加入激励中 //SAT model -> model counting -> next iterations
-    //rarity simulation --> ?
+    
+    gmp_randclear(state);
+    return 0;
+}
 
     // for (const auto& pair : equivalence_counts) {
     //     std::cout << " Count: " << pair.second << std::endl;
@@ -263,7 +269,3 @@ int main() {
     // for (const auto& pair : equivalence_counts) {
     //     cout << equivalence_counts.size() << endl;
     // }
-    
-    gmp_randclear(state);
-    return 0;
-}
