@@ -90,9 +90,11 @@ void collect_terms(const Term &term, std::unordered_map<Term, NodeData>& node_da
             continue;
         }
         visited_nodes.insert(current_term);
-        auto res = node_data_map.emplace(current_term, NodeData::from_term(term));
+        auto res = node_data_map.emplace(current_term, NodeData::from_term(current_term));
         assert (res.second);
 
+        calculate_node_depth(current_term);
+        
         for(auto child : current_term){
             node_stack.push(child);
         }
@@ -110,6 +112,25 @@ bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
     TermVec not_equal_term = {solver->make_term(Not, solver->make_term(smt::Equal, var1, var2))};
     auto res = solver->check_sat_assuming(not_equal_term);    
     return res.is_unsat();
+}
+
+
+int calculate_node_depth(const Term &term, std::unordered_map<Term, int>& node_depth_map) {
+    if (node_depth_map.find(term) != node_depth_map.end()) {
+        return node_depth_map[term];
+    }
+
+    if (term->num_children() == 0) {
+        node_depth_map[term] = 0;
+        return 0;
+    }
+
+    int max_depth = 0;
+    for (const auto &child : term) {
+        max_depth = std::max(max_depth, calculate_node_depth(child));
+    }
+    node_depth_map[term] = max_depth + 1;
+    return node_depth_map[term];
 }
 
 gmp_randstate_t state;
@@ -177,7 +198,7 @@ int main() {
 
     std::map<std::pair<Term, Term>, int> equivalence_counts;
 
-    int num_iterations = 1;
+    int num_iterations = 10;
     for (int i = 0; i < num_iterations; ++i) {
         mpz_t key_mpz, input_mpz;
         random_128(key_mpz);
@@ -205,7 +226,10 @@ int main() {
         mpz_clear(input_mpz);
     } // end of simulation
 
-    cout << node_data_map.size() << endl;
+    cout << "node_data_map size : " << node_data_map.size() << endl;
+
+    solver->assert_formula(solver->make_term(smt::Equal, a_key_ast, b_key_ast));
+    solver->assert_formula(solver->make_term(smt::Equal, a_in_ast, b_in_ast));
 
     std::unordered_map<size_t, TermVec> hash_term_map; // the hash of nodeData
 
@@ -213,31 +237,28 @@ int main() {
         auto entry_first = entry.first;
         const NodeData& node_data = entry.second;
         size_t hash_val = node_data.hash();
-        cout << hash_val << endl;//FIXME: the same hash value for every node
         hash_term_map[hash_val].push_back(entry_first);
     }
 
+    cout << "hash_term_map size : " << hash_term_map.size() << endl;
 
-    cout << hash_term_map.size() << endl;//FIXME: 1?
-
-    for (const auto & node_data_pair : node_data_map) {
-        auto data_hash = node_data_pair.second.hash();
-        cout << data_hash << endl;
+    for(const auto & hash_term_pair : hash_term_map) { // FIXME: TermVec [0] [1] 
+        auto data_hash = hash_term_pair.first;
         auto hash_term_map_pos = hash_term_map.find(data_hash);
         if (hash_term_map_pos == hash_term_map.end()) {
-            hash_term_map.emplace(data_hash, TermVec({node_data_pair.first}));
+            hash_term_map.emplace(data_hash, TermVec({hash_term_pair.second}));
             cout << "add new term" << endl;
         } else {
             assert(!hash_term_map_pos->second.empty());
             for (const auto & t : hash_term_map_pos->second) {
                 const auto & other_sim_data = node_data_map.at(t);
-                if (other_sim_data == node_data_pair.second) {
+                if (other_sim_data.hash() == hash_term_pair.first) {
                     // potentially, check SMT equivalence
                     auto sort1 = other_sim_data.term->get_sort();
-                    auto sort2 = node_data_pair.first->get_sort();
+                    auto sort2 = hash_term_pair.second[0]->get_sort();
                     cout << sort1 << " " << sort2 << endl;
                     if(sort1 == sort2){
-                        auto res_eq = compare_terms(other_sim_data.term, node_data_pair.first, solver);
+                        auto res_eq = compare_terms(other_sim_data.term, hash_term_pair.second[0], solver);
                         if (res_eq){
                                 cout << "these two terms are equivalent" << endl;
                             }
@@ -248,24 +269,15 @@ int main() {
             }
         }
     }
+
+    std::unordered_map<Term, int> node_depth_map;
+
+
     
     gmp_randclear(state);
     return 0;
 }
 
-    // for (const auto& pair : equivalence_counts) {
-    //     std::cout << " Count: " << pair.second << std::endl;
-    // }
-
-
-    // for (const auto& pair_count : equivalence_counts) {
-    //     if(pair_count.second == num_iterations){
-    //         if(compare_terms(pair_count.first.first, pair_count.first.second, solver)){
-    //             equivalence_counts[pair_count.first] = pair_count.second; //这里应该改成一些启发式的方法，不能直接这样merge
-    //         }
-    //     }
-    // }
-
-    // for (const auto& pair : equivalence_counts) {
-    //     cout << equivalence_counts.size() << endl;
-    // }
+//TODO: merge的时候应该先merge靠近input的node，这里需要用一些depth的想法来做。
+//然后，hash_term_map中需要 进行判断 TermVec中的Term数量大于等于2 再进行处理，否则跳过
+//merge 用 subsitutionwalker 以及visit 来做
