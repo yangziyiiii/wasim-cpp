@@ -64,21 +64,25 @@ struct NodeData{
 
         static NodeData from_term(const Term& term) {
             SortKind sk = term->get_sort()->get_sort_kind();
-            if(sk == ARRAY){
-                return NodeData(nullptr, 0);
-            }else if(sk ==BV){
-                auto bit_width = term->get_sort()->get_width(); 
-                return NodeData(term, bit_width);
-            } else if(sk==BOOL) {
-                return NodeData(term, 1);
-            } else{
-                throw std::invalid_argument("Unsupported sort: " + term->get_sort()->to_string());
+            switch (sk) {
+                case ARRAY:
+                    return NodeData(nullptr, 0);
+                case BV:
+                    return NodeData(term, term->get_sort()->get_width());
+                case BOOL:
+                    return NodeData(term, 1);
+                default:
+                    throw std::invalid_argument("Unsupported sort: " + term->get_sort()->to_string());
             }
         }
         
 };
 
 void collect_terms(const Term &term, std::unordered_map<Term, NodeData>& node_data_map ) {
+    if (!term) {
+        throw std::invalid_argument("Null term provided to collect_terms");
+    }
+
     std::unordered_set<Term> visited_nodes;
     std::stack<Term> node_stack;
     node_stack.push(term);
@@ -92,11 +96,11 @@ void collect_terms(const Term &term, std::unordered_map<Term, NodeData>& node_da
         visited_nodes.insert(current_term);
         auto res = node_data_map.emplace(current_term, NodeData::from_term(current_term));
         assert (res.second);
-
-        calculate_node_depth(current_term);
         
-        for(auto child : current_term){
-            node_stack.push(child);
+        for (auto child : current_term) {
+            if (child) {  // Ensure child is not null
+                node_stack.push(child);
+            }
         }
     }
 }
@@ -109,36 +113,43 @@ void collect_termdata(SmtSolver& solver, std::unordered_map<Term, NodeData>& nod
 
 
 bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
-    TermVec not_equal_term = {solver->make_term(Not, solver->make_term(smt::Equal, var1, var2))};
-    auto res = solver->check_sat_assuming(not_equal_term);    
-    return res.is_unsat();
+    if (!var1 || !var2) {
+        return false;
+    }
+    try {
+        TermVec not_equal_term = {solver->make_term(Not, solver->make_term(Equal, var1, var2))};
+        auto res = solver->check_sat_assuming(not_equal_term);
+        return res.is_unsat();
+    } catch (const std::exception& e) {
+        std::cerr << "Error comparing terms: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 
-int calculate_node_depth(const Term &term, std::unordered_map<Term, int>& node_depth_map) {
-    if (node_depth_map.find(term) != node_depth_map.end()) {
-        return node_depth_map[term];
+
+// RAII wrapper for GMP random state
+class GmpRandStateGuard {
+    gmp_randstate_t state;
+
+public:
+    GmpRandStateGuard() {
+        gmp_randinit_default(state);
+        gmp_randseed_ui(state, time(NULL));
     }
 
-    if (term->num_children() == 0) {
-        node_depth_map[term] = 0;
-        return 0;
+    ~GmpRandStateGuard() {
+        gmp_randclear(state);
     }
 
-    int max_depth = 0;
-    for (const auto &child : term) {
-        max_depth = std::max(max_depth, calculate_node_depth(child));
+    void random_128(mpz_t& rand_num) {
+        mpz_init2(rand_num, 128);
+        mpz_urandomb(rand_num, state, 128);
     }
-    node_depth_map[term] = max_depth + 1;
-    return node_depth_map[term];
-}
 
-gmp_randstate_t state;
-void random_128(mpz_t& rand_num){
-    mpz_init2(rand_num, 128); 
-    mpz_urandomb(rand_num, state, 128); 
-    // gmp_printf("%032Zx\n", rand_num);
-}
+    operator gmp_randstate_t&() { return state; }
+};
+
 
 int main() {
     SmtSolver solver = BoolectorSolverFactory::create(false);
@@ -162,7 +173,7 @@ int main() {
     auto b_input_term = sts2.lookup("b::in");
     auto b_output_term = sts2.lookup("b::out");    
 
-    #warning "Add constraint and init to the solver"
+    //Assert constraints
     solver->assert_formula( sts1.init() );
     solver->assert_formula( sts2.init() );
     for (const auto & c : sts1.constraints())
@@ -170,22 +181,9 @@ int main() {
     for (const auto & c : sts2.constraints())
         solver->assert_formula(c.first);
 
-    Term a_key_ast = nullptr;
-    Term a_in_ast = nullptr;
-    Term b_key_ast = nullptr;
-    Term b_in_ast = nullptr;
-
-
-    if (a_key_term != nullptr \
-        && a_input_term != nullptr \
-        && b_input_term != nullptr \
-        && b_key_term != nullptr) 
-        {
-            a_key_ast = a_key_term;
-            a_in_ast = a_input_term;
-            b_in_ast = b_input_term;
-            b_key_ast = b_key_term;
-        }
+    if (!a_key_term || !a_input_term || !b_input_term || !b_key_term || !a_output_term || !b_output_term) {
+        throw std::runtime_error("Required terms not found in models");
+    }
 
     auto res_ast = solver->make_term(Equal, a_output_term, b_output_term); // move the outer of the loop
 
@@ -193,43 +191,43 @@ int main() {
     collect_terms(res_ast, node_data_map);
 
     // simulation iterations below    
-    gmp_randinit_default(state);
-    gmp_randseed_ui(state, time(NULL)); 
+    GmpRandStateGuard rand_guard;
 
-    std::map<std::pair<Term, Term>, int> equivalence_counts;
-
-    int num_iterations = 10;
+    int num_iterations = 1;
     for (int i = 0; i < num_iterations; ++i) {
         mpz_t key_mpz, input_mpz;
-        random_128(key_mpz);
-        random_128(input_mpz);
-        char* key_str = mpz_get_str(NULL, 10, key_mpz);
-        char* input_str = mpz_get_str(NULL, 10, input_mpz);
+        rand_guard.random_128(key_mpz);
+        rand_guard.random_128(input_mpz);
 
-        auto input_val = solver->make_term(key_str, a_key_ast->get_sort());
-        auto key_val = solver->make_term(input_str, a_in_ast->get_sort());
+        // Use RAII for GMP strings
+        unique_ptr<char, void(*)(void*)> key_str(mpz_get_str(NULL, 10, key_mpz), free);
+        unique_ptr<char, void(*)(void*)> input_str(mpz_get_str(NULL, 10, input_mpz), free);
 
-        Term assumption_equal_a_key = solver->make_term(smt::Equal, a_key_ast, key_val);
-        Term assumption_equal_a_datain = solver->make_term(smt::Equal, a_in_ast, input_val); 
-        Term assumption_equal_b_key = solver->make_term(smt::Equal, b_key_ast, key_val); 
-        Term assumption_equal_b_in = solver->make_term(smt::Equal, b_in_ast, input_val); 
+        auto input_val = solver->make_term(key_str.get(), a_key_term->get_sort());
+        auto key_val = solver->make_term(input_str.get(), a_input_term->get_sort());
 
-        TermVec assumptions{assumption_equal_a_key, assumption_equal_a_datain, assumption_equal_b_in, assumption_equal_b_key};
+        TermVec assumptions{
+            solver->make_term(Equal, a_key_term, key_val),
+            solver->make_term(Equal, a_input_term, input_val),
+            solver->make_term(Equal, b_key_term, key_val),
+            solver->make_term(Equal, b_input_term, input_val)
+        };
+
         auto check_result = solver->check_sat_assuming(assumptions);
-        assert(check_result.is_sat());
+        if (!check_result.is_sat()) {
+            throw std::runtime_error("Unexpected UNSAT result during simulation");
+        }
 
         collect_termdata(solver, node_data_map);
-        
-        delete[] key_str;
-        delete[] input_str;
+
         mpz_clear(key_mpz);
         mpz_clear(input_mpz);
     } // end of simulation
 
     cout << "node_data_map size : " << node_data_map.size() << endl;
 
-    solver->assert_formula(solver->make_term(smt::Equal, a_key_ast, b_key_ast));
-    solver->assert_formula(solver->make_term(smt::Equal, a_in_ast, b_in_ast));
+    solver->assert_formula(solver->make_term(smt::Equal, a_key_term, b_key_term));
+    solver->assert_formula(solver->make_term(smt::Equal, a_input_term, b_input_term));
 
     std::unordered_map<size_t, TermVec> hash_term_map; // the hash of nodeData
 
@@ -242,29 +240,20 @@ int main() {
 
     cout << "hash_term_map size : " << hash_term_map.size() << endl;
 
-    for(const auto & hash_term_pair : hash_term_map) { // FIXME: TermVec [0] [1] 
-        auto data_hash = hash_term_pair.first;
-        auto hash_term_map_pos = hash_term_map.find(data_hash);
-        if (hash_term_map_pos == hash_term_map.end()) {
-            hash_term_map.emplace(data_hash, TermVec({hash_term_pair.second}));
-            cout << "add new term" << endl;
-        } else {
-            assert(!hash_term_map_pos->second.empty());
-            for (const auto & t : hash_term_map_pos->second) {
-                const auto & other_sim_data = node_data_map.at(t);
-                if (other_sim_data.hash() == hash_term_pair.first) {
-                    // potentially, check SMT equivalence
-                    auto sort1 = other_sim_data.term->get_sort();
-                    auto sort2 = hash_term_pair.second[0]->get_sort();
-                    cout << sort1 << " " << sort2 << endl;
-                    if(sort1 == sort2){
-                        auto res_eq = compare_terms(other_sim_data.term, hash_term_pair.second[0], solver);
-                        if (res_eq){
-                                cout << "these two terms are equivalent" << endl;
-                            }
-                        }else{
-                            cout << "no equal nodes" << endl;
+    for (const auto& hash_group : hash_term_map) {
+        const auto& terms = hash_group.second;
+        if (terms.size() > 1) {
+            cout << "terms.size: " << terms.size() << endl;
+            for (size_t i = 0; i < terms.size(); ++i) {
+                for (size_t j = i + 1; j < terms.size(); ++j) {
+                    const auto& term1 = terms[i];
+                    const auto& term2 = terms[j];
+                    
+                    if (term1->get_sort() == term2->get_sort()) {
+                        if (compare_terms(term1, term2, solver)) {
+                            std::cout << "Equivalent terms found at hash " << hash_group.first << std::endl;
                         }
+                    }
                 }
             }
         }
@@ -273,10 +262,26 @@ int main() {
     std::unordered_map<Term, int> node_depth_map;
 
 
-    
-    gmp_randclear(state);
+
+    rand_guard.~GmpRandStateGuard();
     return 0;
 }
+
+
+// if (other_sim_data.hash() == hash_term_pair.first) {
+                //     // potentially, check SMT equivalence
+                //     auto sort1 = other_sim_data.term->get_sort();
+                //     auto sort2 = hash_term_pair.second[0]->get_sort();
+                //     cout << sort1 << " " << sort2 << endl;
+                //     if(sort1 == sort2){
+                //         auto res_eq = compare_terms(other_sim_data.term, hash_term_pair.second[0], solver);
+                //         if (res_eq){
+                //                 cout << "these two terms are equivalent" << endl;
+                //             }
+                //         }else{
+                //             cout << "no equal nodes" << endl;
+                //         }
+                // }
 
 //TODO: merge的时候应该先merge靠近input的node，这里需要用一些depth的想法来做。
 //然后，hash_term_map中需要 进行判断 TermVec中的Term数量大于等于2 再进行处理，否则跳过
