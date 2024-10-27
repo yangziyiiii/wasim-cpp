@@ -7,9 +7,12 @@
 #include "smt-switch/boolector_factory.h"
 #include "smt-switch/smtlib_reader.h"
 #include "smt-switch/utils.h"
+#include "smt-switch/identity_walker.h"
+#include "smt-switch/substitution_walker.h"
 
 #include <gmp.h>
 #include <gmpxx.h>
+#include <queue>
 
 using namespace smt;
 using namespace std;
@@ -150,6 +153,40 @@ public:
     operator gmp_randstate_t&() { return state; }
 };
 
+class DepthWalker : public IdentityWalker
+{
+public:
+    DepthWalker(const SmtSolver &solver, unordered_map<Term, int> &node_depth_map)
+        : IdentityWalker(solver, false), node_depth_map_(node_depth_map) {}
+
+protected:
+    virtual WalkerStepResult visit_term(Term &term) override
+    {
+        if (node_depth_map_.find(term) != node_depth_map_.end()) {
+            return Walker_Skip;
+        }
+        int max_child_depth = -1;
+        for (const auto &child : term)
+        {
+            Term non_const_child = child; 
+            auto it = node_depth_map_.find(child);
+            if (it != node_depth_map_.end())
+            {
+                max_child_depth = max(max_child_depth, it->second);
+            }else{
+                visit(non_const_child);
+                max_child_depth = max(max_child_depth, node_depth_map_[non_const_child]);
+            }
+        }
+        
+        node_depth_map_[term] = max_child_depth + 1;
+        return Walker_Continue;
+    }
+
+private:
+    unordered_map<Term, int> &node_depth_map_;
+};
+
 
 int main() {
     SmtSolver solver = BoolectorSolverFactory::create(false);
@@ -240,7 +277,10 @@ int main() {
 
     cout << "hash_term_map size : " << hash_term_map.size() << endl;
 
-    for (const auto& hash_group : hash_term_map) {
+    //comapre and store equal nodes
+    std::vector<std::pair<Term, Term>> equal_pairs;
+
+    for (const auto& hash_group : hash_term_map) { //FIXME: time consuming
         const auto& terms = hash_group.second;
         if (terms.size() > 1) {
             cout << "terms.size: " << terms.size() << endl;
@@ -251,38 +291,45 @@ int main() {
                     
                     if (term1->get_sort() == term2->get_sort()) {
                         if (compare_terms(term1, term2, solver)) {
-                            std::cout << "Equivalent terms found at hash " << hash_group.first << std::endl;
+                            std::cout << "Equivalent terms found at: " << term1->get_sort() <<", hash: " << hash_group.first << std::endl;
+                            equal_pairs.emplace_back(term1,term2);
                         }
+
                     }
+                    
                 }
             }
         }
     }
 
+    cout << "equal pairs: " << equal_pairs.size() << endl;
+
+    //define depth using Walker
     std::unordered_map<Term, int> node_depth_map;
+    DepthWalker depth_walker(solver, node_depth_map);
+    depth_walker.visit(res_ast);
+    
+    cout << "node depth size: " << node_depth_map.size() << endl; // FIXME: 145703 ??? too much
+     for (const auto& [term, depth] : node_depth_map) {
+        std::cout << " Depth: " << depth << std::endl;   
+    }
 
+    //merge
+    smt::UnorderedTermMap substitution_map;
+    for (const auto &[term1, term2] : equal_pairs) {
+        int depth1 = node_depth_map[term1];
+        int depth2 = node_depth_map[term2];
 
+        if (depth1 < depth2) {
+            substitution_map[term2] = term1; 
+        } else {
+            substitution_map[term1] = term2;
+        }
+    }
 
-    rand_guard.~GmpRandStateGuard();
+    smt::SubstitutionWalker substitution_walker(solver, substitution_map);
+    cout << "after merge, map size: " << substitution_map.size() << endl;
+    Term merged_ast = substitution_walker.visit(res_ast);
+
     return 0;
 }
-
-
-// if (other_sim_data.hash() == hash_term_pair.first) {
-                //     // potentially, check SMT equivalence
-                //     auto sort1 = other_sim_data.term->get_sort();
-                //     auto sort2 = hash_term_pair.second[0]->get_sort();
-                //     cout << sort1 << " " << sort2 << endl;
-                //     if(sort1 == sort2){
-                //         auto res_eq = compare_terms(other_sim_data.term, hash_term_pair.second[0], solver);
-                //         if (res_eq){
-                //                 cout << "these two terms are equivalent" << endl;
-                //             }
-                //         }else{
-                //             cout << "no equal nodes" << endl;
-                //         }
-                // }
-
-//TODO: merge的时候应该先merge靠近input的node，这里需要用一些depth的想法来做。
-//然后，hash_term_map中需要 进行判断 TermVec中的Term数量大于等于2 再进行处理，否则跳过
-//merge 用 subsitutionwalker 以及visit 来做
