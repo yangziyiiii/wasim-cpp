@@ -23,7 +23,7 @@ int main() {
     BTOR2Encoder btor_parser("../design/idpv-test/div_case/suoglu_div.btor2", sts);
     std::cout << "Trans:" << sts.trans()->to_string() << std::endl;
 
-    SymbolicExecutor executor(sts,solver);
+    SymbolicSimulator executor(sts,solver);
     assignment_type initdiv = {};
     auto initial_state = executor.convert(initdiv);
     executor.init(initial_state);
@@ -67,8 +67,12 @@ int main() {
     smt::SmtLibReader smtlib_reader(solver);
     smtlib_reader.parse("../design/idpv-test/div_case/aaa.smt2");
 
-    auto c_a = smtlib_reader.lookup_symbol("main::1::dividend!0@1#1");
-    auto c_b = smtlib_reader.lookup_symbol("main::1::divisor!0@1#1");
+    // auto c_a = smtlib_reader.lookup_symbol("main::1::dividend!0@1#1");
+    // auto c_b = smtlib_reader.lookup_symbol("main::1::divisor!0@1#1");
+    // auto c_ret = smtlib_reader.lookup_symbol("main::1::quotient!0@1#7");
+
+    auto c_a = smtlib_reader.lookup_symbol("divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::dividend!0@1#1");
+    auto c_b = smtlib_reader.lookup_symbol("divide(unsigned_int,unsigned_int,ptr_unsigned_int,ptr_unsigned_int)::divisor!0@1#1");
     auto c_ret = smtlib_reader.lookup_symbol("main::1::quotient!0@1#7");
 
     std::cout << "C a:    " << c_a->to_string() << std::endl;

@@ -31,6 +31,8 @@ struct NodeData{
     uint64_t bit_width;
     std::vector<std::string> simulation_data;
 
+    NodeData() : term(nullptr), bit_width(0) {}
+
     private:
         NodeData(Term t, uint64_t bw)
             : term(t), bit_width(bw) {}
@@ -114,7 +116,6 @@ void collect_termdata(SmtSolver& solver, std::unordered_map<Term, NodeData>& nod
     }
 }
 
-
 bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
     if (!var1 || !var2) {
         return false;
@@ -128,8 +129,6 @@ bool compare_terms(const Term& var1, const Term& var2, SmtSolver& solver) {
         return false;
     }
 }
-
-
 
 // RAII wrapper for GMP random state
 class GmpRandStateGuard {
@@ -157,7 +156,7 @@ class DepthWalker : public IdentityWalker
 {
 public:
     DepthWalker(const SmtSolver &solver, unordered_map<Term, int> &node_depth_map)
-        : IdentityWalker(solver, false), node_depth_map_(node_depth_map) {}
+        : IdentityWalker(solver, true), node_depth_map_(node_depth_map) {}
 
 protected:
     virtual WalkerStepResult visit_term(Term &term) override
@@ -165,17 +164,14 @@ protected:
         if (node_depth_map_.find(term) != node_depth_map_.end()) {
             return Walker_Skip;
         }
+
         int max_child_depth = -1;
         for (const auto &child : term)
         {
-            Term non_const_child = child; 
             auto it = node_depth_map_.find(child);
             if (it != node_depth_map_.end())
             {
                 max_child_depth = max(max_child_depth, it->second);
-            }else{
-                visit(non_const_child);
-                max_child_depth = max(max_child_depth, node_depth_map_[non_const_child]);
             }
         }
         
@@ -230,7 +226,7 @@ int main() {
     // simulation iterations below    
     GmpRandStateGuard rand_guard;
 
-    int num_iterations = 1;
+    int num_iterations = 10;
     for (int i = 0; i < num_iterations; ++i) {
         mpz_t key_mpz, input_mpz;
         rand_guard.random_128(key_mpz);
@@ -277,59 +273,74 @@ int main() {
 
     cout << "hash_term_map size : " << hash_term_map.size() << endl;
 
+    //define depth using Walker
+    std::unordered_map<Term, int> node_depth_map;
+    DepthWalker depth_walker(solver, node_depth_map);
+    depth_walker.visit(res_ast);
+    
+    cout << "node depth size: " << node_depth_map.size() << endl;
+    //  for (const auto& [term, depth] : node_depth_map) {
+    //     std::cout << " Depth: " << depth << std::endl;   
+    // }
+
     //comapre and store equal nodes
     std::vector<std::pair<Term, Term>> equal_pairs;
+    smt::UnorderedTermMap substitution_map;
 
-    for (const auto& hash_group : hash_term_map) { //FIXME: time consuming
-        const auto& terms = hash_group.second;
+    //FIXME:
+    for (auto &hash_group : hash_term_map) {
+        auto &terms = hash_group.second;
+
+        std::sort(terms.begin(), terms.end(), [&](const Term &a, const Term &b) {
+            return node_depth_map[a] < node_depth_map[b];
+        });
+        
         if (terms.size() > 1) {
             cout << "terms.size: " << terms.size() << endl;
             for (size_t i = 0; i < terms.size(); ++i) {
                 for (size_t j = i + 1; j < terms.size(); ++j) {
                     const auto& term1 = terms[i];
                     const auto& term2 = terms[j];
-                    
-                    if (term1->get_sort() == term2->get_sort()) {
-                        if (compare_terms(term1, term2, solver)) {
-                            std::cout << "Equivalent terms found at: " << term1->get_sort() <<", hash: " << hash_group.first << std::endl;
-                            equal_pairs.emplace_back(term1,term2);
-                        }
+                    if (node_data_map[term1].simulation_data == node_data_map[term2].simulation_data) {
+                        if (term1->get_sort() == term2->get_sort()) {
+                            if (compare_terms(term1, term2, solver)) {
+                                std::cout << "Equivalent terms found at: " << term1->get_sort() \
+                                    <<", hash: " << hash_group.first << std::endl;
+                                equal_pairs.emplace_back(term1,term2);
 
+                                if (node_depth_map[term1] < node_depth_map[term2]) {
+                                    substitution_map[term2] = term1;
+                                } else {
+                                    substitution_map[term1] = term2;
+                                }
+                                break;
+                            }
+                        }
                     }
-                    
                 }
             }
         }
     }
 
+
     cout << "equal pairs: " << equal_pairs.size() << endl;
-
-    //define depth using Walker
-    std::unordered_map<Term, int> node_depth_map;
-    DepthWalker depth_walker(solver, node_depth_map);
-    depth_walker.visit(res_ast);
     
-    cout << "node depth size: " << node_depth_map.size() << endl; // FIXME: 145703 ??? too much
-     for (const auto& [term, depth] : node_depth_map) {
-        std::cout << " Depth: " << depth << std::endl;   
-    }
-
     //merge
-    smt::UnorderedTermMap substitution_map;
-    for (const auto &[term1, term2] : equal_pairs) {
-        int depth1 = node_depth_map[term1];
-        int depth2 = node_depth_map[term2];
+    // smt::UnorderedTermMap substitution_map;
+    // for (const auto &[term1, term2] : equal_pairs) {
+    //     int depth1 = node_depth_map[term1];
+    //     int depth2 = node_depth_map[term2];
 
-        if (depth1 < depth2) {
-            substitution_map[term2] = term1; 
-        } else {
-            substitution_map[term1] = term2;
-        }
-    }
+    //     if (depth1 < depth2) {
+    //         substitution_map[term2] = term1; 
+    //     } else {
+    //         substitution_map[term1] = term2;
+    //     }
+    // }
 
-    smt::SubstitutionWalker substitution_walker(solver, substitution_map);
-    cout << "after merge, map size: " << substitution_map.size() << endl;
-    Term merged_ast = substitution_walker.visit(res_ast);
+    // smt::SubstitutionWalker substitution_walker(solver, substitution_map);
+    // cout << "after merge, map size: " << substitution_map.size() << endl;
+    // Term merged_ast = substitution_walker.visit(res_ast);
 
     return 0;
 }

@@ -20,10 +20,10 @@ int main() {
     // std::cout << "---------------------------Verilog btor---------------------------" << std::endl;
   
     TransitionSystem sts(solver);
-    BTOR2Encoder btor_parser("../design/idpv-test/2cyclemul.btor2", sts);
+    BTOR2Encoder btor_parser("../design/idpv-test/mul_prototype/2cyclemul.btor2", sts);
     std::cout << sts.trans()->to_string() << std::endl;
 
-    SymbolicExecutor executor(sts,solver);
+    SymbolicSimulator executor(sts,solver);
     assignment_type initmul = {};
     auto initial_state = executor.convert(initmul);
     executor.init(initial_state);
@@ -50,10 +50,15 @@ int main() {
     // std::cout << "---------------------------C++ smtlib2---------------------------" << std::endl;
 
     smt::SmtLibReader smtlib_reader(solver);
-    smtlib_reader.parse("../design/idpv-test/concat_error.smt2");
+    smtlib_reader.parse("../design/idpv-test/mul_prototype/concat_error.smt2");
+    // auto c_a = smtlib_reader.lookup_symbol("__mulsf3::a!0@1#1");
+    // auto c_b = smtlib_reader.lookup_symbol("__mulsf3::b!0@1#1");
+    // auto c_ret = smtlib_reader.lookup_symbol("__mulsf3::$tmp::return_value_mulsf3_classical!0@1#2");
+
     auto c_a = smtlib_reader.lookup_symbol("__mulsf3::a!0@1#1");
     auto c_b = smtlib_reader.lookup_symbol("__mulsf3::b!0@1#1");
-    auto c_ret = smtlib_reader.lookup_symbol("__mulsf3::$tmp::return_value_mulsf3_classical!0@1#2");
+    auto c_ret = smtlib_reader.lookup_symbol("goto_symex::return_value::__mulsf3!0#1");
+
 
     std::cout << "C a: " << c_a->to_string() << std::endl;
     std::cout << "C b: " << c_b->to_string() << std::endl;
