@@ -287,7 +287,7 @@ int main() {
     std::vector<std::pair<Term, Term>> equal_pairs;
     smt::UnorderedTermMap substitution_map;
 
-    //FIXME:
+    //FIXME: time consuming
     for (auto &hash_group : hash_term_map) {
         auto &terms = hash_group.second;
 
@@ -298,25 +298,31 @@ int main() {
         if (terms.size() > 1) {
             cout << "terms.size: " << terms.size() << endl;
             for (size_t i = 0; i < terms.size(); ++i) {
-                for (size_t j = i + 1; j < terms.size(); ++j) {
-                    const auto& term1 = terms[i];
-                    const auto& term2 = terms[j];
-                    if (node_data_map[term1].simulation_data == node_data_map[term2].simulation_data) {
-                        if (term1->get_sort() == term2->get_sort()) {
-                            if (compare_terms(term1, term2, solver)) {
-                                std::cout << "Equivalent terms found at: " << term1->get_sort() \
-                                    <<", hash: " << hash_group.first << std::endl;
-                                equal_pairs.emplace_back(term1,term2);
+                const auto& term1 = terms[i];
+                bool substituted = false;
 
-                                if (node_depth_map[term1] < node_depth_map[term2]) {
-                                    substitution_map[term2] = term1;
-                                } else {
-                                    substitution_map[term1] = term2;
-                                }
-                                break;
-                            }
+                for (size_t j = i + 1; j < terms.size(); ++j) {
+                    const auto& term2 = terms[j];
+                    if (node_data_map[term1].simulation_data == node_data_map[term2].simulation_data 
+                            && term1->get_sort() == term2->get_sort()
+                                && compare_terms(term1, term2, solver)) {
+                        std::cout << "Equivalent terms found at: " << term1->get_sort() \
+                            <<", hash: " << hash_group.first << std::endl;
+                        equal_pairs.emplace_back(term1,term2);
+
+                        if (node_depth_map[term1] < node_depth_map[term2]) {
+                            substitution_map[term2] = term1;
+                        } else {
+                            substitution_map[term1] = term2;
                         }
+
+                        substituted = true;
+                        break;
                     }
+                }
+
+                if (substituted) {
+                    break;
                 }
             }
         }
