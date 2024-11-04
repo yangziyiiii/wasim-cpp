@@ -278,8 +278,8 @@ endif()
 # add_executable(testf32 "apps/idpv/f32multest.cpp")
 # target_link_libraries(testf32 wasim-lib)
 
-add_executable(testdiv "apps/idpv/div.cpp")
-target_link_libraries(testdiv wasim-lib)
+# add_executable(testdiv "apps/idpv/div.cpp")
+# target_link_libraries(testdiv wasim-lib)
 
 # add_executable(testdivuu "apps/idpv/div_uu_test.cpp")
 # target_link_libraries(testdivuu wasim-lib)
@@ -292,6 +292,9 @@ target_link_libraries(testdiv wasim-lib)
 
 add_executable(test_ast "apps/idpv/ast-test.cpp")
 target_link_libraries(test_ast wasim-lib)
+
+# add_executable(test_parallel "apps/idpv/parallel-ast.cpp")
+# target_link_libraries(test_parallel wasim-lib)
 
 # add_executable(testdivcondeqexport "apps/idpv/div_condeq_rewrite.cpp")
 # target_link_libraries(testdivcondeqexport wasim-lib)
