@@ -392,8 +392,8 @@ int main()
     // }
     cout << "\nStarting term comparison phase...\n";
     // comapre and store equal nodes
-    std::vector<std::pair<Term, Term>> equal_pairs;
     smt::UnorderedTermMap substitution_map;
+    auto walker = smt::SubstitutionWalker(solver, substitution_map);
 
     // FIXME: time consuming
     size_t processed = 0;
@@ -418,18 +418,19 @@ int main()
                 });
 
             for(size_t i = 0; i < terms.size(); ++i) {
-                const auto & term1 = terms[i];
+                auto & term1 = terms[i];
                 for(size_t j = i + 1; j < terms.size(); ++j) {
-                    const auto & term2 = terms[j];
+                    auto & term2 = terms[j];
                     if(node_data_map[term1].simulation_data == node_data_map[term2].simulation_data
                         && term1->get_sort() == term2->get_sort()) {
                         if(compare_terms(term1, term2, solver)) {
                             if (node_depth_map[term1] < node_depth_map[term2]) {
-                                substitution_map[term2] = term1;
-                                solver->substitute(term2, substitution_map);
+                                // substitution_map[term2] = term1;
+                                // FIXME: boolector backend currrntly only supports symbol->term substitution
+                                walker.visit(term2);
                             } else {
-                                substitution_map[term1] = term2;
-                                solver->substitute(term1, substitution_map);
+                                // substitution_map[term1] = term2;
+                                walker.visit(term1);
                             }
                             //TODO:
                         }
@@ -438,7 +439,6 @@ int main()
             }
         }
     }
-    cout << "equal pairs: " << equal_pairs.size() << endl;
 
     solver->pop(); // restore the final state - context level 2
     solver->pop(); // back to base context
@@ -446,7 +446,7 @@ int main()
     solver->assert_formula(res_ast);
     cout << "Checking final result...\n";
     auto final_result = solver->check_sat();
-    std::cout << r.to_string() << std::endl;
+    std::cout << final_result.to_string() << std::endl;
     //count time
     auto end_time = std::chrono::high_resolution_clock::now();
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
