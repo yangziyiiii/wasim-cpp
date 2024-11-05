@@ -87,41 +87,38 @@ struct NodeData
       case BV: return NodeData(term, term->get_sort()->get_width());
       case BOOL: return NodeData(term, 1);
       default:
-        throw std::invalid_argument("Unsupported sort: "
-                                    + term->get_sort()->to_string());
+        throw std::invalid_argument("Unsupported sort: " + term->get_sort()->to_string());
     }
   }
 };
 
-void collect_terms(const Term & term,
-                   std::unordered_map<Term, NodeData> & node_data_map)
+void collect_terms(const Term & term, std::unordered_map<Term, NodeData> & node_data_map)
 {
-  if (!term) {
-    throw std::invalid_argument("Null term provided to collect_terms");
-  }
-
-  std::unordered_set<Term> visited_nodes;
-  std::stack<Term> node_stack;
-  node_stack.push(term);
-
-  while (!node_stack.empty()) {
-    Term current_term = node_stack.top();
-    node_stack.pop();
-    if (visited_nodes.find(current_term) != visited_nodes.end()) {
-      continue;
+    if (!term) {
+        throw std::invalid_argument("Null term provided to collect_terms");
     }
 
-    // early pruning
-    if (current_term->is_value() || current_term->is_symbol()
-        || (current_term->get_op().is_null()
+    std::unordered_set<Term> visited_nodes;
+    std::stack<Term> node_stack;
+    node_stack.push(term);
+
+    while (!node_stack.empty()) {
+        Term current_term = node_stack.top();
+        node_stack.pop();
+        if (visited_nodes.find(current_term) != visited_nodes.end())
+            continue;
+
+        // early pruning
+        if (current_term->is_value() || current_term->is_symbol()
+            || (current_term->get_op().is_null()
             && !current_term->is_symbolic_const())) {
-      // Add sort-based pruning
-      Sort s = current_term->get_sort();
-      if (s->get_sort_kind() == ARRAY) {
-        continue;  // Skip array terms early
-      }
-      continue;
-    }
+            // Add sort-based pruning
+            Sort s = current_term->get_sort();
+            if (s->get_sort_kind() == ARRAY) {
+                continue;  // Skip array terms early
+            }
+            continue;
+        }
 
     visited_nodes.insert(current_term);
     auto res =
@@ -138,12 +135,11 @@ void collect_terms(const Term & term,
   }
 }
 
-void collect_termdata(SmtSolver & solver,
-                      std::unordered_map<Term, NodeData> & node_data_map)
+void collect_termdata(SmtSolver & solver, std::unordered_map<Term, NodeData> & node_data_map)
 {
-  for (auto & term_data_pair : node_data_map) {
-    term_data_pair.second.extend_val(solver);
-  }
+    for (auto & term_data_pair : node_data_map) {
+        term_data_pair.second.extend_val(solver);
+    }
 }
 
 using TermPair = std::pair<Term, Term>;
@@ -166,25 +162,24 @@ std::unordered_map<TermPair, bool, TermPairHash> comparison_cache;
 
 bool compare_terms(const Term & var1, const Term & var2, SmtSolver & solver)
 {
-  if (!var1 || !var2) return false;
+    if (!var1 || !var2) return false;
 
-  TermPair pair(var1, var2);
-  auto it = comparison_cache.find(pair);
-  if (it != comparison_cache.end()) {
-    return it->second;
-  }
+    TermPair pair(var1, var2);
+    auto it = comparison_cache.find(pair);
+    if (it != comparison_cache.end()) {
+        return it->second;
+    }
 
-  try {
-    TermVec not_equal_term = { solver->make_term(
-        Not, solver->make_term(Equal, var1, var2)) };
-    auto res = solver->check_sat_assuming(not_equal_term);
-    bool result = res.is_unsat();
-    comparison_cache[pair] = result;
-    return result;
-  }
-  catch (...) {
-    return false;
-  }
+    try {
+        TermVec not_equal_term = { solver->make_term(Not, solver->make_term(Equal, var1, var2)) };
+        auto res = solver->check_sat_assuming(not_equal_term);
+        bool result = res.is_unsat();
+        comparison_cache[pair] = result;
+        return result;
+    }
+    catch (...) {
+        return false;
+    }
 }
 
 
@@ -214,30 +209,27 @@ class GmpRandStateGuard
 class DepthWalker : public IdentityWalker
 {
     public:
-    DepthWalker(const SmtSolver & solver,
-                unordered_map<Term, int> & node_depth_map)
-        : IdentityWalker(solver, true), node_depth_map_(node_depth_map)
-    {
-    }
+        DepthWalker(const SmtSolver & solver, unordered_map<Term, int> & node_depth_map)
+            : IdentityWalker(solver, true), node_depth_map_(node_depth_map) {}
 
     protected:
-    virtual WalkerStepResult visit_term(Term & term) override
-    {
-        if (node_depth_map_.find(term) != node_depth_map_.end()) {
-        return Walker_Skip;
-        }
+        virtual WalkerStepResult visit_term(Term & term) override
+        {
+            if (node_depth_map_.find(term) != node_depth_map_.end()) {
+                return Walker_Skip;
+            }
 
-        int max_child_depth = -1;
-        for (const auto & child : term) {
-        auto it = node_depth_map_.find(child);
-        if (it != node_depth_map_.end()) {
-            max_child_depth = max(max_child_depth, it->second);
-        }
-        }
+            int max_child_depth = -1;
+            for (const auto & child : term) {
+                auto it = node_depth_map_.find(child);
+                if (it != node_depth_map_.end()) {
+                    max_child_depth = max(max_child_depth, it->second);
+                }
+            }
 
-        node_depth_map_[term] = max_child_depth + 1;
-        return Walker_Continue;
-    }
+            node_depth_map_[term] = max_child_depth + 1;
+            return Walker_Continue;
+        }
 
     private:
     unordered_map<Term, int> & node_depth_map_;
@@ -249,7 +241,7 @@ int main()
     auto start_time = std::chrono::high_resolution_clock::now();
 
     SmtSolver solver = BoolectorSolverFactory::create(false);
-    //   SmtSolver solver = BitwuzlaSolverFactory::create(false);
+    // SmtSolver solver = BitwuzlaSolverFactory::create(false);
 
     solver->set_logic("QF_UFBV");
     solver->set_opt("incremental", "true");
@@ -258,16 +250,14 @@ int main()
 
     cout << "Loading and parsing BTOR2 files...\n";
     TransitionSystem sts1(solver);
-    BTOR2Encoder btor_parser1(
-        "../design/idpv-test/aes_case/AES_TOP.btor2", sts1, "a::");
+    BTOR2Encoder btor_parser1("../design/idpv-test/aes_case/AES_TOP.btor2", sts1, "a::");
 
     auto a_key_term = sts1.lookup("a::key");
     auto a_input_term = sts1.lookup("a::datain");
     auto a_output_term = sts1.lookup("a::finalout");
 
     TransitionSystem sts2(solver);
-    BTOR2Encoder btor_parser2(
-        "../design/idpv-test/aes_case/AES_Verilog.btor2", sts2, "b::");
+    BTOR2Encoder btor_parser2("../design/idpv-test/aes_case/AES_Verilog.btor2", sts2, "b::");
 
     auto b_key_term = sts2.lookup("b::key");
     auto b_input_term = sts2.lookup("b::in");
@@ -283,13 +273,11 @@ int main()
     // Create a base context that we'll reuse
     solver->push(); // context level 1
 
-    if (!a_key_term || !a_input_term || !b_input_term || !b_key_term
-        || !a_output_term || !b_output_term) {
+    if (!a_key_term || !a_input_term || !b_input_term || !b_key_term || !a_output_term || !b_output_term) {
         throw std::runtime_error("Required terms not found in models");
     }
 
-    auto res_ast = solver->make_term(
-        Equal, a_output_term, b_output_term);  // move the outer of the loop
+    auto res_ast = solver->make_term(Equal, a_output_term, b_output_term);
 
     cout << "Starting simulation phase...\n";
     std::unordered_map<Term, NodeData> node_data_map;
@@ -309,10 +297,8 @@ int main()
         rand_guard.random_128(input_mpz);
 
         // Use RAII for GMP strings
-        unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 10, key_mpz),
-                                                free);
-        unique_ptr<char, void (*)(void *)> input_str(
-            mpz_get_str(NULL, 10, input_mpz), free);
+        unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 10, key_mpz), free);
+        unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 10, input_mpz), free);
 
         auto input_val = solver->make_term(key_str.get(), a_key_term->get_sort());
         auto key_val = solver->make_term(input_str.get(), a_input_term->get_sort());
@@ -323,7 +309,7 @@ int main()
                             solver->make_term(Equal, b_input_term, input_val) };
         auto check_result = solver->check_sat_assuming(assumptions);
         if (!check_result.is_sat()) {
-        throw std::runtime_error("Unexpected UNSAT result during simulation");
+            throw std::runtime_error("Unexpected UNSAT result during simulation");
         }
 
         collect_termdata(solver, node_data_map);
@@ -343,11 +329,9 @@ int main()
 
     solver->push(); // save the final state - context level 2
     solver->assert_formula(solver->make_term(smt::Equal, a_key_term, b_key_term));
-    solver->assert_formula(
-        solver->make_term(smt::Equal, a_input_term, b_input_term));
+    solver->assert_formula(solver->make_term(smt::Equal, a_input_term, b_input_term));
 
     cout << "Building hash term map...\n";
-    // hash_term_map population
     std::unordered_map<size_t, TermVec> hash_term_map;
     //   for (const auto & [hash, terms] : hash_term_map) {
     //     cout << "Hash " << hash << " has " << terms.size() << " terms\n";
@@ -417,72 +401,48 @@ int main()
     for (auto & hash_group : hash_term_map) {
         processed++;
         if (processed % 10 == 0) {
-        cout << "Processed " << processed << "/" << hash_term_map.size()
+            cout << "Processed " << processed << "/" << hash_term_map.size()
                 << " groups\n";
-            }
-            auto & terms = hash_group.second;
+        }
+        auto & terms = hash_group.second;
+        // cout << "Processing hash group with " << terms.size() << " terms\n";
 
-            // cout << "Processing hash group with " << terms.size() << " terms\n";
+        // Skip small groups
+        if (terms.size() <= 1) continue;
 
-            // Skip small groups
-            if (terms.size() <= 1) continue;
-
-            for (size_t i = 0; i < terms.size(); ++i) {
+        for (size_t i = 0; i < terms.size(); ++i) {
             // Sort by depth first
             std::sort(
                 terms.begin(), terms.end(), [&](const Term & a, const Term & b) {
                     return node_depth_map[a] < node_depth_map[b];
                 });
 
-        // Collect all potential comparisons first
-        TermVec comparison_assumptions;
-        std::vector<std::pair<Term, Term>> term_pairs_to_compare;
-
-        for (size_t i = 0; i < terms.size(); ++i) {
-            const auto & term1 = terms[i];
-            for (size_t j = i + 1; j < terms.size(); ++j) {
-            const auto & term2 = terms[j];
-            if (node_data_map[term1].simulation_data
-                    == node_data_map[term2].simulation_data
-                && term1->get_sort() == term2->get_sort()) {
-                // Add to comparison batch
-                comparison_assumptions.push_back(
-                    solver->make_term(Not, solver->make_term(Equal, term1, term2)));
-                term_pairs_to_compare.emplace_back(term1, term2);
-            }
-            }
-        }
-
-        // Process the batch
-        const size_t BATCH_SIZE = 1; // 
-        if (comparison_assumptions.size() >= BATCH_SIZE) {
-            auto check_result = solver->check_sat_assuming(comparison_assumptions);
-            if (check_result.is_unsat()) {
-            // All terms in this batch are equivalent
-            for (const auto & [term1, term2] : term_pairs_to_compare) {
-                if (node_depth_map[term1] < node_depth_map[term2]) {
-                substitution_map[term2] = term1;
-                } else {
-                substitution_map[term1] = term2;
+            for(size_t i = 0; i < terms.size(); ++i) {
+                const auto & term1 = terms[i];
+                for(size_t j = i + 1; j < terms.size(); ++j) {
+                    const auto & term2 = terms[j];
+                    if(node_data_map[term1].simulation_data == node_data_map[term2].simulation_data
+                        && term1->get_sort() == term2->get_sort()) {
+                        if(compare_terms(term1, term2, solver)) {
+                            if (node_depth_map[term1] < node_depth_map[term2]) {
+                                substitution_map[term2] = term1;
+                                solver->substitute(term2, substitution_map);
+                            } else {
+                                substitution_map[term1] = term2;
+                                solver->substitute(term1, substitution_map);
+                            }
+                            //TODO:
+                        }
+                    }
                 }
-                equal_pairs.emplace_back(term1, term2);
             }
-            }
-            comparison_assumptions.clear();
-            term_pairs_to_compare.clear();
-        }
         }
     }
     cout << "equal pairs: " << equal_pairs.size() << endl;
 
     solver->pop(); // restore the final state - context level 2
     solver->pop(); // back to base context
-    cout << "Substitution map size: " << substitution_map.size() << endl;
-  
-    // Apply substitutions
-    for (const auto & [term, subterm] : substitution_map) {
-        res_ast = solver->substitute(res_ast, term, subterm);
-    }
+    
     solver->assert_formula(res_ast);
     cout << "Checking final result...\n";
     auto final_result = solver->check_sat();
