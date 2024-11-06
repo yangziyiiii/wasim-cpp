@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <queue>
+#include <iomanip>
 
 #include "assert.h"
 #include "config/testpath.h"
@@ -210,7 +211,7 @@ class DepthWalker : public IdentityWalker
 {
     public:
         DepthWalker(const SmtSolver & solver, unordered_map<Term, int> & node_depth_map)
-            : IdentityWalker(solver, true), node_depth_map_(node_depth_map) {}
+            : IdentityWalker(solver, false), node_depth_map_(node_depth_map) {}
 
     protected:
         virtual WalkerStepResult visit_term(Term & term) override
@@ -235,8 +236,18 @@ class DepthWalker : public IdentityWalker
     unordered_map<Term, int> & node_depth_map_;
 };
 
+std::chrono::time_point<std::chrono::high_resolution_clock> last_time_point;
+void print_time() {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time_point).count();
+    last_time_point = now;  // Update last time point
+    cout << "[" << elapsed_time << " ms]  ";
+}
+
 int main()
 {
+    last_time_point = std::chrono::high_resolution_clock::now();
+
     cout << "Starting program...\n";
     auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -270,6 +281,9 @@ int main()
     for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
     for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
 
+    print_time();
+    cout << "init solver" << endl;
+
     // Create a base context that we'll reuse
     solver->push(); // context level 1
 
@@ -279,7 +293,8 @@ int main()
 
     auto res_ast = solver->make_term(Equal, a_output_term, b_output_term);
 
-    cout << "Starting simulation phase...\n";
+    print_time();
+    cout << "\nStarting simulation phase...\n";
     std::unordered_map<Term, NodeData> node_data_map;
     collect_terms(res_ast, node_data_map);
 
@@ -290,6 +305,7 @@ int main()
     // simulation loop
     #pragma omp parallel for
     for (int i = 0; i < num_iterations; ++i) {
+        print_time();
         cout << "Running " << i + 1 << " simulation iteration...\n";
         solver->push(); // push for each iteration - context level 2
         mpz_t key_mpz, input_mpz;
@@ -319,56 +335,66 @@ int main()
         mpz_clear(key_mpz);
         mpz_clear(input_mpz);
     }  // end of simulation
-    cout << "\nSimulation complete.\n";
-    //   for (const auto & [term, data] : node_data_map) {
-    //     cout << "Term has " << data.simulation_data.size()
-    //          << " simulation values\n";
-    //   }
+    cout << "Simulation complete.\n";
 
+    print_time();
     cout << "node_data_map size : " << node_data_map.size() << endl;
 
+    //FIXME: segmentation fault here
     solver->push(); // save the final state - context level 2
     solver->assert_formula(solver->make_term(smt::Equal, a_key_term, b_key_term));
     solver->assert_formula(solver->make_term(smt::Equal, a_input_term, b_input_term));
 
+    print_time();
     cout << "Building hash term map...\n";
-    std::unordered_map<size_t, TermVec> hash_term_map;
-    //   for (const auto & [hash, terms] : hash_term_map) {
-    //     cout << "Hash " << hash << " has " << terms.size() << " terms\n";
-    //   }
+    std::unordered_map<size_t, TermVec> hash_term_map_init; // course grained
+    std::unordered_map<size_t, TermVec> hash_term_map; // after comparing sim_data in num_ite loops
 
-    cout << "Populating hash term map...\n";
-    size_t terms_processed = 0;
-    // population loop
     for (const auto & entry : node_data_map) {
-        terms_processed++;
-        if (terms_processed % 1000 == 0) {
-        cout << "Processed " << terms_processed << "/" << node_data_map.size()
-            << " terms\n";
-        }
-
         const Term & term = entry.first;
         const NodeData & node_data = entry.second;
 
-    // Skip terms that we know won't be useful
-    if (!term || term->get_sort()->get_sort_kind() == ARRAY) {
-      continue;
+        // Skip terms that we know won't be useful
+        if (!term || term->get_sort()->get_sort_kind() == ARRAY)
+            continue;
+
+        size_t hash_val = node_data.hash();
+        hash_term_map_init[hash_val].push_back(term);
     }
 
-    size_t hash_val = node_data.hash();
+    print_time();
+    cout << "Select num_ite all equal terms in a TermVec...\n";
+    // select num_ite all equal terms in a new map
+    for (auto & hash_group : hash_term_map_init) {
+        auto & terms = hash_group.second;
+        if (terms.size() <= 1) 
+            continue;
 
-    // Debug output for hash values
-    if (terms_processed % 1000 == 0) {
-      cout << "Term hash: " << hash_val
-           << ", simulation data size: " << node_data.simulation_data.size()
-           << "\n";
+        for (size_t i = 0; i < terms.size(); ++i) {
+            for (size_t j = i + 1; j < terms.size(); ++j) {
+                if (node_data_map[terms[i]].simulation_data[1] == node_data_map[terms[j]].simulation_data[1]
+                    && node_data_map[terms[i]].simulation_data[2] == node_data_map[terms[j]].simulation_data[2]
+                    && node_data_map[terms[i]].simulation_data[3] == node_data_map[terms[j]].simulation_data[3]
+                    && node_data_map[terms[i]].simulation_data[4] == node_data_map[terms[j]].simulation_data[4]
+                    && node_data_map[terms[i]].simulation_data[5] == node_data_map[terms[j]].simulation_data[5]
+                    && node_data_map[terms[i]].simulation_data[6] == node_data_map[terms[j]].simulation_data[6]
+                    && node_data_map[terms[i]].simulation_data[7] == node_data_map[terms[j]].simulation_data[7]
+                    && node_data_map[terms[i]].simulation_data[8] == node_data_map[terms[j]].simulation_data[8]
+                    && node_data_map[terms[i]].simulation_data[9] == node_data_map[terms[j]].simulation_data[9]
+                    && node_data_map[terms[i]].simulation_data[10] == node_data_map[terms[j]].simulation_data[10]
+                    ) {
+                    std::pair<Term, Term> equ_pair(terms[i], terms[j]);
+                    hash_term_map[node_data_map[terms[i]].hash()].push_back(terms[i]);
+                    hash_term_map[node_data_map[terms[i]].hash()].push_back(terms[j]);
+                }
+            }
+        }
     }
 
-    hash_term_map[hash_val].push_back(term);
-    }
 
     // Debug output for hash distribution
-    cout << "\nHash distribution:\n";
+    print_time();
+    cout << " Hash distribution: \n";
     std::map<size_t, size_t> bucket_sizes;
     for (const auto & [hash, terms] : hash_term_map) {
         bucket_sizes[terms.size()]++;
@@ -390,33 +416,30 @@ int main()
     //  for (const auto& [term, depth] : node_depth_map) {
     //     std::cout << " Depth: " << depth << std::endl;
     // }
-    cout << "\nStarting term comparison phase...\n";
+
+    print_time();
+    cout << "Starting term comparison phase...\n";
+    
     // comapre and store equal nodes
     smt::UnorderedTermMap substitution_map;
-    auto walker = smt::SubstitutionWalker(solver, substitution_map);
 
-    // FIXME: time consuming
     size_t processed = 0;
     #pragma omp parallel for
     for (auto & hash_group : hash_term_map) {
-        processed++;
-        if (processed % 10 == 0) {
-            cout << "Processed " << processed << "/" << hash_term_map.size()
-                << " groups\n";
-        }
+        cout << hash_term_map.size() << " groups\n";
         auto & terms = hash_group.second;
-        // cout << "Processing hash group with " << terms.size() << " terms\n";
 
         // Skip small groups
         if (terms.size() <= 1) continue;
 
         for (size_t i = 0; i < terms.size(); ++i) {
-            // Sort by depth first
+            // FIXME: Sort by depth first
             std::sort(
                 terms.begin(), terms.end(), [&](const Term & a, const Term & b) {
                     return node_depth_map[a] < node_depth_map[b];
                 });
-
+            
+            // FIXME: time consuming
             for(size_t i = 0; i < terms.size(); ++i) {
                 auto & term1 = terms[i];
                 for(size_t j = i + 1; j < terms.size(); ++j) {
@@ -425,14 +448,13 @@ int main()
                         && term1->get_sort() == term2->get_sort()) {
                         if(compare_terms(term1, term2, solver)) {
                             if (node_depth_map[term1] < node_depth_map[term2]) {
-                                // substitution_map[term2] = term1;
-                                // FIXME: boolector backend currrntly only supports symbol->term substitution
-                                walker.visit(term2);
-                            } else {
-                                // substitution_map[term1] = term2;
-                                walker.visit(term1);
+                                // TODO:
+                                substitution_map[term2] = term1;
+                                smt::SubstitutionWalker substitution_walker(solver,substitution_map);
+                                auto new_term = substitution_walker.visit(term2);
+                                
+                             
                             }
-                            //TODO:
                         }
                     }
                 }
@@ -443,9 +465,10 @@ int main()
     solver->pop(); // restore the final state - context level 2
     solver->pop(); // back to base context
     
-    solver->assert_formula(res_ast);
+    // solver->assert_formula(res_ast);
     cout << "Checking final result...\n";
-    auto final_result = solver->check_sat();
+    auto final_result = solver->check_sat();//FIXME: depth largest
+    // auto final_result = solver->check_sat_assuming();
     std::cout << final_result.to_string() << std::endl;
     //count time
     auto end_time = std::chrono::high_resolution_clock::now();
