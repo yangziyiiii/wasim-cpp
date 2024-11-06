@@ -372,21 +372,14 @@ int main()
 
         for (size_t i = 0; i < terms.size(); ++i) {
             for (size_t j = i + 1; j < terms.size(); ++j) {
-                if (node_data_map[terms[i]].simulation_data[1] == node_data_map[terms[j]].simulation_data[1]
-                    && node_data_map[terms[i]].simulation_data[2] == node_data_map[terms[j]].simulation_data[2]
-                    && node_data_map[terms[i]].simulation_data[3] == node_data_map[terms[j]].simulation_data[3]
-                    && node_data_map[terms[i]].simulation_data[4] == node_data_map[terms[j]].simulation_data[4]
-                    && node_data_map[terms[i]].simulation_data[5] == node_data_map[terms[j]].simulation_data[5]
-                    && node_data_map[terms[i]].simulation_data[6] == node_data_map[terms[j]].simulation_data[6]
-                    && node_data_map[terms[i]].simulation_data[7] == node_data_map[terms[j]].simulation_data[7]
-                    && node_data_map[terms[i]].simulation_data[8] == node_data_map[terms[j]].simulation_data[8]
-                    && node_data_map[terms[i]].simulation_data[9] == node_data_map[terms[j]].simulation_data[9]
-                    && node_data_map[terms[i]].simulation_data[10] == node_data_map[terms[j]].simulation_data[10]
-                    ) {
+                for(size_t k = 0; k < num_iterations; ++k) {
+                    if (node_data_map[terms[i]].simulation_data[k] == node_data_map[terms[j]].simulation_data[k]) {
+                        continue;
+                    }
                     std::pair<Term, Term> equ_pair(terms[i], terms[j]);
                     hash_term_map[node_data_map[terms[i]].hash()].push_back(terms[i]);
                     hash_term_map[node_data_map[terms[i]].hash()].push_back(terms[j]);
-                }
+                }  
             }
         }
     }
