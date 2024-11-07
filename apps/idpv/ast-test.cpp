@@ -301,7 +301,7 @@ int main()
     // simulation iterations below
     GmpRandStateGuard rand_guard;
 
-    int num_iterations = 10;
+    int num_iterations = 2;
     // simulation loop
     #pragma omp parallel for
     for (int i = 0; i < num_iterations; ++i) {
@@ -364,7 +364,8 @@ int main()
 
     print_time();
     cout << "Select num_ite all equal terms in a TermVec...\n";
-    // select num_ite all equal terms in a new map
+    // select num_ite all equal terms in a new map 
+    //FIXME: o(n^2)*num_ite, and no cache for this loop result
     for (auto & hash_group : hash_term_map_init) {
         auto & terms = hash_group.second;
         if (terms.size() <= 1) 
@@ -372,14 +373,18 @@ int main()
 
         for (size_t i = 0; i < terms.size(); ++i) {
             for (size_t j = i + 1; j < terms.size(); ++j) {
-                for(size_t k = 0; k < num_iterations; ++k) {
-                    if (node_data_map[terms[i]].simulation_data[k] == node_data_map[terms[j]].simulation_data[k]) {
-                        continue;
-                    }
+                bool all_euqal = true;
+                for(size_t k = 1; k <= num_iterations; ++k) {
+                    if (node_data_map[terms[i]].simulation_data[k] != node_data_map[terms[j]].simulation_data[k]) {
+                        all_euqal = false;
+                        break;
+                    }       
+                }
+                if(all_euqal){
                     std::pair<Term, Term> equ_pair(terms[i], terms[j]);
                     hash_term_map[node_data_map[terms[i]].hash()].push_back(terms[i]);
-                    hash_term_map[node_data_map[terms[i]].hash()].push_back(terms[j]);
-                }  
+                    hash_term_map[node_data_map[terms[i]].hash()].push_back(terms[j]); 
+                }
             }
         }
     }
