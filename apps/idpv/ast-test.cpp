@@ -294,16 +294,16 @@ int main()
     auto res_ast = solver->make_term(Equal, a_output_term, b_output_term);
 
     print_time();
-    cout << "\nStarting simulation phase...\n";
+    cout << "Starting simulation phase...\n";
     std::unordered_map<Term, NodeData> node_data_map;
     collect_terms(res_ast, node_data_map);
 
     // simulation iterations below
     GmpRandStateGuard rand_guard;
 
-    int num_iterations = 2;
+    int num_iterations = 30;
     // simulation loop
-    #pragma omp parallel for
+    #pragma omp parallel for//FIXME: 
     for (int i = 0; i < num_iterations; ++i) {
         print_time();
         cout << "Running " << i + 1 << " simulation iteration...\n";
@@ -340,7 +340,6 @@ int main()
     print_time();
     cout << "node_data_map size : " << node_data_map.size() << endl;
 
-    //FIXME: segmentation fault here
     solver->push(); // save the final state - context level 2
     solver->assert_formula(solver->make_term(smt::Equal, a_key_term, b_key_term));
     solver->assert_formula(solver->make_term(smt::Equal, a_input_term, b_input_term));
@@ -364,7 +363,7 @@ int main()
 
     print_time();
     cout << "Select num_ite all equal terms in a TermVec...\n";
-    // select num_ite all equal terms in a new map 
+    // select num_ite all equal terms in a new map
     //FIXME: o(n^2)*num_ite, and no cache for this loop result
     for (auto & hash_group : hash_term_map_init) {
         auto & terms = hash_group.second;
@@ -372,9 +371,11 @@ int main()
             continue;
 
         for (size_t i = 0; i < terms.size(); ++i) {
+            assert(terms.size() > 1);
+
             for (size_t j = i + 1; j < terms.size(); ++j) {
                 bool all_euqal = true;
-                for(size_t k = 1; k <= num_iterations; ++k) {
+                for(size_t k = 0; k < num_iterations; ++k) {
                     if (node_data_map[terms[i]].simulation_data[k] != node_data_map[terms[j]].simulation_data[k]) {
                         all_euqal = false;
                         break;
@@ -382,8 +383,14 @@ int main()
                 }
                 if(all_euqal){
                     std::pair<Term, Term> equ_pair(terms[i], terms[j]);
-                    hash_term_map[node_data_map[terms[i]].hash()].push_back(terms[i]);
-                    hash_term_map[node_data_map[terms[i]].hash()].push_back(terms[j]); 
+                    auto hash_val = node_data_map[terms[i]].hash();
+                    auto &term_list = hash_term_map[hash_val];
+                    if (std::find(term_list.begin(), term_list.end(), terms[i]) == term_list.end()) {
+                        term_list.push_back(terms[i]);
+                    }
+                    if (std::find(term_list.begin(), term_list.end(), terms[j]) == term_list.end()) {
+                        term_list.push_back(terms[j]);
+                    }
                 }
             }
         }
@@ -402,6 +409,7 @@ int main()
         cout << "Buckets with " << size << " terms: " << count << "\n";
     }
 
+    cout << "hash_term_map_init size : " << hash_term_map_init.size() << endl;
     cout << "hash_term_map size : " << hash_term_map.size() << endl;
 
     cout << "Calculating node depths...\n";
@@ -416,19 +424,12 @@ int main()
     // }
 
     print_time();
-    cout << "Starting term comparison phase...\n";
-    
-    // comapre and store equal nodes
+    cout << "Starting term comparison and merging phase...\n";
     smt::UnorderedTermMap substitution_map;
 
-    size_t processed = 0;
     #pragma omp parallel for
     for (auto & hash_group : hash_term_map) {
-        cout << hash_term_map.size() << " groups\n";
         auto & terms = hash_group.second;
-
-        // Skip small groups
-        if (terms.size() <= 1) continue;
 
         for (size_t i = 0; i < terms.size(); ++i) {
             // FIXME: Sort by depth first
