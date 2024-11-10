@@ -121,19 +121,18 @@ void collect_terms(const Term & term, std::unordered_map<Term, NodeData> & node_
             continue;
         }
 
-    visited_nodes.insert(current_term);
-    auto res =
-        node_data_map.emplace(current_term, NodeData::from_term(current_term));
-    assert(res.second);
+        visited_nodes.insert(current_term);
+        auto res = node_data_map.emplace(current_term, NodeData::from_term(current_term));
+        assert(res.second);
 
-    if (res.second) {  // Only process children if this is a new term
-      for (auto child : current_term) {
-        if (child) {
-          node_stack.push(child);
+        if (res.second) {  // Only process children if this is a new term
+            for (auto child : current_term) {
+                if (child) {
+                node_stack.push(child);
+                }
+            }
         }
-      }
     }
-  }
 }
 
 void collect_termdata(SmtSolver & solver, std::unordered_map<Term, NodeData> & node_data_map)
@@ -301,7 +300,7 @@ int main()
     // simulation iterations below
     GmpRandStateGuard rand_guard;
 
-    int num_iterations = 30;
+    int num_iterations = 1;
     // simulation loop
     #pragma omp parallel for//FIXME: 
     for (int i = 0; i < num_iterations; ++i) {

@@ -17,81 +17,39 @@ using namespace smt;
 using namespace std;
 using namespace wasim;
 
-template <typename T, typename... Rest>
-inline void hashCombine(std::size_t & seed, T const & v, Rest &&... rest)
-{
-  std::hash<T> hasher;
-  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-  (int[]){ 0, (hashCombine(seed, std::forward<Rest>(rest)), 0)... };
-}
+void post_order_traversal(const Term& term, std::vector<Term>& post_order_list) {
+    assert(term != nullptr);
 
-struct Node {
-    Term term;
-    struct Node *left, *right;
-};
+    std::unordered_set<Term> visited_nodes;
+    std::stack<Term> node_stack;
+    std::stack<Term> output_stack; 
 
-Node* newNode(Term term) {
-    Node* node = new Node;
-    node->term = term;
-    node->left = node->right = NULL;
-    return node;
-}
+    node_stack.push(term);
+    while (!node_stack.empty()) {
+        Term current = node_stack.top();
+        node_stack.pop();
+        output_stack.push(current);
+        visited_nodes.insert(current);
 
-//FIXME: 
-void post_order_traversal(const Term & term, std::vector<Term> & postOrderList) {
-    Node* root = newNode(term);
-    if(root == NULL)
-        throw std::invalid_argument("NULL term provided to post_order_traversal");
-    
-    std::stack<Node*> node_stack;
-    std::unordered_set<Term> visietd_nodes;
-    node_stack.push(root);
-    Node* prev = NULL;
-
-    while(!node_stack.empty()) {
-        auto current = node_stack.top();
-        cout << current->term->hash() << endl;
-        if (current->term->is_value() || current->term->is_symbol() || ( current->term->get_op().is_null() && !current->term->is_symbolic_const())) {
-            Sort s = current->term->get_sort();
-            if(s->get_sort_kind() == ARRAY) {
-                node_stack.pop();
-                delete current;
-                continue;
-            }
-            node_stack.pop();
-            delete current;
-            continue;
-        }
-
-        if(prev == NULL || prev->left == current || prev->right == current) {
-            if(current->left)
-                node_stack.push(current->left);
-            else if(current->right)
-                node_stack.push(current->right);
-            else {
-                node_stack.pop();
-                postOrderList.push_back(current->term);
+        std::vector<Term> children;
+        for (auto child : current) {
+            if (child && visited_nodes.find(child) == visited_nodes.end()) {
+                children.push_back(child);
             }
         }
-        else if(current->left == prev) {
-            if(current->right)
-                node_stack.push(current->right);
-            else {
-                node_stack.pop();
-                postOrderList.push_back(current->term);
-            }
+
+        for (int i = children.size() - 1; i >= 0; --i) {
+            node_stack.push(children[i]);
         }
-        else if(current->right == prev) {
-            node_stack.pop();
-            postOrderList.push_back(current->term);
-        }
-        prev = current;
     }
-    return;
+
+    while (!output_stack.empty()) {
+        Term current = output_stack.top();
+        output_stack.pop();
+        post_order_list.push_back(current);
+    }
+
 }
-
-
-
 
 std::chrono::time_point<std::chrono::high_resolution_clock> last_time_point;
 void print_time() {
@@ -151,7 +109,14 @@ int main() {
     //post order traversal
     std::vector<Term> post_order_list;
     post_order_traversal(root, post_order_list);
-    cout << "post order traversal size: " << post_order_list.size() << endl; // 1
+    cout << "post order traversal size: " << post_order_list.size() << endl;
+
+    smt::UnorderedTermMap substitution_map;
+
+    for(auto term : post_order_list) {
+        //TODO: new simulation method for a term using boolector
+    }
+
     
     return 0;
 
