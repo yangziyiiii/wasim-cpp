@@ -17,39 +17,75 @@ using namespace smt;
 using namespace std;
 using namespace wasim;
 
-void post_order_traversal(const Term& term, std::vector<Term>& post_order_list) {
-    assert(term != nullptr);
+// void post_order_traversal(const Term& term, std::vector<Term>& post_order_list) {
+//     assert(term != nullptr);
 
-    std::unordered_set<Term> visited_nodes;
+//     std::unordered_set<Term> visited_nodes;
+//     std::stack<Term> node_stack;
+//     std::stack<Term> output_stack;
+
+//     node_stack.push(term);
+//     while (!node_stack.empty()) {
+//         Term current = node_stack.top();
+//         node_stack.pop();
+//         output_stack.push(current);
+//         visited_nodes.insert(current);
+
+//         std::vector<Term> children;
+//         for (auto child : current) {
+//             if (child && visited_nodes.find(child) == visited_nodes.end()) {
+//                 children.push_back(child);
+//             }
+//         }
+
+//         for (int i = children.size() - 1; i >= 0; --i) {
+//             node_stack.push(children[i]);
+//         }
+//     }
+
+//     while (!output_stack.empty()) {
+//         Term current = output_stack.top();
+//         output_stack.pop();
+//         post_order_list.push_back(current);
+//     }
+
+// }
+
+void post_order_traversal(const Term& term, std::vector<Term>& post_order_list) {
     std::stack<Term> node_stack;
-    std::stack<Term> output_stack; 
+    std::stack<Term> output_stack;
+    std::unordered_set<Term> visited;
 
     node_stack.push(term);
-    while (!node_stack.empty()) {
+    while(!node_stack.empty()){
         Term current = node_stack.top();
+
+        if( current->is_symbol() || 
+            current->is_value() || 
+            (current->get_op().is_null() && !current->is_symbolic_const()) ||
+            current -> get_sort() -> get_sort_kind() == ARRAY){
+            node_stack.pop();
+        }
+        
         node_stack.pop();
         output_stack.push(current);
-        visited_nodes.insert(current);
+        visited.insert(current);
 
-        std::vector<Term> children;
-        for (auto child : current) {
-            if (child && visited_nodes.find(child) == visited_nodes.end()) {
-                children.push_back(child);
-            }
-        }
-
-        for (int i = children.size() - 1; i >= 0; --i) {
-            node_stack.push(children[i]);
+        for(auto child : current){
+            if(child && visited.find(child) == visited.end())
+                node_stack.push(child);
         }
     }
 
-    while (!output_stack.empty()) {
+    while(!output_stack.empty()){
         Term current = output_stack.top();
         output_stack.pop();
         post_order_list.push_back(current);
     }
-
 }
+
+
+
 
 std::chrono::time_point<std::chrono::high_resolution_clock> last_time_point;
 void print_time() {
@@ -106,6 +142,12 @@ int main() {
 
     auto root = solver->make_term(Equal, a_output_term, b_output_term);
 
+
+
+
+
+
+
     //post order traversal
     std::vector<Term> post_order_list;
     post_order_traversal(root, post_order_list);
@@ -113,9 +155,12 @@ int main() {
 
     smt::UnorderedTermMap substitution_map;
 
-    for(auto term : post_order_list) {
-        //TODO: new simulation method for a term using boolector
-    }
+    // for(auto term : post_order_list) {
+    //     //TODO: new simulation method for a term using boolector
+    // }
+
+
+
 
     
     return 0;
