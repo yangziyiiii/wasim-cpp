@@ -90,10 +90,10 @@ int main() {
             }
             else{ // 子节点不存在，对当前节点进行simulation
                 if(child->is_value()) { // 常量
-                    btor_bv_const();
+                    //直接获取这个节点的值
                 }
                 else if(child->is_symbol()) { // 变量
-                    
+                    //根据节点的op进行simulation
                     if(child->get_op() == BVAdd) {
 
                     }

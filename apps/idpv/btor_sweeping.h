@@ -130,20 +130,6 @@ BtorBitVector * btor_bv_new (BtorMemMgr *mm, uint32_t bw)
   return res;
 }
 
-BtorBitVector *
-btor_bv_new_random (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw)
-{
-  BtorBitVector *res;
-#ifdef BTOR_USE_GMP
-  res = btor_bv_new (mm, bw);
-  mpz_urandomb (res->val, *((gmp_randstate_t *) rng->gmp_state), bw);
-  mpz_fdiv_r_2exp (res->val, res->val, bw);
-#else
-  res = btor_bv_new_random_bit_range (mm, rng, bw, bw - 1, 0);
-#endif
-  return res;
-}
-
 bool btor_util_check_bin_to_bv (BtorMemMgr *mm, const char *str, uint32_t bw)
 {
   assert (mm);
@@ -177,3 +163,7 @@ BtorBitVector *btor_bv_const(BtorMemMgr *mm, const char *str, uint32_t bw){
 #endif
     return res;
 }
+
+//trasform a bv to btorbv
+// Btor *btor = boolector_new();
+const char *assignment = boolector_bv_assignment(btor, term.node);
