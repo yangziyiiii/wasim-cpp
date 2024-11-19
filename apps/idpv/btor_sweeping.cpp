@@ -18,6 +18,18 @@ using namespace smt;
 using namespace std;
 using namespace wasim;
 
+struct NodeData
+{
+    Term term;  // will be nullptr if it is for a term with array sort
+    uint64_t bit_width;
+    std::vector<std::string> simulation_data;
+
+    NodeData() : term(nullptr), bit_width(0) {}
+
+    NodeData(Term t, uint64_t bw) : term(t), bit_width(bw) {}
+};
+
+
 std::chrono::time_point<std::chrono::high_resolution_clock> last_time_point;
 void print_time() {
     auto now = std::chrono::high_resolution_clock::now();
@@ -73,32 +85,63 @@ int main() {
     auto root = solver->make_term(Equal, a_output_term, b_output_term);
 
     //start post order traversal
-    std::stack<Term> node_stack;
-    node_stack.push(root);
-    std::unordered_map<Term, bool> nodes;
-    nodes.insert({root, false});
+    std::stack<std::pair<Term,bool>> node_stack;
+    node_stack.push({root,false});
+    std::unordered_map<Term, NodeData> node_to_simulation_map;
 
     while(!node_stack.empty()) {
-        Term current = node_stack.top();
-        for(Term child : current) {
-            if(child){ // 子节点存在，继续向下遍历
-                nodes[current] = true;
-                if(nodes.find(child) == nodes.end()){
-                    node_stack.push(child);
-                    nodes.insert({child, false});
-                }
-            }
-            else{ // 子节点不存在，对当前节点进行simulation
-                if(child->is_value()) { // 常量
-                    //直接获取这个节点的值
-                }
-                else if(child->is_symbol()) { // 变量
-                    //根据节点的op进行simulation
-                    if(child->get_op() == BVAdd) {
+        auto & [current,visited] = node_stack.top();
 
+        if (node_to_simulation_map.find(current) != node_to_simulation_map.end()) {
+            node_stack.pop();
+            continue;
+        }
+
+        if(!visited) {
+            // push all children onto stack
+            for(Term child : current) {
+                node_stack.push({child,false});
+            }
+            visited = true;
+        } else {
+            // compute simulation data for current node
+            auto node = node_stack.top().first;
+            if(node->is_value()){ //constant
+                auto node_str = node->to_string();
+                auto node_bv = btor_bv_char_to_bv(node_str.data()); // Btor Bit Vector Type
+                auto node_bv_hash = btor_bv_hash(node_bv);
+                auto node_data = btor_bv_to_char(node_bv);
+                cout << "constant: " << node_data << endl;
+
+                NodeData nd(node, node_bv->width);
+                nd.simulation_data.push_back(node_data);
+                node_to_simulation_map.insert({node, nd});
+                
+            }
+
+            else if(node->is_symbol()) { // variants
+                auto op_type = node->get_op();
+                if(op_type == BVAdd) {
+                    //TODO:
+                    cout << "BVAdd" << endl;
+                    for(auto child : node){
+                        auto child_bv = btor_bv_char_to_bv(child->to_string().data());
+                        auto current_node_data = btor_bv_add(child_bv[0], child_bv[1]);
                     }
+                    
+                }
+
+                else if(op_type == BVMul) {
+                    //TODO:
+                }
+
+                else {
+                    throw NotImplementedException("Unsupported operator: " + op_type.to_string());
                 }
             }
+
+            //end simulation
+            node_stack.pop();
         }
     }
     
@@ -113,82 +156,6 @@ int main() {
 
 }
 
-
-
-
-
-// template <typename T, typename... Rest>
-// inline void hashCombine(std::size_t & seed, T const & v, Rest &&... rest)
-// {
-//   std::hash<T> hasher;
-//   seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-//   (int[]){ 0, (hashCombine(seed, std::forward<Rest>(rest)), 0)... };
-// }
-
-
-// struct NodeData
-// {
-//   Term term;  // will be nullptr if it is for a term with array sort
-//   uint64_t bit_width;
-//   std::vector<std::string> simulation_data;
-
-//   NodeData() : term(nullptr), bit_width(0) {}
-
-//  private:
-//   NodeData(Term t, uint64_t bw) : term(t), bit_width(bw) {}
-
-//  public:
-//   void extend_val(SmtSolver & solver)
-//   {
-//     if (term == nullptr) return;  // array
-
-//     static std::string valstr;
-//     valstr.clear();
-//     Term value = solver->get_value(term);
-//     valstr = value->to_string();
-//     if (valstr == "true")
-//       valstr = "#b1";
-//     else if (valstr == "false")
-//       valstr = "#b0";
-//     simulation_data.push_back(std::move(valstr));
-//   }
-
-//   size_t hash() const
-//   {
-//     if (simulation_data.empty()) {
-//       return 0;
-//     }
-
-//     size_t hash_val = 0;
-//     for (const auto & v : simulation_data) {
-//       // Remove any prefix like "#b" before hashing
-//       std::string clean_val = v;
-//       if (v.substr(0, 2) == "#b") {
-//         clean_val = v.substr(2);
-//       }
-//       hashCombine(hash_val, clean_val);
-//     }
-//     return hash_val;
-//   }
-
-//   bool operator==(const NodeData & other) const
-//   {
-//     if (term == nullptr) return false;  // for array
-//     return simulation_data == other.simulation_data;
-//   }
-
-//   static NodeData from_term(const Term & term)
-//   {
-//     SortKind sk = term->get_sort()->get_sort_kind();
-//     switch (sk) {
-//       case ARRAY: return NodeData(nullptr, 0);
-//       case BV: return NodeData(term, term->get_sort()->get_width());
-//       case BOOL: return NodeData(term, 1);
-//       default:
-//         throw std::invalid_argument("Unsupported sort: " + term->get_sort()->to_string());
-//     }
-//   }
-// };
 
 // void collect_terms(const Term & term, std::unordered_map<Term, NodeData> & node_data_map)
 // {
