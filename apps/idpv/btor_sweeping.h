@@ -49,10 +49,10 @@ struct BtorMemMgr
 typedef struct BtorMemMgr BtorMemMgr;
 typedef struct BtorBitVector BtorBitVector;
 
-#define BTOR_NEWN(ptr, nelems)                                          \
+#define BTOR_NEWN(ptr)                                          \
   do                                                                        \
   {                                                                         \
-    (ptr) = (decltype(ptr)) malloc((nelems) * sizeof *(ptr)); \
+    (ptr) = (decltype(ptr)) malloc(1 * sizeof *(ptr)); \
   } while (0)
 
 #define BTOR_CNEWN(ptr, nelems)                                        \
@@ -65,7 +65,7 @@ typedef struct BtorBitVector BtorBitVector;
   ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1) \
    >> (BTOR_BV_TYPE_BW - 1 - (bv->width % BTOR_BV_TYPE_BW)))
 
-#define BTOR_NEW(ptr) BTOR_NEWN ((ptr), 1)
+#define BTOR_NEW(ptr) BTOR_NEWN (ptr)
 
 void *
 btor_mem_malloc (size_t size)
@@ -382,6 +382,178 @@ BtorBitVector *btor_bv_add (const BtorBitVector *a, const BtorBitVector *b)
       carry        = (BTOR_BV_TYPE) (sum >> 32);
     }
   }
+
+  set_rem_bits_to_zero (res);
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+
+BtorBitVector *btor_bv_and (const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  uint32_t bw = a->width;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_new (bw);
+  mpz_and (res->val, a->val, b->val);
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
+#else
+  assert (a->len == b->len);
+  uint32_t i;
+
+  res = btor_bv_new (bw);
+  for (i = 0; i < a->len; i++) res->bits[i] = a->bits[i] & b->bits[i];
+
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+bool btor_bv_is_zero (const BtorBitVector *bv)
+{
+  assert (bv);
+
+#ifdef BTOR_USE_GMP
+  return mpz_cmp_ui (bv->val, 0) == 0;
+#else
+  uint32_t i;
+  for (i = 0; i < bv->len; i++)
+    if (bv->bits[i] != 0) return false;
+  return true;
+#endif
+}
+
+bool btor_bv_is_one (const BtorBitVector *bv)
+{
+  assert (bv);
+
+#ifdef BTOR_USE_GMP
+  return mpz_cmp_ui (bv->val, 1) == 0;
+#else
+  uint32_t i;
+  if (bv->bits[bv->len - 1] != 1) return false;
+  for (i = 0; i < bv->len - 1; i++)
+    if (bv->bits[i] != 0) return false;
+  return true;
+#endif
+}
+
+BtorBitVector *btor_bv_one (uint32_t bw)
+{
+  assert (bw);
+
+  BtorBitVector *res;
+#ifdef BTOR_USE_GMP
+  BTOR_NEW (res);
+  res->width = bw;
+  mpz_init_set_ui (res->val, 1);
+#else
+  res = btor_bv_new (bw);
+  btor_bv_set_bit (res, 0, 1);
+#endif
+  return res;
+}
+
+#define btor_bv_zero(BW) btor_bv_new (BW)
+
+BtorBitVector *btor_bv_implies (const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+  assert (a->width == 1);
+
+  BtorBitVector *res;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_is_zero (a) || btor_bv_is_one (b) ? btor_bv_one (1)
+                                                  : btor_bv_zero (1);
+#else
+  assert (a->len == b->len);
+  uint32_t i;
+
+  res = btor_bv_new (a->width);
+  for (i = 0; i < a->len; i++) res->bits[i] = ~a->bits[i] | b->bits[i];
+
+  set_rem_bits_to_zero (res);
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+BtorBitVector *btor_bv_or (const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  uint32_t bw = a->width;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_new (bw);
+  mpz_ior (res->val, a->val, b->val);
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
+#else
+  assert (a->len == b->len);
+  uint32_t i;
+
+  res = btor_bv_new (bw);
+  for (i = 0; i < a->len; i++) res->bits[i] = a->bits[i] | b->bits[i];
+
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+BtorBitVector *btor_bv_nand (const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  uint32_t bw = a->width;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_new (bw);
+  mpz_and (res->val, a->val, b->val);
+  mpz_com (res->val, res->val);
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
+#else
+  assert (a->len == b->len);
+  uint32_t i;
+
+  res = btor_bv_new (bw);
+  for (i = 0; i < a->len; i++) res->bits[i] = ~(a->bits[i] & b->bits[i]);
+
+  set_rem_bits_to_zero (res);
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+BtorBitVector *btor_bv_nor (const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  uint32_t bw = a->width;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_new (bw);
+  mpz_ior (res->val, a->val, b->val);
+  mpz_com (res->val, res->val);
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
+#else
+  assert (a->len == b->len);
+  uint32_t i;
+
+  res = btor_bv_new (bw);
+  for (i = 0; i < a->len; i++) res->bits[i] = ~(a->bits[i] | b->bits[i]);
 
   set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));

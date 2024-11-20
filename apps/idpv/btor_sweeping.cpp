@@ -12,6 +12,9 @@
 
 #include <iomanip>
 #include <chrono>
+#include <gmp.h>
+#include <gmpxx.h>
+
 #include "btor_sweeping.h"
 
 using namespace smt;
@@ -27,6 +30,32 @@ struct NodeData
     NodeData() : term(nullptr), bit_width(0) {}
 
     NodeData(Term t, uint64_t bw) : term(t), bit_width(bw) {}
+};
+//FIXME: only usr vector sim_data is enough
+// std::vector<std::string> simulation_data;
+
+
+// RAII wrapper for GMP random state
+class GmpRandStateGuard
+{
+    gmp_randstate_t state;
+
+    public:
+    GmpRandStateGuard()
+    {
+        gmp_randinit_default(state);
+        gmp_randseed_ui(state, time(NULL));
+    }
+
+    ~GmpRandStateGuard() { gmp_randclear(state); }
+
+    void random_128(mpz_t & rand_num)
+    {
+        mpz_init2(rand_num, 128);
+        mpz_urandomb(rand_num, state, 128);
+    }
+
+    operator gmp_randstate_t &() { return state; }
 };
 
 
@@ -84,15 +113,47 @@ int main() {
 
     auto root = solver->make_term(Equal, a_output_term, b_output_term);
 
+    //random n ite sim_data for the input 
+    GmpRandStateGuard rand_guard;
+    int num_iterations = 10;
+
+    print_time();
+    for (int i = 0; i < num_iterations; ++i) {
+        mpz_t key_mpz, input_mpz;
+        rand_guard.random_128(key_mpz);
+        rand_guard.random_128(input_mpz);
+
+        // Use RAII for GMP strings
+        unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 10, key_mpz), free);
+        unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 10, input_mpz), free);
+
+        //store sim data in NodeData
+        NodeData a_key_data(a_key_term, 128);
+        a_key_data.simulation_data.push_back(key_str.get());
+        NodeData a_input_data(a_input_term, 128);
+        a_input_data.simulation_data.push_back(input_str.get());
+        NodeData b_key_data(b_key_term, 128);
+        b_key_data.simulation_data.push_back(key_str.get());
+        NodeData b_input_data(b_input_term, 128);
+        b_input_data.simulation_data.push_back(input_str.get());
+
+        mpz_clear(key_mpz);
+        mpz_clear(input_mpz);
+    }  // end of simulation
+   
+    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
+    std::unordered_map<size_t, TermVec> hash_term_map; // hash -> TermVec
+    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
+
     //start post order traversal
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
-    std::unordered_map<Term, NodeData> node_to_simulation_map;
-
+    
+    print_time();
     while(!node_stack.empty()) {
         auto & [current,visited] = node_stack.top();
 
-        if (node_to_simulation_map.find(current) != node_to_simulation_map.end()) {
+        if (node_data_map.find(current) != node_data_map.end()) {
             node_stack.pop();
             continue;
         }
@@ -105,38 +166,89 @@ int main() {
             visited = true;
         } else {
             // compute simulation data for current node
-            auto node = node_stack.top().first;
-            if(node->is_value()){ //constant
-                auto node_str = node->to_string();
-                auto node_bv = btor_bv_char_to_bv(node_str.data()); // Btor Bit Vector Type
-                auto node_bv_hash = btor_bv_hash(node_bv);
-                auto node_data = btor_bv_to_char(node_bv);
-                cout << "constant: " << node_data << endl;
-
-                NodeData nd(node, node_bv->width);
-                nd.simulation_data.push_back(node_data);
-                node_to_simulation_map.insert({node, nd});
+            if(current->is_value()){ //constant
+                auto current_str = current->to_string();
+                auto current_bv = btor_bv_char_to_bv(current_str.data()); // Btor Bit Vector Type
                 
+                //print string with #b ?
+                cout << "constant node bv: " << current_str << endl;
+                //去掉前缀#b
+                current_str = current_str.substr(2);
+                cout << "constant node bv: " << current_str << endl;
+
+                auto node_bv_hash = btor_bv_hash(current_bv);
+                if(hash_term_map.find(node_bv_hash) == hash_term_map.end()){
+                    hash_term_map.insert({node_bv_hash, {current}});
+                } else {
+                    hash_term_map[node_bv_hash].push_back(current);
+                }
+
+                auto node_data = btor_bv_to_char(current_bv);
+                cout << "constant node data: " << node_data << endl;
+                NodeData nd(current, current_bv->width);
+                nd.simulation_data.push_back(node_data);
+                node_data_map.insert({current, nd});
             }
 
-            else if(node->is_symbol()) { // variants
-                auto op_type = node->get_op();
-                if(op_type == BVAdd) {
-                    //TODO:
-                    cout << "BVAdd" << endl;
-                    for(auto child : node){
-                        auto child_bv = btor_bv_char_to_bv(child->to_string().data());
-                        auto current_node_data = btor_bv_add(child_bv[0], child_bv[1]);
+            else if(current->is_symbol()) { // variants only for leaf nodes
+                //use sim_data
+                cout << "This is leaf node" << endl;
+                node_data_map.insert({current, NodeData(current, 128)});
+            }
+
+            else{
+                auto op_type = current->get_op();
+                //FIXME: calculate data using child data
+                TermVec children(current->begin(), current->end());
+                auto child_size = children.size();
+                if(child_size == 2 && visited == true) {
+                    if(op_type == BVAdd) {
+                        for(size_t i = 0; i < num_iterations; i++){
+                            auto btor_child_1 = btor_bv_char_to_bv(node_data_map[children[i]].simulation_data[i].data());
+                            auto btor_child_2 = btor_bv_char_to_bv(node_data_map[children[i+1]].simulation_data[i].data());
+                            auto current_val_btor = btor_bv_add(btor_child_1, btor_child_2);
+                            auto current_val = btor_bv_to_char(current_val_btor);
+                            //save this value in the node_data_map
+                            NodeData nd(current, current_val_btor->width);
+                            if (current_val == nullptr || strlen(current_val) == 0) {
+                                throw std::runtime_error("Invalid simulation data for node");
+                            }
+                            nd.simulation_data.push_back(current_val);
+                            node_data_map.insert({current, nd});
+                        }
                     }
-                    
+                    else if(op_type == BVAnd) {
+                        for(size_t i = 0; i < num_iterations; i++){
+                            auto &sim_data = node_data_map[children[i]].simulation_data;
+                            if (sim_data.size() <= i) {
+                                cout << "simulation_data out of bounds for children[i]" << sim_data.size() << endl;//FIXME: 0
+                                throw std::runtime_error("simulation_data out of bounds for children[i]");
+                            }
+                            auto btor_child_1 = btor_bv_char_to_bv(node_data_map[children[i]].simulation_data[i].data());
+                            auto btor_child_2 = btor_bv_char_to_bv(node_data_map[children[i+1]].simulation_data[i].data());
+                            auto current_val_btor = btor_bv_and(btor_child_1, btor_child_2);
+                            auto current_val = btor_bv_to_char(current_val_btor);
+                            //save this value in the node_data_map
+                            NodeData nd(current, current_val_btor->width);
+                            nd.simulation_data.push_back(current_val);
+                            node_data_map.insert({current, nd});
+                        }
+                    }
+                    else if(op_type == BVMul) {
+                        cout << "This is BVMul node" << endl;
+                    }
+                    else if(op_type == BVNor) {
+                        cout << "This is BVNor node" << endl;
+                    }
+                    else if(op_type == BVNand) {
+                        cout << "This is BVNand node" << endl;
+                    }
+                    else {
+                        throw NotImplementedException("Unsupported operator type" + op_type.to_string());
+                    }
                 }
-
-                else if(op_type == BVMul) {
-                    //TODO:
-                }
-
                 else {
-                    throw NotImplementedException("Unsupported operator: " + op_type.to_string());
+                    throw NotImplementedException("Unsupported operator type" + op_type.to_string() + " with child size " + std::to_string(child_size));
                 }
             }
 
@@ -144,14 +256,6 @@ int main() {
             node_stack.pop();
         }
     }
-    
-
-
-
-
-
-
-    
     return 0;
 
 }
