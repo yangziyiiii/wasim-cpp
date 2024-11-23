@@ -560,3 +560,60 @@ BtorBitVector *btor_bv_nor (const BtorBitVector *a, const BtorBitVector *b)
 #endif
   return res;
 }
+
+
+BtorBitVector *btor_bv_not (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  BtorBitVector *res;
+  uint32_t bw = bv->width;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_new (bw);
+  mpz_com (res->val, bv->val);
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
+#else
+  uint32_t i;
+  res = btor_bv_new (bw);
+  for (i = 0; i < bv->len; i++) res->bits[i] = ~bv->bits[i];
+  set_rem_bits_to_zero (res);
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+#if 0
+#define BTOR_LOG_MEM(FMT, ARGS...)   \
+  do                                 \
+  {                                  \
+    fputs ("[btorlogmem] ", stdout); \
+    printf (FMT, ##ARGS);            \
+    fflush (stdout);                 \
+  } while (0)
+#else
+#define BTOR_LOG_MEM(...) \
+  do                      \
+  {                       \
+  } while (0)
+#endif
+
+void btor_mem_free (void *p, size_t freed)
+{
+  assert (!p == !freed);
+  BTOR_LOG_MEM ("%p free   %10ld\n", p, freed);
+  free (p);
+}
+
+
+void btor_bv_free (BtorBitVector *bv)
+{
+
+  assert (bv);
+#ifdef BTOR_USE_GMP
+  mpz_clear (bv->val);
+  btor_mem_free (bv, sizeof (BtorBitVector));
+#else
+  btor_mem_free (
+    bv, sizeof (BtorBitVector) + sizeof (BTOR_BV_TYPE) * bv->len);
+#endif
+}
