@@ -147,31 +147,14 @@ int main() {
     cout << b_input_data.simulation_data.size() << endl;
     cout << a_key_data.simulation_data.size() << endl;
     cout << b_key_data.simulation_data.size() << endl;
-
-    for(size_t i = 0; i < num_iterations; i++) {
-        cout << a_input_data.simulation_data[i] << endl;
-        cout << b_input_data.simulation_data[i] << endl;
-        cout << a_key_data.simulation_data[i] << endl;
-        cout << b_key_data.simulation_data[i] << endl;
-        cout << endl;
-    }
     
- 
-
     //start post order traversal
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
-    
+
     while(!node_stack.empty()) {
         auto & [current,visited] = node_stack.top();
-
-        // cout << "term sort : " << current->get_sort() << endl;
-        // auto current_str = current->to_string();
-        // auto current_bv = btor_bv_char_to_bv(current_str.data());
-        // cout << "current_bv->width: " << current_bv->width << endl;
-        // cout << "current sort width: " << current->get_sort()->get_width() << endl;
-
-        if (node_data_map.find(current) != node_data_map.end()) {
+        if(node_data_map.find(current) != node_data_map.end()) {
             node_stack.pop();
             continue;
         }
@@ -183,7 +166,7 @@ int main() {
             }
             visited = true;
         } else {
-            if(current->is_value()){ //constant
+            if(current->is_value()) { //constant
                 auto current_str = current->to_string();
                 auto current_bv = btor_bv_char_to_bv(current_str.data()); // Btor Bit Vector Type
 
@@ -199,9 +182,8 @@ int main() {
                 }
 
                 auto node_data = btor_bv_to_char(current_bv);
+                NodeData nd(current, current->get_sort()->get_width()); 
                 
-                NodeData nd(current, current->get_sort()->get_width());
-
                 //FIXME: why are they different?
                 // cout << "current_bv->width: " << current_bv->width << endl;
                 // cout << "current sort width: " << current->get_sort()->get_width() << endl;
@@ -209,14 +191,22 @@ int main() {
                 for (int i = 0; i < num_iterations; ++i) {
                     nd.simulation_data.push_back(node_data);
                 }
-                cout << "constant data size: " << nd.simulation_data.size() << endl;
                 node_data_map.insert({current, nd});
                 btor_bv_free(current_bv);
-            }
 
+            }
             else if(current->is_symbol()) { // variants only for leaf nodes
                 cout << "This is leaf node" << endl;
-                for(size_t i = 0; i < num_iterations; i++) {
+
+                auto current_bv = btor_bv_char_to_bv(current->to_string().data());
+                auto node_bv_hash = btor_bv_hash(current_bv);
+                if(hash_term_map.find(node_bv_hash) == hash_term_map.end()){
+                    hash_term_map.insert({node_bv_hash, {current}});
+                } else {
+                    hash_term_map[node_bv_hash].push_back(current);
+                }
+
+                for(size_t i = 0; i < 4 * num_iterations; i++) {
                     if(current == a_key_term) {
                        node_data_map[current].simulation_data.push_back(a_key_data.simulation_data[i]);
                     }
@@ -233,11 +223,10 @@ int main() {
                         throw std::runtime_error("Unexpected term in leaf node");
                     }
                 }
-                cout << "leaf node data size: " << node_data_map[current].simulation_data.size() << endl;
             }
-
-            else{ // compute simulation data for current node
+            else { // compute simulation data for current node
                 auto op_type = current->get_op();
+                cout << "operation type: " << op_type.to_string() << endl;
                 TermVec children(current->begin(), current->end());
                 auto child_size = children.size();
                 cout << "children size: " << child_size << endl;
@@ -255,39 +244,49 @@ int main() {
                         auto btor_child_1 = btor_bv_char_to_bv(sim_data_1[i].data());
                         auto btor_child_2 = btor_bv_char_to_bv(sim_data_2[i].data());
 
-                        if(btor_child_1->width == btor_child_2->width) {
-                            if(op_type == BVAdd) {
+                        auto btor_child_1_fix_width = btor_bv_uext(btor_child_1, 128 - btor_child_1->width);
+                        auto btor_child_2_fix_width = btor_bv_uext(btor_child_2, 128 - btor_child_2->width);
+
+                        cout << "child 1: " << btor_child_1_fix_width->width << " " <<btor_child_1_fix_width->len << " " <<btor_child_1_fix_width->bits << endl;
+                        cout << "child 2: " << btor_child_2_fix_width->width << " " <<btor_child_2_fix_width->len << " " <<btor_child_2_fix_width->bits << endl;
+
+                        // if(btor_child_1->len == btor_child_2->len && 
+                        //     btor_child_1->width == btor_child_2->width) {
+                            if(op_type == PrimOp::BVAdd) {
                                 cout << "BVAdd" << endl;
-                                auto current_val_btor = btor_bv_add(btor_child_1, btor_child_2);
+                                auto current_val_btor = btor_bv_add(btor_child_1_fix_width, btor_child_2_fix_width);
                                 auto current_val = btor_bv_to_char(current_val_btor);
                                 nd.simulation_data.push_back(current_val);
                                 btor_bv_free(current_val_btor);
                             }
-                            else if(op_type == BVAnd) {
+                            else if(op_type == PrimOp::BVAnd) {
                                 cout << "BVAnd" << endl;
-                                auto current_val_btor = btor_bv_and(btor_child_1, btor_child_2);
+                                auto current_val_btor = btor_bv_and(btor_child_1_fix_width, btor_child_2_fix_width);
                                 auto current_val = btor_bv_to_char(current_val_btor);
                                 nd.simulation_data.push_back(current_val);
                                 btor_bv_free(current_val_btor);
                             }
                             else {
-                                throw NotImplementedException("Unsupported operator type" + op_type.to_string());
+                                throw NotImplementedException("Unsupported operator type3" + op_type.to_string());
                             }
-                        }
+                        // }
                         btor_bv_free(btor_child_1);
                         btor_bv_free(btor_child_2);
                     }
                     node_data_map.insert({current, nd});
                 }
-                else if(child_size == 1 && visited) {
+                else if(child_size == 1 && visited) { //FIXME:
                     std::cout << "This is a 1-child node." << std::endl;
                     NodeData nd(current, current->get_sort()->get_width());
                     
                     for(size_t i = 0; i < num_iterations; i++) {
                         auto & sim_data = node_data_map[children[0]].simulation_data;
                         cout << sim_data.size() << endl; 
-                        assert(sim_data.size() == num_iterations); //FIXME: 
+                        assert(sim_data.size() == num_iterations);
+
                         auto btor_child = btor_bv_char_to_bv(sim_data[i].data());
+                        cout << children[0]->get_sort()->get_width() << endl;
+                        cout << "child: " << btor_child->width << " " <<btor_child->len << " " <<btor_child->bits << endl;
 
                         auto btor_child_hash = btor_bv_hash(btor_child);
                         if(hash_term_map.find(btor_child_hash) == hash_term_map.end()){
@@ -296,27 +295,48 @@ int main() {
                             hash_term_map[btor_child_hash].push_back(current);
                         }
 
-                        if(op_type == BVNot) {
+                        if(op_type == PrimOp::BVNot) {
+                            cout << "BVNot" << endl;
                             auto current_val_btor = btor_bv_not(btor_child);
                             auto current_val = btor_bv_to_char(current_val_btor);
                             nd.simulation_data.push_back(current_val);
                             btor_bv_free(current_val_btor);
                         }
+                        else if(op_type == PrimOp::Extract) {
+                            cout << "Extract" << endl;
+                            auto current_val_btor = btor_bv_slice(btor_child,39,32);
+                            auto current_val = btor_bv_to_char(current_val_btor);
+                            nd.simulation_data.push_back(current_val);
+                            btor_bv_free(current_val_btor);
+                        }
+                        else if(op_type == PrimOp::Concat) {
+                            cout << "Concat" << endl;
+                        }
+                        else if(op_type == PrimOp::BVNeg) {
+                            cout << "BVNeg" << endl;
+                        }
                         else {
-                            throw NotImplementedException("Unsupported operator type" + op_type.to_string());
+                            throw NotImplementedException("Unsupported operator type1" + op_type.to_string());
                         }
                         btor_bv_free(btor_child);
                     }
                     node_data_map.insert({current, nd});
                 }
                 else {
-                    throw NotImplementedException("Unsupported operator type: " + op_type.to_string() + " with child size " + std::to_string(child_size));
+                    throw NotImplementedException("Unsupported operator type2: " + op_type.to_string() + " with child size " + std::to_string(child_size));
                 }
             //end simulation
             node_stack.pop();
             }
         }
     }
+    
+    
+
+
+
+
+
     return 0;
 }
 
