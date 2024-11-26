@@ -118,35 +118,35 @@ int main() {
     GmpRandStateGuard rand_guard;
     int num_iterations = 10;
 
-    auto &a_key_data = node_data_map[a_key_term];
-    auto &a_input_data = node_data_map[a_input_term];
-    auto &b_key_data = node_data_map[b_key_term];
-    auto &b_input_data = node_data_map[b_input_term];
+    // auto &a_key_data = node_data_map[a_key_term];
+    // auto &a_input_data = node_data_map[a_input_term];
+    // auto &b_key_data = node_data_map[b_key_term];
+    // auto &b_input_data = node_data_map[b_input_term];
 
-    for (int i = 0; i < num_iterations; ++i) {
-        mpz_t key_mpz, input_mpz;
-        rand_guard.random_128(key_mpz);
-        rand_guard.random_128(input_mpz);
+    // for (int i = 0; i < num_iterations; ++i) {
+    //     mpz_t key_mpz, input_mpz;
+    //     rand_guard.random_128(key_mpz);
+    //     rand_guard.random_128(input_mpz);
 
-        // Use RAII for GMP strings
-        unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 10, key_mpz), free);
-        unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 10, input_mpz), free);
+    //     // Use RAII for GMP strings
+    //     unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 10, key_mpz), free);
+    //     unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 10, input_mpz), free);
 
-        mpz_clear(key_mpz);
-        mpz_clear(input_mpz);
+    //     mpz_clear(key_mpz);
+    //     mpz_clear(input_mpz);
 
-        //store sim data in NodeData
-        a_key_data.simulation_data.push_back(key_str.get());
-        a_input_data.simulation_data.push_back(input_str.get());
-        b_key_data.simulation_data.push_back(key_str.get());
-        b_input_data.simulation_data.push_back(input_str.get());
+    //     //store sim data in NodeData
+    //     a_key_data.simulation_data.push_back(key_str.get());
+    //     a_input_data.simulation_data.push_back(input_str.get());
+    //     b_key_data.simulation_data.push_back(key_str.get());
+    //     b_input_data.simulation_data.push_back(input_str.get());
        
-    }  // end of simulation
+    // }  // end of simulation
 
-    cout << a_input_data.simulation_data.size() << endl;
-    cout << b_input_data.simulation_data.size() << endl;
-    cout << a_key_data.simulation_data.size() << endl;
-    cout << b_key_data.simulation_data.size() << endl;
+    // cout << a_input_data.simulation_data.size() << endl;
+    // cout << b_input_data.simulation_data.size() << endl;
+    // cout << a_key_data.simulation_data.size() << endl;
+    // cout << b_key_data.simulation_data.size() << endl;
     
     //start post order traversal
     std::stack<std::pair<Term,bool>> node_stack;
@@ -159,10 +159,14 @@ int main() {
             continue;
         }
 
-        if(!visited) {
+        // if(current->get_sort()->get_sort_kind() == BV) {
+            if(!visited) {
             // push all children onto stack
             for(Term child : current) {
-                node_stack.push({child,false});
+                // if(current->get_sort()->get_sort_kind() == BV) {
+                //     node_stack.push({child,false});
+                // }  
+                node_stack.push({child,false}); 
             }
             visited = true;
         } else {
@@ -198,32 +202,34 @@ int main() {
             else if(current->is_symbol()) { // variants only for leaf nodes
                 cout << "This is leaf node" << endl;
 
-                auto current_bv = btor_bv_char_to_bv(current->to_string().data());
-                auto node_bv_hash = btor_bv_hash(current_bv);
-                if(hash_term_map.find(node_bv_hash) == hash_term_map.end()){
-                    hash_term_map.insert({node_bv_hash, {current}});
-                } else {
-                    hash_term_map[node_bv_hash].push_back(current);
-                }
-
-                for(size_t i = 0; i < 4 * num_iterations; i++) {
-                    if(current == a_key_term) {
-                       node_data_map[current].simulation_data.push_back(a_key_data.simulation_data[i]);
-                    }
-                    else if(current == a_input_term) {
-                        node_data_map[current].simulation_data.push_back(a_input_data.simulation_data[i]);
-                    }
-                    else if(current == b_key_term) {
-                        node_data_map[current].simulation_data.push_back(b_key_data.simulation_data[i]);
-                    }
-                    else if(current == b_input_term) {
-                        node_data_map[current].simulation_data.push_back(b_input_data.simulation_data[i]);
-                    }
-                    else {
-                        throw std::runtime_error("Unexpected term in leaf node");
-                    }
+                for(auto i = 0; i < num_iterations; i++) {
+                    mpz_t rand_data;
+                    rand_guard.random_128(rand_data);
+                    unique_ptr<char, void (*)(void *)> rand_str(mpz_get_str(NULL, 10, rand_data), free);
+                    auto rand_bv = btor_bv_char_to_bv(rand_str.get());
+                    node_data_map.insert({current, NodeData(current, rand_bv->width)});
+                    node_data_map[current].simulation_data.push_back(rand_str.get());
                 }
             }
+
+                // for(size_t i = 0; i < 4 * num_iterations; i++) {
+                //     if(current == a_key_term) {
+                //        node_data_map[current].simulation_data.push_back(a_key_data.simulation_data[i]);
+                //     }
+                //     else if(current == a_input_term) {
+                //         node_data_map[current].simulation_data.push_back(a_input_data.simulation_data[i]);
+                //     }
+                //     else if(current == b_key_term) {
+                //         node_data_map[current].simulation_data.push_back(b_key_data.simulation_data[i]);
+                //     }
+                //     else if(current == b_input_term) {
+                //         node_data_map[current].simulation_data.push_back(b_input_data.simulation_data[i]);
+                //     }
+                //     else {
+                //         throw std::runtime_error("Unexpected term in leaf node");
+                //     }
+                // }
+                // }
             else { // compute simulation data for current node
                 auto op_type = current->get_op();
                 cout << "operation type: " << op_type.to_string() << endl;
@@ -247,8 +253,8 @@ int main() {
                         auto btor_child_1_fix_width = btor_bv_uext(btor_child_1, 128 - btor_child_1->width);
                         auto btor_child_2_fix_width = btor_bv_uext(btor_child_2, 128 - btor_child_2->width);
 
-                        cout << "child 1: " << btor_child_1_fix_width->width << " " <<btor_child_1_fix_width->len << " " <<btor_child_1_fix_width->bits << endl;
-                        cout << "child 2: " << btor_child_2_fix_width->width << " " <<btor_child_2_fix_width->len << " " <<btor_child_2_fix_width->bits << endl;
+                        // cout << "child 1: " << btor_child_1_fix_width->width << " " <<btor_child_1_fix_width->len << " " <<btor_child_1_fix_width->bits << endl;
+                        // cout << "child 2: " << btor_child_2_fix_width->width << " " <<btor_child_2_fix_width->len << " " <<btor_child_2_fix_width->bits << endl;
 
                         // if(btor_child_1->len == btor_child_2->len && 
                         //     btor_child_1->width == btor_child_2->width) {
@@ -267,7 +273,7 @@ int main() {
                                 btor_bv_free(current_val_btor);
                             }
                             else {
-                                throw NotImplementedException("Unsupported operator type3" + op_type.to_string());
+                                throw NotImplementedException("Unsupported operator type3: " + op_type.to_string());
                             }
                         // }
                         btor_bv_free(btor_child_1);
@@ -285,8 +291,8 @@ int main() {
                         assert(sim_data.size() == num_iterations);
 
                         auto btor_child = btor_bv_char_to_bv(sim_data[i].data());
-                        cout << children[0]->get_sort()->get_width() << endl;
-                        cout << "child: " << btor_child->width << " " <<btor_child->len << " " <<btor_child->bits << endl;
+                        // cout << children[0]->get_sort()->get_width() << endl;
+                        // cout << "child: " << btor_child->width << " " <<btor_child->len << " " <<btor_child->bits << endl;
 
                         auto btor_child_hash = btor_bv_hash(btor_child);
                         if(hash_term_map.find(btor_child_hash) == hash_term_map.end()){
@@ -302,9 +308,11 @@ int main() {
                             nd.simulation_data.push_back(current_val);
                             btor_bv_free(current_val_btor);
                         }
-                        else if(op_type == PrimOp::Extract) {
+                        else if(op_type.to_string() == "(_ extract 39 32)") { //FIXME:
                             cout << "Extract" << endl;
-                            auto current_val_btor = btor_bv_slice(btor_child,39,32);
+                            auto high = op_type.idx0;
+                            auto low = op_type.idx1;
+                            auto current_val_btor = btor_bv_slice(btor_child, high, low);
                             auto current_val = btor_bv_to_char(current_val_btor);
                             nd.simulation_data.push_back(current_val);
                             btor_bv_free(current_val_btor);
@@ -316,7 +324,7 @@ int main() {
                             cout << "BVNeg" << endl;
                         }
                         else {
-                            throw NotImplementedException("Unsupported operator type1" + op_type.to_string());
+                            throw NotImplementedException("Unsupported operator type1: " + op_type.to_string());
                         }
                         btor_bv_free(btor_child);
                     }
@@ -329,17 +337,54 @@ int main() {
             node_stack.pop();
             }
         }
+        // }
+
+        
     }
     
-    
-
-
-
 
 
     return 0;
 }
 
+
+
+
+//   Concat,
+//   Extract,
+//   BVNot,  1
+//   BVNeg,
+//   BVAnd,  1
+//   BVOr,
+//   BVXor,
+//   BVNand,
+//   BVNor,
+//   BVXnor,
+//   BVAdd,  1
+//   BVSub,
+//   BVMul,
+//   BVUdiv,
+//   BVSdiv,
+//   BVUrem,
+//   BVSrem,
+//   BVSmod,
+//   BVShl,
+//   BVAshr,
+//   BVLshr,
+//   BVComp,
+//   BVUlt,
+//   BVUle,
+//   BVUgt,
+//   BVUge,
+//   BVSlt,
+//   BVSle,
+//   BVSgt,
+//   BVSge,
+//   Zero_Extend,
+//   Sign_Extend,
+//   Repeat,
+//   Rotate_Left,
+//   Rotate_Right,
 
 // void collect_terms(const Term & term, std::unordered_map<Term, NodeData> & node_data_map)
 // {
