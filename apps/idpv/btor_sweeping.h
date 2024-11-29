@@ -3,14 +3,15 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdlib.h>
-#include <gmp.h>
-#include "gmpxx.h"
 
 //----------------CONFIG--------------
 //------------------------------------
 // #define BTOR_USE_GMP 1
 
-
+#ifdef BTOR_USE_GMP
+  #include <gmp.h>
+  #include "gmpxx.h"
+#endif
 
 #define BTOR_BV_TYPE uint32_t
 #define BTOR_BV_TYPE_BW (sizeof (BTOR_BV_TYPE) * 8)
@@ -91,7 +92,7 @@ BtorBitVector *btor_bv_new (uint32_t bw)
   i = bw / BTOR_BV_TYPE_BW ;
   if(bw % BTOR_BV_TYPE_BW > 0) i += 1;
   assert(i > 0);
-  res = static_cast< BtorBitVector *>(malloc (sizeof (BtorBitVector) + i * sizeof (BTOR_BV_TYPE)));
+  res = static_cast< BtorBitVector *>(malloc (sizeof (BtorBitVector) + i * sizeof (BTOR_BV_TYPE))); //FIXME: change to C++ RAII
   res->len = i;
   res->width = bw;
 #endif

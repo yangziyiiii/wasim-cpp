@@ -16,20 +16,33 @@
 #include <gmpxx.h>
 
 #include "btor_sweeping.h"
+#include "smt-switch/utils.h"
 
 using namespace smt;
 using namespace std;
 using namespace wasim;
 
-struct NodeData
-{
-    Term term;  // will be nullptr if it is for a term with array sort
-    uint64_t bit_width;
-    std::vector<std::string> simulation_data;
+class NodeData {
+private:
+    Term term;
+    size_t bit_width;
+    std::vector<BtorBitVector> simulation_data;
+public:
+    NodeData() : term(nullptr), bit_width(0) {} 
 
-    NodeData() : term(nullptr), bit_width(0) {}
+    NodeData(const Term & t, const size_t & bw) : term(t), bit_width(bw) {}
 
-    NodeData(Term t, uint64_t bw) : term(t), bit_width(bw) {}
+    Term get_term() const { return term; }
+    
+    size_t get_bit_width() const { return bit_width; }
+    
+    const std::vector<BtorBitVector>& get_simulation_data() const {
+        return simulation_data; 
+    }
+
+    void add_data(const BtorBitVector & data) {
+        simulation_data.push_back(data);
+    }
 };
 
 // RAII wrapper for GMP random state
@@ -54,7 +67,6 @@ class GmpRandStateGuard
 
     operator gmp_randstate_t &() { return state; }
 };
-
 
 std::chrono::time_point<std::chrono::high_resolution_clock> last_time_point;
 void print_time() {
@@ -114,40 +126,35 @@ int main() {
     std::unordered_map<size_t, TermVec> hash_term_map; // hash -> TermVec
     std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
 
-    //random n ite sim_data for the input 
+    //simulation
     GmpRandStateGuard rand_guard;
     int num_iterations = 10;
 
-    // auto &a_key_data = node_data_map[a_key_term];
-    // auto &a_input_data = node_data_map[a_input_term];
-    // auto &b_key_data = node_data_map[b_key_term];
-    // auto &b_input_data = node_data_map[b_input_term];
+    for (int i = 0; i < num_iterations; ++i) {
+        mpz_t key_mpz, input_mpz;
+        rand_guard.random_128(key_mpz);
+        rand_guard.random_128(input_mpz);
 
-    // for (int i = 0; i < num_iterations; ++i) {
-    //     mpz_t key_mpz, input_mpz;
-    //     rand_guard.random_128(key_mpz);
-    //     rand_guard.random_128(input_mpz);
+        // Use RAII for GMP strings
+        unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 10, key_mpz), free);
+        unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 10, input_mpz), free);
 
-    //     // Use RAII for GMP strings
-    //     unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 10, key_mpz), free);
-    //     unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 10, input_mpz), free);
+        mpz_clear(key_mpz);
+        mpz_clear(input_mpz);
 
-    //     mpz_clear(key_mpz);
-    //     mpz_clear(input_mpz);
+        auto bv_key = btor_bv_char_to_bv(key_str.get());
+        auto bv_input = btor_bv_char_to_bv(input_str.get());
 
-    //     //store sim data in NodeData
-    //     a_key_data.simulation_data.push_back(key_str.get());
-    //     a_input_data.simulation_data.push_back(input_str.get());
-    //     b_key_data.simulation_data.push_back(key_str.get());
-    //     b_input_data.simulation_data.push_back(input_str.get());
+        //store sim data in NodeData
+        node_data_map[a_key_term].add_data(*bv_key);
+        node_data_map[a_input_term].add_data(*bv_input);
+        node_data_map[b_key_term].add_data(*bv_key);
+        node_data_map[b_input_term].add_data(*bv_input);
        
-    // }  // end of simulation
+    }  // end of simulation
 
-    // cout << a_input_data.simulation_data.size() << endl;
-    // cout << b_input_data.simulation_data.size() << endl;
-    // cout << a_key_data.simulation_data.size() << endl;
-    // cout << b_key_data.simulation_data.size() << endl;
-    
+    cout << "-----node_data_map [a_key_term]size: " << node_data_map[a_input_term].get_simulation_data().size() << endl;
+
     //start post order traversal
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
@@ -159,18 +166,17 @@ int main() {
             continue;
         }
 
-        // if(current->get_sort()->get_sort_kind() == BV) {
-            if(!visited) {
+        if(!visited) {
             // push all children onto stack
             for(Term child : current) {
-                // if(current->get_sort()->get_sort_kind() == BV) {
-                //     node_stack.push({child,false});
-                // }  
-                node_stack.push({child,false}); 
+                if(current->get_sort()->get_sort_kind() == BV || current->get_sort()->get_sort_kind() == BOOL) {
+                    node_stack.push({child,false});
+                }  
             }
             visited = true;
         } else {
             if(current->is_value()) { //constant
+                //FIXME: use btorbv to store data
                 auto current_str = current->to_string();
                 auto current_bv = btor_bv_char_to_bv(current_str.data()); // Btor Bit Vector Type
 
@@ -178,61 +184,36 @@ int main() {
                     current_str = current_str.substr(2);
                 }
                
-                auto node_bv_hash = btor_bv_hash(current_bv);
-                if(hash_term_map.find(node_bv_hash) == hash_term_map.end()){
-                    hash_term_map.insert({node_bv_hash, {current}});
-                } else {
-                    hash_term_map[node_bv_hash].push_back(current);
-                }
+                // auto node_bv_hash = btor_bv_hash(current_bv);
+                // if(hash_term_map.find(node_bv_hash) == hash_term_map.end()){
+                //     hash_term_map.insert({node_bv_hash, {current}});
+                // } else {
+                //     hash_term_map[node_bv_hash].push_back(current);
+                // }
 
-                auto node_data = btor_bv_to_char(current_bv);
                 NodeData nd(current, current->get_sort()->get_width()); 
                 
-                //FIXME: why are they different?
-                // cout << "current_bv->width: " << current_bv->width << endl;
-                // cout << "current sort width: " << current->get_sort()->get_width() << endl;
-                
                 for (int i = 0; i < num_iterations; ++i) {
-                    nd.simulation_data.push_back(node_data);
+                    nd.add_data(*current_bv);
                 }
                 node_data_map.insert({current, nd});
+                cout << "node_data_map size: " << node_data_map.size() << endl;
+                cout << "simulation_data size: " << nd.get_simulation_data().size() << endl;
                 btor_bv_free(current_bv);
 
             }
             else if(current->is_symbol()) { // variants only for leaf nodes
                 cout << "This is leaf node" << endl;
 
-                for(auto i = 0; i < num_iterations; i++) {
-                    mpz_t rand_data;
-                    rand_guard.random_128(rand_data);
-                    unique_ptr<char, void (*)(void *)> rand_str(mpz_get_str(NULL, 10, rand_data), free);
-                    auto rand_bv = btor_bv_char_to_bv(rand_str.get());
-                    node_data_map.insert({current, NodeData(current, rand_bv->width)});
-                    node_data_map[current].simulation_data.push_back(rand_str.get());
-                }
-            }
+                cout << node_data_map[current].get_simulation_data().size() << endl;
+                
 
-                // for(size_t i = 0; i < 4 * num_iterations; i++) {
-                //     if(current == a_key_term) {
-                //        node_data_map[current].simulation_data.push_back(a_key_data.simulation_data[i]);
-                //     }
-                //     else if(current == a_input_term) {
-                //         node_data_map[current].simulation_data.push_back(a_input_data.simulation_data[i]);
-                //     }
-                //     else if(current == b_key_term) {
-                //         node_data_map[current].simulation_data.push_back(b_key_data.simulation_data[i]);
-                //     }
-                //     else if(current == b_input_term) {
-                //         node_data_map[current].simulation_data.push_back(b_input_data.simulation_data[i]);
-                //     }
-                //     else {
-                //         throw std::runtime_error("Unexpected term in leaf node");
-                //     }
-                // }
-                // }
+                assert(node_data_map.find(current) != node_data_map.end());
+                
+            }
             else { // compute simulation data for current node
                 auto op_type = current->get_op();
-                cout << "operation type: " << op_type.to_string() << endl;
+                // cout << "operation type: " << op_type.to_string() << endl;
                 TermVec children(current->begin(), current->end());
                 auto child_size = children.size();
                 cout << "children size: " << child_size << endl;
@@ -242,80 +223,62 @@ int main() {
                     NodeData nd(current, current->get_sort()->get_width());
 
                     for(size_t i = 0; i < num_iterations; i++) {
-                        auto & sim_data_1 = node_data_map[children[0]].simulation_data;
-                        auto & sim_data_2 = node_data_map[children[1]].simulation_data;
-                        assert(sim_data_1.size() == num_iterations);
-                        assert(sim_data_2.size() == num_iterations);
+                        auto & sim_data_1 = node_data_map[children[0]].get_simulation_data();
+                        auto & sim_data_2 = node_data_map[children[1]].get_simulation_data();
 
-                        auto btor_child_1 = btor_bv_char_to_bv(sim_data_1[i].data());
-                        auto btor_child_2 = btor_bv_char_to_bv(sim_data_2[i].data());
+                        cout << sim_data_1.size() << " " << sim_data_2.size() << endl;
+                        assert(sim_data_1.size() == num_iterations && sim_data_2.size() == num_iterations);
 
-                        auto btor_child_1_fix_width = btor_bv_uext(btor_child_1, 128 - btor_child_1->width);
-                        auto btor_child_2_fix_width = btor_bv_uext(btor_child_2, 128 - btor_child_2->width);
+                        auto btor_child_1 = sim_data_1[i];
+                        auto btor_child_2 = sim_data_2[i];
+
+                        //FIXME: whether to extend bit width or not
+                        auto btor_child_1_fix_width = btor_bv_uext(&btor_child_1, 128 - btor_child_1.width);
+                        auto btor_child_2_fix_width = btor_bv_uext(&btor_child_2, 128 - btor_child_2.width);
 
                         // cout << "child 1: " << btor_child_1_fix_width->width << " " <<btor_child_1_fix_width->len << " " <<btor_child_1_fix_width->bits << endl;
                         // cout << "child 2: " << btor_child_2_fix_width->width << " " <<btor_child_2_fix_width->len << " " <<btor_child_2_fix_width->bits << endl;
 
-                        // if(btor_child_1->len == btor_child_2->len && 
-                        //     btor_child_1->width == btor_child_2->width) {
-                            if(op_type == PrimOp::BVAdd) {
-                                cout << "BVAdd" << endl;
-                                auto current_val_btor = btor_bv_add(btor_child_1_fix_width, btor_child_2_fix_width);
-                                auto current_val = btor_bv_to_char(current_val_btor);
-                                nd.simulation_data.push_back(current_val);
-                                btor_bv_free(current_val_btor);
-                            }
-                            else if(op_type == PrimOp::BVAnd) {
-                                cout << "BVAnd" << endl;
-                                auto current_val_btor = btor_bv_and(btor_child_1_fix_width, btor_child_2_fix_width);
-                                auto current_val = btor_bv_to_char(current_val_btor);
-                                nd.simulation_data.push_back(current_val);
-                                btor_bv_free(current_val_btor);
-                            }
-                            else {
-                                throw NotImplementedException("Unsupported operator type3: " + op_type.to_string());
-                            }
-                        // }
-                        btor_bv_free(btor_child_1);
-                        btor_bv_free(btor_child_2);
+                        if(op_type.prim_op == PrimOp::BVAdd) {
+                            cout << "BVAdd" << endl;
+                            auto current_val = btor_bv_add(btor_child_1_fix_width, btor_child_2_fix_width);
+                            nd.add_data(*current_val);
+                        }
+                        else if(op_type.prim_op == PrimOp::BVAnd) {
+                            cout << "BVAnd" << endl;
+                            auto current_val = btor_bv_and(btor_child_1_fix_width, btor_child_2_fix_width);
+                            nd.add_data(*current_val);
+                        }
+                        else {
+                            throw NotImplementedException("Unsupported operator type3: " + op_type.to_string());
+                        }
                     }
                     node_data_map.insert({current, nd});
                 }
-                else if(child_size == 1 && visited) { //FIXME:
+                else if(child_size == 1 && visited) {
                     std::cout << "This is a 1-child node." << std::endl;
                     NodeData nd(current, current->get_sort()->get_width());
                     
                     for(size_t i = 0; i < num_iterations; i++) {
-                        auto & sim_data = node_data_map[children[0]].simulation_data;
+                        auto & sim_data = node_data_map[children[0]].get_simulation_data();
                         cout << sim_data.size() << endl; 
                         assert(sim_data.size() == num_iterations);
 
-                        auto btor_child = btor_bv_char_to_bv(sim_data[i].data());
-                        // cout << children[0]->get_sort()->get_width() << endl;
-                        // cout << "child: " << btor_child->width << " " <<btor_child->len << " " <<btor_child->bits << endl;
+                        auto btor_child = sim_data[i];
 
-                        auto btor_child_hash = btor_bv_hash(btor_child);
-                        if(hash_term_map.find(btor_child_hash) == hash_term_map.end()){
-                            hash_term_map.insert({btor_child_hash, {current}});
-                        } else {
-                            hash_term_map[btor_child_hash].push_back(current);
-                        }
-
-                        if(op_type == PrimOp::BVNot) {
+                        if(op_type.prim_op = PrimOp::BVNot) {
                             cout << "BVNot" << endl;
-                            auto current_val_btor = btor_bv_not(btor_child);
-                            auto current_val = btor_bv_to_char(current_val_btor);
-                            nd.simulation_data.push_back(current_val);
-                            btor_bv_free(current_val_btor);
+                            auto current_val = btor_bv_not(&btor_child);
+                            nd.add_data(*current_val);
+                            
                         }
-                        else if(op_type.to_string() == "(_ extract 39 32)") { //FIXME:
+                        else if(op_type.prim_op == PrimOp::Extract) {
                             cout << "Extract" << endl;
                             auto high = op_type.idx0;
                             auto low = op_type.idx1;
-                            auto current_val_btor = btor_bv_slice(btor_child, high, low);
-                            auto current_val = btor_bv_to_char(current_val_btor);
-                            nd.simulation_data.push_back(current_val);
-                            btor_bv_free(current_val_btor);
+                            auto current_val = btor_bv_slice(&btor_child, high, low);
+                            nd.add_data(*current_val);
+                           
                         }
                         else if(op_type == PrimOp::Concat) {
                             cout << "Concat" << endl;
@@ -326,7 +289,7 @@ int main() {
                         else {
                             throw NotImplementedException("Unsupported operator type1: " + op_type.to_string());
                         }
-                        btor_bv_free(btor_child);
+                        
                     }
                     node_data_map.insert({current, nd});
                 }
@@ -347,6 +310,10 @@ int main() {
     return 0;
 }
 
+//FIXME:
+// if op_type == LOAD 
+//     ARRAY -> map
+//     load(array , index) according index -> LUT array val
 
 
 
