@@ -3,15 +3,17 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <gmp.h>
+#include "gmpxx.h"
+using namespace smt;
+using namespace std;
 
 //----------------CONFIG--------------
 //------------------------------------
 // #define BTOR_USE_GMP 1
 
-#ifdef BTOR_USE_GMP
-  #include <gmp.h>
-  #include "gmpxx.h"
-#endif
+
+
 
 #define BTOR_BV_TYPE uint32_t
 #define BTOR_BV_TYPE_BW (sizeof (BTOR_BV_TYPE) * 8)
@@ -704,4 +706,59 @@ BtorBitVector *btor_bv_slice (
   assert (rem_bits_zero_dbg (res));
 #endif
   return res;
+}
+
+void array_op_partition(smt::PrimOp o, const smt::Term &term, smt::TermVec &out) {
+  smt::TermVec to_visit({ term });
+  smt::UnorderedTermSet visited;
+
+  smt::Term t;
+  while (to_visit.size()) {
+    t = to_visit.back();
+    to_visit.pop_back();
+
+    if(visited.find(t) == visited.end()) {
+      visited.insert(t);
+
+      smt::Op op = t->get_op();
+      cout << "op : " << op << endl;
+      if(op.prim_op == o) {
+        for(auto tt : t) {
+          to_visit.push_back(tt);
+        }
+      } else {
+        out.push_back(t);
+      }
+    }
+  }
+}
+
+void array_conjunctive_partition(const smt::Term &term, 
+                                  smt::TermVec &out, 
+                                  bool include_bvand,
+                                  std::unordered_map<Term, Term> array_map) {
+  if (!include_bvand){
+    array_op_partition(smt::PrimOp::Store, term, out);
+  }
+  else {
+    TermVec tmp;
+    array_op_partition(smt::PrimOp::BVAnd, term, tmp);
+    cout << "tmp size " << tmp.size() << endl;
+
+    smt::Sort sort;
+    for(auto tt : tmp) {
+      sort = tt->get_sort();
+      if(sort->get_sort_kind() == SortKind::BV && sort->get_width() == 1) {
+        cout << "BV found: " << tt->to_string() << endl;
+        array_op_partition(smt::PrimOp::BVAnd, tt, out);
+      }
+      else if (sort->get_sort_kind() == SortKind::ARRAY) {
+        cout << "Array found:" << tt->to_string() << endl;
+        array_op_partition(smt::PrimOp::Store, tt, out);
+      } 
+      else {
+        out.push_back(tt);
+      }
+    }
+  }
 }

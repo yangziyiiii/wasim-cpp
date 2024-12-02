@@ -14,6 +14,7 @@
 #include <chrono>
 #include <gmp.h>
 #include <gmpxx.h>
+#include <iostream>
 
 #include "btor_sweeping.h"
 #include "smt-switch/utils.h"
@@ -65,7 +66,7 @@ class GmpRandStateGuard
         mpz_urandomb(rand_num, state, 128);
     }
 
-    operator gmp_randstate_t &() { return state; }
+    // operator gmp_randstate_t &() { return state; }
 };
 
 std::chrono::time_point<std::chrono::high_resolution_clock> last_time_point;
@@ -73,7 +74,7 @@ void print_time() {
     auto now = std::chrono::high_resolution_clock::now();
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time_point).count();
     last_time_point = now;  // Update last time point
-    cout << "[" << elapsed_time << " ms]  ";
+    std::cout << "[" << elapsed_time << " ms]  ";
 }
 
 int main() {
@@ -126,6 +127,17 @@ int main() {
     std::unordered_map<size_t, TermVec> hash_term_map; // hash -> TermVec
     std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
 
+    auto array_table_1 = sts1.init();
+    auto array_table_2 = sts2.init();
+    // cout << "array_table_1: " << array_table_1->to_string() << endl;
+    // cout << "array_table_2: " << array_table_2->to_string() << endl;
+
+    TermVec out;
+    std::unordered_map<Term, Term> array_map; //array.index -> array.value
+    //TODO:
+    array_conjunctive_partition(array_table_1, out, true, array_map);
+
+
     //simulation
     GmpRandStateGuard rand_guard;
     int num_iterations = 10;
@@ -153,7 +165,10 @@ int main() {
        
     }  // end of simulation
 
-    cout << "-----node_data_map [a_key_term]size: " << node_data_map[a_input_term].get_simulation_data().size() << endl;
+    assert(node_data_map[a_key_term].get_simulation_data().size() == num_iterations);
+    assert(node_data_map[a_input_term].get_simulation_data().size() == num_iterations);
+    assert(node_data_map[b_key_term].get_simulation_data().size() == num_iterations);
+    assert(node_data_map[b_input_term].get_simulation_data().size() == num_iterations);
 
     //start post order traversal
     std::stack<std::pair<Term,bool>> node_stack;
@@ -176,13 +191,12 @@ int main() {
             visited = true;
         } else {
             if(current->is_value()) { //constant
-                //FIXME: use btorbv to store data
                 auto current_str = current->to_string();
-                auto current_bv = btor_bv_char_to_bv(current_str.data()); // Btor Bit Vector Type
-
                 if(!current_str.empty() && current_str.find("#b") == 0) {
                     current_str = current_str.substr(2);
                 }
+                cout << "current_str: " << current_str << endl;
+                auto current_bv = btor_bv_char_to_bv(current_str.data());
                
                 // auto node_bv_hash = btor_bv_hash(current_bv);
                 // if(hash_term_map.find(node_bv_hash) == hash_term_map.end()){
@@ -197,19 +211,17 @@ int main() {
                     nd.add_data(*current_bv);
                 }
                 node_data_map.insert({current, nd});
-                cout << "node_data_map size: " << node_data_map.size() << endl;
-                cout << "simulation_data size: " << nd.get_simulation_data().size() << endl;
+                assert (nd.get_simulation_data().size() == num_iterations);
                 btor_bv_free(current_bv);
 
             }
             else if(current->is_symbol()) { // variants only for leaf nodes
                 cout << "This is leaf node" << endl;
-
+                cout << "current: " << current->to_string() << endl;
                 cout << node_data_map[current].get_simulation_data().size() << endl;
-                
+
 
                 assert(node_data_map.find(current) != node_data_map.end());
-                
             }
             else { // compute simulation data for current node
                 auto op_type = current->get_op();
@@ -218,7 +230,7 @@ int main() {
                 auto child_size = children.size();
                 cout << "children size: " << child_size << endl;
 
-                if(child_size == 2 && visited) {
+                if(child_size == 2 && visited && op_type.prim_op != PrimOp::Select) {
                     std::cout << "This is a 2-child node." << std::endl;
                     NodeData nd(current, current->get_sort()->get_width());
 
@@ -226,11 +238,10 @@ int main() {
                         auto & sim_data_1 = node_data_map[children[0]].get_simulation_data();
                         auto & sim_data_2 = node_data_map[children[1]].get_simulation_data();
 
-                        cout << sim_data_1.size() << " " << sim_data_2.size() << endl;
                         assert(sim_data_1.size() == num_iterations && sim_data_2.size() == num_iterations);
 
                         auto btor_child_1 = sim_data_1[i];
-                        auto btor_child_2 = sim_data_2[i];
+                        auto btor_child_2 = sim_data_2[i]; 
 
                         //FIXME: whether to extend bit width or not
                         auto btor_child_1_fix_width = btor_bv_uext(&btor_child_1, 128 - btor_child_1.width);
@@ -255,7 +266,7 @@ int main() {
                     }
                     node_data_map.insert({current, nd});
                 }
-                else if(child_size == 1 && visited) {
+                else if(child_size == 1 && visited && op_type.prim_op != PrimOp::Select) {
                     std::cout << "This is a 1-child node." << std::endl;
                     NodeData nd(current, current->get_sort()->get_width());
                     
@@ -293,6 +304,17 @@ int main() {
                     }
                     node_data_map.insert({current, nd});
                 }
+                else if(op_type.prim_op == PrimOp::Select) {
+                    cout << "This is a Array node" << endl;
+                    //TODO:
+                   
+                }
+
+                else if(op_type.prim_op == PrimOp::Store) {
+                    cout << "This is a Store node" << endl;
+                    //TODO:
+                }
+                
                 else {
                     throw NotImplementedException("Unsupported operator type2: " + op_type.to_string() + " with child size " + std::to_string(child_size));
                 }
