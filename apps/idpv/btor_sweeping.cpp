@@ -46,6 +46,11 @@ public:
     }
 };
 
+void create_lut(Term term) {
+    // term: (store (store (store ... (store array index elemnent) ...)))
+    // create a lookup table for each index
+}
+
 // RAII wrapper for GMP random state
 class GmpRandStateGuard
 {
@@ -123,20 +128,41 @@ int main() {
 
     auto root = solver->make_term(Equal, a_output_term, b_output_term);
 
+    // ARRAY INIT
+    for (const auto & var_val_pair : sts1.init_constants()) {
+        if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
+            continue;
+        cout << "var_val_pair.first: " << var_val_pair.first->to_string() << endl;
+        cout << "var_val_pair.second: " << var_val_pair.second->to_string() << endl;
+
+        Term val = var_val_pair.second;
+        create_lut(val);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
     std::unordered_map<size_t, TermVec> hash_term_map; // hash -> TermVec
     std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
-
-    auto array_table_1 = sts1.init();
-    auto array_table_2 = sts2.init();
-    // cout << "array_table_1: " << array_table_1->to_string() << endl;
-    // cout << "array_table_2: " << array_table_2->to_string() << endl;
-
-    TermVec out;
-    std::unordered_map<Term, Term> array_map; //array.index -> array.value
-    //TODO:
-    array_conjunctive_partition(array_table_1, out, true, array_map);
-
 
     //simulation
     GmpRandStateGuard rand_guard;
@@ -266,7 +292,7 @@ int main() {
                     }
                     node_data_map.insert({current, nd});
                 }
-                else if(child_size == 1 && visited && op_type.prim_op != PrimOp::Select) {
+                else if(child_size == 1) {
                     std::cout << "This is a 1-child node." << std::endl;
                     NodeData nd(current, current->get_sort()->get_width());
                     
@@ -307,12 +333,11 @@ int main() {
                 else if(op_type.prim_op == PrimOp::Select) {
                     cout << "This is a Array node" << endl;
                     //TODO:
-                   
-                }
-
-                else if(op_type.prim_op == PrimOp::Store) {
-                    cout << "This is a Store node" << endl;
-                    //TODO:
+                    cout << "Array node: " << current->to_string() << endl;
+                    auto state = op_type.idx0;
+                    auto index = op_type.idx1;
+                    //calcualte index val using simulation data
+                    
                 }
                 
                 else {
