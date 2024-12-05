@@ -31,6 +31,8 @@ private:
 public:
     NodeData() : term(nullptr), bit_width(0) {} 
 
+    NodeData(const Term & t) : term(t), bit_width(0) {}
+
     NodeData(const Term & t, const size_t & bw) : term(t), bit_width(bw) {}
 
     Term get_term() const { return term; }
@@ -46,10 +48,9 @@ public:
     }
 };
 
-void create_lut(Term term) {
+void create_lut(Term term, std::unordered_map<std::string, std::string>& lut) {
     // term: (store (store (store ... (store array index elemnent) ...)))
     // create a lookup table for each index
-    std::unordered_map<std::string, std::string> lut; // term is smart pointer
 
     // Traverse nested stored op
     Term current = term;
@@ -59,23 +60,28 @@ void create_lut(Term term) {
             throw std::runtime_error("Store operation should have exactly 3 children");
         }
         // store：array、index、value
-        Term array = children[0];   // original array
-        Term index = children[1];   // stored position
-        Term value = children[2];   // sotred value
+        auto array = children[0];   // original array
+        auto index = children[1];   // stored position
+        auto value = children[2];   // sotred value
 
         // insert index and value
-        std::cout<< "stored position:" <<std::endl;
-        std::cout<< "stored position" << index->to_string().c_str() << std::endl;
-        std::cout<< "stored value" << value->to_string().c_str() << std::endl;
+        // std::cout<< "stored position:" <<std::endl;
+        // std::cout<< "stored position" << index->to_string().data() << std::endl;
+        // std::cout<< "stored value" << value->to_string().data() << std::endl;
+        // if(!index->to_string().empty() && !value->to_string().empty()
+        //     && index->to_string().find("#b") == 0 && value->to_string().find("#b") == 0) {
+        //         std::string index_str = index->to_string().substr(2);
+        //         std::string value_str = value->to_string().substr(2);
+        //     }
 
-        lut[index->to_string()] = value->to_string();
+        lut[index->to_string().substr(2)] = value->to_string().substr(2);
         current = array; // next iteration
     }
     // print lut
-    std::cout << "lut size: " << lut.size() << std::endl;
-    for (const auto & [idx, val] : lut) {
-        std::cout << "index: " << idx << ", value: " << val << std::endl;
-    }
+    // std::cout << "lut size: " << lut.size() << std::endl;
+    // for (const auto & [idx, val] : lut) {
+    //     std::cout << "index: " << idx << ", value: " << val << std::endl;
+    // }
 }
 
 // RAII wrapper for GMP random state
@@ -155,41 +161,35 @@ int main() {
 
     auto root = solver->make_term(Equal, a_output_term, b_output_term);
 
+    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
+    std::unordered_map<size_t, TermVec> hash_term_map; // hash -> TermVec
+    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
+    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
+    std::unordered_map<std::string, std::string> lut_a;//index-> val in a
+    std::unordered_map<std::string, std::string> lut_b;//index-> val in b
+
     // ARRAY INIT
     for (const auto & var_val_pair : sts1.init_constants()) {
         if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
             continue;
-        cout << "var_val_pair.first: " << var_val_pair.first->to_string() << endl;
-        cout << "var_val_pair.second: " << var_val_pair.second->to_string() << endl;
-
         Term val = var_val_pair.second;
-        create_lut(val);
+        create_lut(val, lut_a);
+        all_luts[var_val_pair.first] = lut_a;
     }
 
+    for (const auto & var_val_pair : sts2.init_constants()) {
+        if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
+            continue;
+        Term val = var_val_pair.second;
+        
+        create_lut(val, lut_b);
+        all_luts[var_val_pair.first] = lut_b;
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
-    std::unordered_map<size_t, TermVec> hash_term_map; // hash -> TermVec
-    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
+    // for (const auto & lut_pair : all_luts) {
+    //     cout << "LUT " << lut_pair.first << " size: " << lut_pair.second.size() << endl;
+    // }
+    //End of array init
 
     //simulation
     GmpRandStateGuard rand_guard;
@@ -243,7 +243,8 @@ int main() {
             }
             visited = true;
         } else {
-            if(current->is_value()) { //constant
+            if(current->is_value()) { //constant & constant array
+                cout << "This is a constant node, ";
                 auto current_str = current->to_string();
                 if(!current_str.empty() && current_str.find("#b") == 0) {
                     current_str = current_str.substr(2);
@@ -268,13 +269,41 @@ int main() {
                 btor_bv_free(current_bv);
 
             }
-            else if(current->is_symbol()) { // variants only for leaf nodes
-                cout << "This is leaf node" << endl;
+            else if(current->is_symbolic_const() && current->get_op().is_null()) { // variants only for input and key
+                cout << "This is symbolic const node" << endl;
                 cout << "current: " << current->to_string() << endl;
-                cout << node_data_map[current].get_simulation_data().size() << endl;
+                // assert(node_data_map.find(current) != node_data_map.end());
+                // FIXME: why arrays arrive here???
 
+                if(all_luts.find(current) != all_luts.end()) {
+                    cout << "This node is in LUT" << endl;
+                    auto & lut = all_luts[current];
+                    //循环，从index的开头给num_iterations个index，然后取出对应的value，这就是current对应的10组值，存到node_data_map中
+                    cout << current->get_sort()->get_sort_kind() << endl;
+                    NodeData& nd = node_data_map[current];
+                    
+                    int count = 0;
+                    for(auto & [idx, val] : lut) {
+                        if (count >= num_iterations) {
+                            break;
+                        }
+                        cout << "index: " << idx << ", value: " << val << endl;
+                        auto val_bv = btor_bv_char_to_bv(val.data());
+                        nd.add_data(*val_bv);
+                        btor_bv_free(val_bv);
+                        count += 1;
+                    }
+                    cout << node_data_map[current].get_simulation_data().size() << endl;
+                }
 
-                assert(node_data_map.find(current) != node_data_map.end());
+                
+                assert(node_data_map[current].get_simulation_data().size() == num_iterations);
+            }
+            else if(current->is_symbol() && !current->is_symbolic_const()){ // function, parameter
+                cout << "This is a function/parameter node" << endl;
+            }
+            else if(current->get_sort()->get_sort_kind() == ARRAY) {
+                cout << "This is an array node" << endl;
             }
             else { // compute simulation data for current node
                 auto op_type = current->get_op();
@@ -283,9 +312,9 @@ int main() {
                 auto child_size = children.size();
                 cout << "children size: " << child_size << endl;
 
-                if(child_size == 2 && visited && op_type.prim_op != PrimOp::Select) {
+                if(child_size == 2 && visited && current->get_op().prim_op != PrimOp::Select) {
                     std::cout << "This is a 2-child node." << std::endl;
-                    NodeData nd(current, current->get_sort()->get_width());
+                    NodeData& nd = node_data_map[current];
 
                     for(size_t i = 0; i < num_iterations; i++) {
                         auto & sim_data_1 = node_data_map[children[0]].get_simulation_data();
@@ -308,6 +337,7 @@ int main() {
                             auto current_val = btor_bv_add(btor_child_1_fix_width, btor_child_2_fix_width);
                             nd.add_data(*current_val);
                         }
+                        
                         else if(op_type.prim_op == PrimOp::BVAnd) {
                             cout << "BVAnd" << endl;
                             auto current_val = btor_bv_and(btor_child_1_fix_width, btor_child_2_fix_width);
@@ -357,16 +387,31 @@ int main() {
                     }
                     node_data_map.insert({current, nd});
                 }
-                else if(op_type.prim_op == PrimOp::Select) {
-                    cout << "This is a Array node" << endl;
-                    //TODO:
-                    cout << "Array node: " << current->to_string() << endl;
-                    auto state = op_type.idx0;
-                    auto index = op_type.idx1;
-                    //calcualte index val using simulation data
-                    
-                }
                 
+                else if(op_type.prim_op == PrimOp::Select) {
+                            cout << "Select" << endl;
+                            cout << "current: " << current->to_string() << endl;
+                            NodeData& nd = node_data_map[current];
+                            //FIXME: error here
+
+                            // if(all_luts.find(current) != all_luts.end()) {
+                            //     auto & lut = all_luts[current];
+                            //     TermVec index_vec(current->begin(), current->end());
+                            //     auto index = std::to_string(current->get_op().idx1);
+                            //     if(lut.find(index) != lut.end()) {
+                            //         auto value = lut[index];
+                            //         auto value_bv = btor_bv_char_to_bv(value.data());
+                            //         nd.add_data(*value_bv);
+                            //     } else{
+                            //         throw std::runtime_error("Index not found in lookup table");
+                            //     }
+                            // } else {
+                            //     throw std::runtime_error("Lookup table not found for select operation"); // error
+                            // }
+                }
+
+
+
                 else {
                     throw NotImplementedException("Unsupported operator type2: " + op_type.to_string() + " with child size " + std::to_string(child_size));
                 }
@@ -374,213 +419,9 @@ int main() {
             node_stack.pop();
             }
         }
-        // }
-
-        
     }
     
 
 
     return 0;
 }
-
-//FIXME:
-// if op_type == LOAD 
-//     ARRAY -> map
-//     load(array , index) according index -> LUT array val
-
-
-
-//   Concat,
-//   Extract,
-//   BVNot,  1
-//   BVNeg,
-//   BVAnd,  1
-//   BVOr,
-//   BVXor,
-//   BVNand,
-//   BVNor,
-//   BVXnor,
-//   BVAdd,  1
-//   BVSub,
-//   BVMul,
-//   BVUdiv,
-//   BVSdiv,
-//   BVUrem,
-//   BVSrem,
-//   BVSmod,
-//   BVShl,
-//   BVAshr,
-//   BVLshr,
-//   BVComp,
-//   BVUlt,
-//   BVUle,
-//   BVUgt,
-//   BVUge,
-//   BVSlt,
-//   BVSle,
-//   BVSgt,
-//   BVSge,
-//   Zero_Extend,
-//   Sign_Extend,
-//   Repeat,
-//   Rotate_Left,
-//   Rotate_Right,
-
-// void collect_terms(const Term & term, std::unordered_map<Term, NodeData> & node_data_map)
-// {
-//     if (!term) {
-//         throw std::invalid_argument("Null term provided to collect_terms");
-//     }
-
-//     std::unordered_set<Term> visited_nodes;
-//     std::stack<Term> node_stack;
-//     node_stack.push(term);
-
-//     while (!node_stack.empty()) {
-//         Term current_term = node_stack.top();
-//         node_stack.pop();
-//         if (visited_nodes.find(current_term) != visited_nodes.end())
-//             continue;
-
-//         // early pruning
-//         if (current_term->is_value() || current_term->is_symbol()
-//             || (current_term->get_op().is_null()
-//             && !current_term->is_symbolic_const())) {
-//             // Add sort-based pruning
-//             Sort s = current_term->get_sort();
-//             if (s->get_sort_kind() == ARRAY) {
-//                 continue;  // Skip array terms early
-//             }
-//             continue;
-//         }
-
-//         visited_nodes.insert(current_term);
-//         auto res = node_data_map.emplace(current_term, NodeData::from_term(current_term));
-//         assert(res.second);
-
-//         if (res.second) {  // Only process children if this is a new term
-//             for (auto child : current_term) {
-//                 if (child) {
-//                 node_stack.push(child);
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// void collect_termdata(SmtSolver & solver, std::unordered_map<Term, NodeData> & node_data_map)
-// {
-//     for (auto & term_data_pair : node_data_map) {
-//         term_data_pair.second.extend_val(solver);
-//     }
-// }
-
-// class GmpRandStateGuard
-// {
-//     gmp_randstate_t state;
-
-//     public:
-//     GmpRandStateGuard()
-//     {
-//         gmp_randinit_default(state);
-//         gmp_randseed_ui(state, time(NULL));
-//     }
-
-//     ~GmpRandStateGuard() { gmp_randclear(state); }
-
-//     void random_128(mpz_t & rand_num)
-//     {
-//         mpz_init2(rand_num, 128);
-//         mpz_urandomb(rand_num, state, 128);
-//     }
-
-//     operator gmp_randstate_t &() { return state; }
-// };
-
-// void post_order_traversal(const Term& term, std::vector<Term>& post_order_list) {
-//     std::stack<Term> node_stack;
-//     std::stack<Term> output_stack;
-//     std::unordered_set<Term> visited;
-
-//     node_stack.push(term);
-//     while(!node_stack.empty()){
-//         Term current = node_stack.top();
-
-//         if( current->is_symbol() || 
-//             current->is_value() || 
-//             (current->get_op().is_null() && !current->is_symbolic_const()) ||
-//             current -> get_sort() -> get_sort_kind() == ARRAY){
-//             node_stack.pop();
-//         }
-        
-//         node_stack.pop();
-//         output_stack.push(current);
-//         visited.insert(current);
-
-//         for(auto child : current){
-//             if(child && visited.find(child) == visited.end())
-//                 node_stack.push(child);
-//         }
-//     }
-
-//     while(!output_stack.empty()){
-//         Term current = output_stack.top();
-//         output_stack.pop();
-//         post_order_list.push_back(current);
-//     }
-// }
-
-
-// std::unordered_map<Term, NodeData> node_data_map;
-    // collect_terms(root, node_data_map);
-
-    // //post order traversal
-    // std::vector<Term> post_order_list;
-    // post_order_traversal(root, post_order_list);
-    // print_time();
-    // cout << "post order traversal size: " << post_order_list.size() << endl;
-
-    // // simulation loop
-    // GmpRandStateGuard rand_guard;
-    // int num_iterations = 1;//FIXME:
-    // for (int i = 0; i < num_iterations; ++i) {
-    //     print_time();
-    //     cout << "Running " << i + 1 << " simulation iteration...\n";
-    //     solver->push(); // push for each iteration - context level 2
-    //     mpz_t key_mpz, input_mpz;
-    //     rand_guard.random_128(key_mpz);
-    //     rand_guard.random_128(input_mpz);
-
-    //     // Use RAII for GMP strings
-    //     unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 10, key_mpz), free);
-    //     unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 10, input_mpz), free);
-
-    //     auto input_val = solver->make_term(key_str.get(), a_key_term->get_sort());
-    //     auto key_val = solver->make_term(input_str.get(), a_input_term->get_sort());
-
-    //     TermVec assumptions{ solver->make_term(Equal, a_key_term, key_val),
-    //                         solver->make_term(Equal, a_input_term, input_val),
-    //                         solver->make_term(Equal, b_key_term, key_val),
-    //                         solver->make_term(Equal, b_input_term, input_val) };
-    //     auto check_result = solver->check_sat_assuming(assumptions);
-    //     if (!check_result.is_sat()) {
-    //         throw std::runtime_error("Unexpected UNSAT result during simulation");
-    //     }
-
-    //     collect_termdata(solver, node_data_map);
-    //     solver->pop();  // Restore to base context - context level 1
-
-    //     mpz_clear(key_mpz);
-    //     mpz_clear(input_mpz);
-    // }  // end of simulation
-    // cout << "Simulation complete.\n";
-
-    // print_time();
-    // cout << "node_data_map size : " << node_data_map.size() << endl;
-
-    // solver->push(); // save the final state - context level 2
-    // solver->assert_formula(solver->make_term(smt::Equal, a_key_term, b_key_term));
-    // solver->assert_formula(solver->make_term(smt::Equal, a_input_term, b_input_term));
-
-    // std::unordered_map<Term, Term> substitution_map;
