@@ -49,6 +49,33 @@ public:
 void create_lut(Term term) {
     // term: (store (store (store ... (store array index elemnent) ...)))
     // create a lookup table for each index
+    std::unordered_map<std::string, std::string> lut; // term is smart pointer
+
+    // Traverse nested stored op
+    Term current = term;
+    while (current->get_op().prim_op == PrimOp::Store) {
+        auto children = TermVec(current->begin(), current->end());
+        if (children.size() != 3) {
+            throw std::runtime_error("Store operation should have exactly 3 children");
+        }
+        // store：array、index、value
+        Term array = children[0];   // original array
+        Term index = children[1];   // stored position
+        Term value = children[2];   // sotred value
+
+        // insert index and value
+        std::cout<< "stored position:" <<std::endl;
+        std::cout<< "stored position" << index->to_string().c_str() << std::endl;
+        std::cout<< "stored value" << value->to_string().c_str() << std::endl;
+
+        lut[index->to_string()] = value->to_string();
+        current = array; // next iteration
+    }
+    // print lut
+    std::cout << "lut size: " << lut.size() << std::endl;
+    for (const auto & [idx, val] : lut) {
+        std::cout << "index: " << idx << ", value: " << val << std::endl;
+    }
 }
 
 // RAII wrapper for GMP random state
