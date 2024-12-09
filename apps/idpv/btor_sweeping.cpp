@@ -15,6 +15,8 @@
 #include <gmp.h>
 #include <gmpxx.h>
 #include <iostream>
+#include <algorithm>
+#include <random>
 
 #include "btor_sweeping.h"
 #include "smt-switch/utils.h"
@@ -244,77 +246,102 @@ int main() {
             visited = true;
         } else {
             if(current->is_value()) { //constant & constant array
-                cout << "This is a constant node, ";
+                // cout << "This is a constant node, ";
                 auto current_str = current->to_string();
                 if(!current_str.empty() && current_str.find("#b") == 0) {
                     current_str = current_str.substr(2);
                 }
                 cout << "current_str: " << current_str << endl;
-                auto current_bv = btor_bv_char_to_bv(current_str.data());
-               
-                // auto node_bv_hash = btor_bv_hash(current_bv);
-                // if(hash_term_map.find(node_bv_hash) == hash_term_map.end()){
-                //     hash_term_map.insert({node_bv_hash, {current}});
-                // } else {
-                //     hash_term_map[node_bv_hash].push_back(current);
-                // }
 
-                NodeData nd(current, current->get_sort()->get_width()); 
-                
-                for (int i = 0; i < num_iterations; ++i) {
-                    nd.add_data(*current_bv);
+                //term current , string current_str
+                NodeData& nd = node_data_map[current];
+                auto current_bv = btor_bv_char_to_bv(current_str.data());
+                auto node_bv_hash = btor_bv_hash(current_bv);
+
+                if(hash_term_map.find(node_bv_hash) == hash_term_map.end()){ // new hash
+                    hash_term_map.insert({node_bv_hash, {current}});
+                    substitution_map.insert({current, current}); // no substitution
+                    for (int i = 0; i < num_iterations; ++i) {
+                        nd.add_data(*current_bv);
+                    }
+                } else {
+                    if(substitution_map.find(current) != substitution_map.end()){ // if already substituted
+                        auto val = node_data_map[substitution_map[current]].get_simulation_data();
+                        NodeData& nd = node_data_map[current];
+                        for(int i = 0; i < num_iterations; i++) {
+                            nd.add_data(val[i]);
+                        }
+                        current = substitution_map[current];
+                    }
+                    else {
+                        auto &terms = hash_term_map[node_bv_hash];// exist potential substitution
+                        terms.push_back(current); // add current to terms
+                        for(const auto & t : terms) {
+                            TermVec not_equal_pair = {solver->make_term(Not, solver->make_term(Equal, t, current))};
+                            auto res = solver->check_sat_assuming(not_equal_pair);
+                            if(res.is_unsat()) {
+                                substitution_map.insert({t, current});
+                                current_bv = btor_bv_char_to_bv(t->to_string().data());
+                                break;
+                            }else {
+                                substitution_map.insert({current, current}); // no substitution
+                            }
+                        }
+                    }    
                 }
-                node_data_map.insert({current, nd});
                 assert (nd.get_simulation_data().size() == num_iterations);
                 btor_bv_free(current_bv);
-
             }
-            else if(current->is_symbolic_const() && current->get_op().is_null()) { // variants only for input and key
-                cout << "This is symbolic const node" << endl;
-                cout << "current: " << current->to_string() << endl;
-                // assert(node_data_map.find(current) != node_data_map.end());
-                // FIXME: why arrays arrive here???
+            else if(current->is_symbolic_const() && current->get_op().is_null()) { // variants only for input and key FIXME: why arrays arrive here?
+                // cout << "This is symbolic const node" << endl;
+                // cout << "current: " << current->to_string() << endl;
+                assert(node_data_map.find(current) != node_data_map.end());
 
+                substitution_map.insert({current, current}); // no substitution
                 if(all_luts.find(current) != all_luts.end()) {
-                    cout << "This node is in LUT" << endl;
+                    cout << "This array node is in LUT" << endl;
                     auto & lut = all_luts[current];
-                    //循环，从index的开头给num_iterations个index，然后取出对应的value，这就是current对应的10组值，存到node_data_map中
-                    cout << current->get_sort()->get_sort_kind() << endl;
                     NodeData& nd = node_data_map[current];
-                    
                     int count = 0;
-                    for(auto & [idx, val] : lut) {
-                        if (count >= num_iterations) {
+                    for(auto & [idx, val] : lut) { //FIXME: random select
+                        if (count >= num_iterations)
                             break;
-                        }
                         cout << "index: " << idx << ", value: " << val << endl;
                         auto val_bv = btor_bv_char_to_bv(val.data());
                         nd.add_data(*val_bv);
                         btor_bv_free(val_bv);
                         count += 1;
                     }
-                    cout << node_data_map[current].get_simulation_data().size() << endl;
-                }
-
-                
+                    // cout << node_data_map[current].get_simulation_data().size() << endl;
+                }                
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
-            }
-            else if(current->is_symbol() && !current->is_symbolic_const()){ // function, parameter
-                cout << "This is a function/parameter node" << endl;
-            }
-            else if(current->get_sort()->get_sort_kind() == ARRAY) {
-                cout << "This is an array node" << endl;
             }
             else { // compute simulation data for current node
                 auto op_type = current->get_op();
+                NodeData& nd = node_data_map[current];
                 // cout << "operation type: " << op_type.to_string() << endl;
+
+                // first, find and check substitution
+                if(//TODO:) {
+                    for(size_t i = 0; i < num_iterations; i++) {
+                        nd.add_data(node_data_map[substitution_map[current]].get_simulation_data()[i]);
+                    }
+                    current = substitution_map[current];
+                    node_stack.pop();
+                    continue;
+                }
+
+
+
+
+
                 TermVec children(current->begin(), current->end());
                 auto child_size = children.size();
                 cout << "children size: " << child_size << endl;
 
-                if(child_size == 2 && visited && current->get_op().prim_op != PrimOp::Select) {
+                if(child_size == 2 && visited) {
                     std::cout << "This is a 2-child node." << std::endl;
-                    NodeData& nd = node_data_map[current];
+                    
 
                     for(size_t i = 0; i < num_iterations; i++) {
                         auto & sim_data_1 = node_data_map[children[0]].get_simulation_data();
@@ -343,6 +370,24 @@ int main() {
                             auto current_val = btor_bv_and(btor_child_1_fix_width, btor_child_2_fix_width);
                             nd.add_data(*current_val);
                         }
+                        else if(op_type.prim_op == PrimOp::Select) {
+                            cout << "Select" << endl;
+                            //FIXME: error here
+                            auto children = TermVec(current->begin(), current->end());
+                            assert(children.size() == 2);
+                            auto data = node_data_map[children[0]].get_simulation_data();
+                            assert(data.size() == num_iterations);
+                            nd.add_data(data[i]);   
+                        }
+
+                        else if(op_type.prim_op == PrimOp::Concat) {
+                            cout << "Concat" << endl;
+                            cout << "current: " << current->to_string() << endl;
+                            auto current_val = btor_bv_concat(btor_child_1_fix_width, btor_child_2_fix_width);
+                            nd.add_data(*current_val);
+
+                        }
+
                         else {
                             throw NotImplementedException("Unsupported operator type3: " + op_type.to_string());
                         }
@@ -351,7 +396,8 @@ int main() {
                 }
                 else if(child_size == 1) {
                     std::cout << "This is a 1-child node." << std::endl;
-                    NodeData nd(current, current->get_sort()->get_width());
+                    cout << "current: " << current->to_string() << endl;
+                    NodeData& nd = node_data_map[current];
                     
                     for(size_t i = 0; i < num_iterations; i++) {
                         auto & sim_data = node_data_map[children[0]].get_simulation_data();
@@ -387,29 +433,32 @@ int main() {
                     }
                     node_data_map.insert({current, nd});
                 }
-                
-                else if(op_type.prim_op == PrimOp::Select) {
-                            cout << "Select" << endl;
-                            cout << "current: " << current->to_string() << endl;
-                            NodeData& nd = node_data_map[current];
-                            //FIXME: error here
+                else if(child_size == 3 && visited) {
+                    std::cout << "This is a 3-child node." << std::endl;
+                    NodeData& nd = node_data_map[current];
+                    for(size_t i = 0; i < num_iterations; i++) {
+                        auto & sim_data_1 = node_data_map[children[0]].get_simulation_data();
+                        auto & sim_data_2 = node_data_map[children[1]].get_simulation_data();
+                        auto & sim_data_3 = node_data_map[children[2]].get_simulation_data();
+                        assert(sim_data_1.size() == num_iterations && sim_data_2.size() == num_iterations && sim_data_3.size() == num_iterations);
 
-                            // if(all_luts.find(current) != all_luts.end()) {
-                            //     auto & lut = all_luts[current];
-                            //     TermVec index_vec(current->begin(), current->end());
-                            //     auto index = std::to_string(current->get_op().idx1);
-                            //     if(lut.find(index) != lut.end()) {
-                            //         auto value = lut[index];
-                            //         auto value_bv = btor_bv_char_to_bv(value.data());
-                            //         nd.add_data(*value_bv);
-                            //     } else{
-                            //         throw std::runtime_error("Index not found in lookup table");
-                            //     }
-                            // } else {
-                            //     throw std::runtime_error("Lookup table not found for select operation"); // error
-                            // }
+                        auto btor_child_1 = sim_data_1[i];
+                        auto btor_child_2 = sim_data_2[i];
+                        auto btor_child_3 = sim_data_3[i];
+                        //FIXME: whether to extend bit width or not
+                        auto btor_child_1_fix_width = btor_bv_uext(&btor_child_1, 128 - btor_child_1.width);
+                        auto btor_child_2_fix_width = btor_bv_uext(&btor_child_2, 128 - btor_child_2.width);
+                        auto btor_child_3_fix_width = btor_bv_uext(&btor_child_3, 128 - btor_child_3.width);
+                        
+                        if(op_type.prim_op == PrimOp::Ite) {
+                            cout << "Ite" << endl;
+                            auto current_val = btor_bv_ite(btor_child_1_fix_width, btor_child_2_fix_width, btor_child_3_fix_width);
+                            nd.add_data(*current_val);
+                        }
+
+                    }
                 }
-
+               
 
 
                 else {

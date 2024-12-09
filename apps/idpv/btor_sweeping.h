@@ -10,7 +10,7 @@ using namespace std;
 
 //----------------CONFIG--------------
 //------------------------------------
-// #define BTOR_USE_GMP 1
+#define BTOR_USE_GMP 1
 
 
 
@@ -702,6 +702,91 @@ BtorBitVector *btor_bv_slice (
   res = btor_bv_new (bw);
   for (i = lower, j = 0; i <= upper; i++)
     btor_bv_set_bit (res, j++, btor_bv_get_bit (bv, i));
+
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+
+BtorBitVector *btor_bv_concat (const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (a);
+  assert (b);
+
+  BtorBitVector *res;
+  uint32_t bw = a->width + b->width;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_new (bw);
+  mpz_mul_2exp (res->val, a->val, b->width);
+  mpz_add (res->val, res->val, b->val);
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
+#else
+  int64_t i, j, k;
+  BTOR_BV_TYPE v;
+
+  res = btor_bv_new (bw);
+
+  j = res->len - 1;
+
+  /* copy bits from bit vector b */
+  for (i = b->len - 1; i >= 0; i--) res->bits[j--] = b->bits[i];
+
+  k = b->width % BTOR_BV_TYPE_BW;
+
+  /* copy bits from bit vector a */
+  if (k == 0)
+  {
+    assert (j >= 0);
+    for (i = a->len - 1; i >= 0; i--) res->bits[j--] = a->bits[i];
+  }
+  else
+  {
+    j += 1;
+    assert (res->bits[j] >> k == 0);
+    v = res->bits[j];
+    for (i = a->len - 1; i >= 0; i--)
+    {
+      v = v | (a->bits[i] << k);
+      assert (j >= 0);
+      res->bits[j--] = v;
+      v              = a->bits[i] >> (BTOR_BV_TYPE_BW - k);
+    }
+    assert (j <= 0);
+    if (j == 0) res->bits[j] = v;
+  }
+
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
+
+
+BtorBitVector *btor_bv_ite (const BtorBitVector *c,
+                            const BtorBitVector *t,
+                            const BtorBitVector *e)
+{
+  assert (c);
+  assert (t);
+  assert (e);
+  assert (t->width == e->width);
+
+  BtorBitVector *res;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_is_one (c) ? btor_bv_copy (t) : btor_bv_copy (e);
+#else
+  assert (c->len == 1);
+  assert (t->len > 0);
+  assert (t->len == e->len);
+  BTOR_BV_TYPE cc, nn;
+  uint32_t i;
+
+  cc = btor_bv_get_bit (c, 0) ? (~(BTOR_BV_TYPE) 0) : 0;
+  nn = ~cc;
+
+  res = btor_bv_new (t->width);
+  for (i = 0; i < t->len; i++)
+    res->bits[i] = (cc & t->bits[i]) | (nn & e->bits[i]);
 
   assert (rem_bits_zero_dbg (res));
 #endif
