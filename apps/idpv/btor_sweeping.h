@@ -792,3 +792,35 @@ BtorBitVector *btor_bv_ite (const BtorBitVector *c,
 #endif
   return res;
 }
+
+
+BtorBitVector *btor_bv_eq (const BtorBitVector *a, const BtorBitVector *b)
+{
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+#ifdef BTOR_USE_GMP
+  res = mpz_cmp (a->val, b->val) == 0 ? btor_bv_one (1)
+                                      : btor_bv_zero (1);
+#else
+  assert (a->len == b->len);
+  uint32_t i, bit;
+
+  res = btor_bv_new (1);
+  bit = 1;
+  for (i = 0; i < a->len; i++)
+  {
+    if (a->bits[i] != b->bits[i])
+    {
+      bit = 0;
+      break;
+    }
+  }
+  btor_bv_set_bit (res, 0, bit);
+
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
