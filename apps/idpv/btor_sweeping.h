@@ -13,12 +13,11 @@ using namespace std;
 #define BTOR_USE_GMP 1
 
 
-
-
 #define BTOR_BV_TYPE uint32_t
 #define BTOR_BV_TYPE_BW (sizeof (BTOR_BV_TYPE) * 8)
 static uint32_t hash_primes[] = {333444569u, 76891121u, 456790003u};
 #define NPRIMES ((uint32_t) (sizeof hash_primes / sizeof *hash_primes))
+
 
 struct BtorBitVector
 {
