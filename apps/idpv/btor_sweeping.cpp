@@ -144,7 +144,7 @@ void print_time() {
     auto now = std::chrono::high_resolution_clock::now();
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time_point).count();
     last_time_point = now;  // Update last time point
-    std::cout << "[" << elapsed_time/1000.0 << " s]  ";
+    std::cout << "[" << elapsed_time / 1000.0 << " ms]  ";
 }
 
 int main() {
@@ -199,7 +199,7 @@ int main() {
         if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
             continue;
         Term val = var_val_pair.second;
-        create_lut(val, all_luts[val]); // all_luts: term store(store ...) -> index, value 
+        create_lut(val, all_luts[val]);
     }
 
     for (const auto & var_val_pair : sts2.init_constants()) {
@@ -212,7 +212,7 @@ int main() {
 
     //simulation
     GmpRandStateGuard rand_guard;
-    int num_iterations = 30;
+    int num_iterations = 10;
 
     for (int i = 0; i < num_iterations; ++i) {
         mpz_t key_mpz, input_mpz;
@@ -248,7 +248,7 @@ int main() {
         node_data_map[b_key_term].add_data(*bv_key);
         node_data_map[b_input_term].add_data(*bv_input);
 
-        substitution_map.insert({a_key_term, a_key_term}); // ensure all nodes in this map
+        substitution_map.insert({a_key_term, a_key_term});
         substitution_map.insert({a_input_term, a_input_term});
         substitution_map.insert({b_key_term, b_key_term});
         substitution_map.insert({b_input_term, b_input_term});
@@ -297,15 +297,10 @@ int main() {
                     nd.add_data(*current_bv);
                 }
                 btor_bv_free(current_bv);
+
                 assert(nd.get_simulation_data().size() == num_iterations);
                 substitution_map.insert({current, current}); // constant don't need substitution
-
-                auto current_hash = nd.hash(nd.get_simulation_data()); // use data hash to combine a new hash
-                if(hash_term_map.find(current_hash) == hash_term_map.end()) {
-                    hash_term_map.insert({current_hash, {current}});
-                } else {
-                    hash_term_map[current_hash].push_back(current);
-                }
+                //TODO: add to hash_term_map ? 
             }
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
                 assert(TermVec(current->begin(), current->end()).empty());// no children
@@ -327,7 +322,7 @@ int main() {
                                 if(node_data_map[t].get_simulation_data()[i].val != node_data_map[current].get_simulation_data()[i].val) 
                             #else
                                 if(node_data_map[t].get_simulation_data()[i].bits != node_data_map[current].get_simulation_data()[i].bits
-                                 || node_data_map[t].get_simulation_data()[i].len != node_data_map[current].get_simulation_data()[i].len) 
+                                  || node_data_map[t].get_simulation_data()[i].len != node_data_map[current].get_simulation_data()[i].len) 
                             #endif
                             {
                                 all_equal = false;
@@ -339,12 +334,11 @@ int main() {
                             auto eq_term = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, current))}));
                             if(eq_term.is_unsat()) {
                                 substitution_map.insert({current, t});
-                            } else {
-                                substitution_map.insert({current, current});
                             }
                         }
                     }
-                } 
+                }
+                
             }
             else { // compute simulation data for current node
                 // std::cout << "Computing : " << current->to_string() << std::endl;
@@ -353,15 +347,14 @@ int main() {
                 // cout << "children size: " << child_size << endl;
 
                 if(child_size == 1) {
-                    auto & child = children[0];
-                    assert(substitution_map.find(child) != substitution_map.end());
-                    assert(node_data_map[child].get_simulation_data().size() == num_iterations);
-                    children[0] = substitution_map[child];
-
+                    assert(substitution_map.find(children[0]) != substitution_map.end());
+                    children[0] = substitution_map[children[0]]; // substitute child with previous node
+                    
                     for(size_t i = 0; i < num_iterations; i++) {
-                        auto & sim_data = node_data_map[child].get_simulation_data();
+                        auto & sim_data = node_data_map[children[0]].get_simulation_data();
                         assert(sim_data.size() == num_iterations);
                         auto bv_child = sim_data[i];
+                        // cout << op_type.prim_op << endl;
 
                         if(op_type.prim_op == PrimOp::BVNot) {
                             // std::cout << "***** BVNot *****" << std::endl;
@@ -391,14 +384,7 @@ int main() {
                         }
                     }
 
-                    const auto & child_1 = children[0];
-                    const auto & child_2 = children[1];
-                    const auto & sim_data_1 = node_data_map[child_1].get_simulation_data();
-                    const auto & sim_data_2 = node_data_map[child_2].get_simulation_data();
-                    assert(sim_data_1.size() == num_iterations);
-                    assert(sim_data_2.size() == num_iterations);
-
-                    if(op_type.prim_op == PrimOp::Select) {
+                    if(op_type.prim_op == PrimOp::Select) { // array
                         auto & array = children[0];
                         auto & index = children[1];
                         assert(all_luts.find(array) != all_luts.end());
@@ -409,25 +395,20 @@ int main() {
                             auto val_bv = btor_bv_char_to_bv(val_str.data());
                             nd.add_data(*val_bv);
                         }
-                    } else {
+                    } else { // other bv operations
+                        const auto & child_1 = children[0];
+                        const auto & child_2 = children[1];
+                        const auto & sim_data_1 = node_data_map[child_1].get_simulation_data();
+                        const auto & sim_data_2 = node_data_map[child_2].get_simulation_data();
+                        assert(sim_data_1.size() == num_iterations);
+                        assert(sim_data_2.size() == num_iterations);
+
                         for(size_t i = 0; i < num_iterations; i++) {
                             auto & btor_child_1 = sim_data_1[i];
                             auto & btor_child_2 = sim_data_2[i];
                             btor_bv_operation(op_type, btor_child_1, btor_child_2, nd);
                         }
                     }
-
-
-
-
-
-
-
-
-
-
-
-
                     assert(nd.get_simulation_data().size() == num_iterations);
                 }
                 else if(child_size == 3) {
@@ -445,7 +426,7 @@ int main() {
                         auto & sim_data_2 = node_data_map[children[1]].get_simulation_data();
                         auto & sim_data_3 = node_data_map[children[2]].get_simulation_data();
 
-                        assert(sim_data_1.size() == num_iterations); //FIXME: error here
+                        assert(sim_data_1.size() == num_iterations);
                         assert(sim_data_2.size() == num_iterations);
                         assert(sim_data_3.size() == num_iterations);
                         auto btor_child_1 = sim_data_1[i];
@@ -468,7 +449,7 @@ int main() {
                 
                 //create a new current node
                 Term new_term = solver->make_term(op_type, children);
-                if (node_data_map.find(new_term) == node_data_map.end()) {
+                if (node_data_map.find(new_term) == node_data_map.end()) { // check if new node exists or not
                     NodeData new_node_data = nd;
                     node_data_map[new_term] = new_node_data;
                 }
@@ -491,7 +472,7 @@ int main() {
                                 if(node_data_map[t].get_simulation_data()[i].bits != node_data_map[current].get_simulation_data()[i].bits
                                     || node_data_map[t].get_simulation_data()[i].len != node_data_map[current].get_simulation_data()[i].len)
                             #endif
-                            {   
+                            {
                                 all_equal = false;
                                 substitution_map.insert({current, current});
                                 break;
@@ -504,17 +485,22 @@ int main() {
                             } else {
                                 substitution_map.insert({current, current});
                             }
+                        } else {
+                            substitution_map.insert({current, current});
                         }
                     }
                 }
             }
-
+        
             if(node_stack.size() == 1){ // root node
-                TermVec children(current->begin(), current->end());
-                root = solver->make_term(op_type, children);
-            }  
-
-            node_stack.pop();   
+                TermVec root_children(current->begin(), current->end());
+                if(substitution_map.find(root_children[0]) != substitution_map.end()
+                || substitution_map.find(root_children[1]) != substitution_map.end()) {
+                    root_children[0] = substitution_map[root_children[0]];
+                    root_children[1] = substitution_map[root_children[1]];
+                }
+                root = solver->make_term(op_type, root_children);
+            }     
         }
     }
 
@@ -523,7 +509,6 @@ int main() {
 
     solver->assert_formula(solver->make_term(Not, root));
     auto res = solver->check_sat();
-    print_time();
     if(res.is_unsat()){
         std::cout << "UNSAT" << std::endl;
     } else {
