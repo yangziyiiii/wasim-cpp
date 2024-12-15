@@ -116,6 +116,20 @@ void btor_bv_operation(const smt::Op& op,
     }
 }
 
+Term resolve_substitution(const Term &term, std::unordered_map<Term, Term> &substitution_map) {
+    auto it = substitution_map.find(term);
+    if (it != substitution_map.end()) {
+        Term substituted_term = it->second;
+        if (substitution_map.find(substituted_term) != substitution_map.end()
+            && substitution_map.find(substituted_term)->second != substituted_term) {
+            return resolve_substitution(substituted_term, substitution_map);
+        } else {
+            return substituted_term;
+        }
+    }
+    return term;  // Return the term itself if no substitution exists
+}
+
 // RAII wrapper for GMP random state
 class GmpRandStateGuard
 {
@@ -348,7 +362,7 @@ int main() {
 
                 if(child_size == 1) {
                     assert(substitution_map.find(children[0]) != substitution_map.end());
-                    children[0] = substitution_map[children[0]]; // substitute child with previous node
+                    resolve_substitution(children[0], substitution_map); // substitute child with previous node
                     
                     for(size_t i = 0; i < num_iterations; i++) {
                         auto & sim_data = node_data_map[children[0]].get_simulation_data();
@@ -380,7 +394,7 @@ int main() {
                     for (int i = 0; i < 2; ++i) {// skip array, only consider non-array children
                         if (children[i]->get_sort()->get_sort_kind() != ARRAY) {
                             assert(substitution_map.find(children[i]) != substitution_map.end());
-                            children[i] = substitution_map[children[i]];
+                            resolve_substitution(children[i], substitution_map); // substitute child with previous node
                         }
                     }
 
@@ -413,11 +427,9 @@ int main() {
                 }
                 else if(child_size == 3) {
                     for (int i = 0; i < 3; ++i) {// skip array, only consider non-array children
-                        auto child = children[i];
-                        if (child->get_sort()->get_sort_kind() != ARRAY) {
-                            assert(substitution_map.find(child) != substitution_map.end());
-                            auto new_child = substitution_map[child];
-                            children[i] = new_child;
+                        if (children[i]->get_sort()->get_sort_kind() != ARRAY) {
+                            assert(substitution_map.find(children[i]) != substitution_map.end());
+                            resolve_substitution(children[i], substitution_map); // substitute child with previous node
                         }
                     }
 
