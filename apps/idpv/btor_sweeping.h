@@ -247,7 +247,6 @@ uint32_t btor_bv_get_bit (const BtorBitVector *bv, uint32_t pos)
 
   i = pos / BTOR_BV_TYPE_BW;
   j = pos % BTOR_BV_TYPE_BW;
-
   return (bv->bits[bv->len - 1 - i] >> j) & 1;
 #endif
 }
@@ -682,11 +681,7 @@ BtorBitVector *btor_bv_uext (const BtorBitVector *bv, uint32_t len)
   return res;
 }
 
-BtorBitVector *btor_bv_slice (
-               const BtorBitVector *bv,
-               uint32_t upper,
-               uint32_t lower)
-{
+BtorBitVector *btor_bv_slice (const BtorBitVector *bv, uint32_t upper, uint32_t lower) {
   assert (bv);
 
   BtorBitVector *res;
