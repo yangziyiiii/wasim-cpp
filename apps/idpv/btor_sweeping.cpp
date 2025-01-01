@@ -95,33 +95,6 @@ void create_lut(Term current, std::unordered_map<std::string, std::string>& lut)
     }
 }
 
-
-// void create_lut(Term current, std::unordered_map<std::string, std::string>& lut, std::unordered_map<Term, Term>& substitution_map) {
-//     assert(current != nullptr);
-//     Term original = current;
-//     substitution_map[original] = original;  // create mapping for the original term
-
-//     while (current->get_op().prim_op == PrimOp::Store) {
-//         auto children = TermVec(current->begin(), current->end());
-//         assert(children.size() == 3);
-        
-//         auto array = children[0];
-//         auto index = children[1];
-//         auto value = children[2];
-
-//         // create mapping for sub-terms
-//         substitution_map[current] = current;
-//         substitution_map[array] = array;
-//         substitution_map[index] = index;  
-//         substitution_map[value] = value;  
-
-//         lut[index->to_string().substr(2)] = value->to_string().substr(2);
-//         current = array;
-//     }
-
-//     substitution_map[current] = current;
-// }
-
 void btor_bv_operation_1child(const smt::Op& op, 
                               const BtorBitVector& btor_child_1, 
                               NodeData &nd) {    
@@ -197,6 +170,7 @@ void process_child_simulation(Term child,
                               bool substitution_happened) {
     Term substitution_child;
     if(child->get_sort()->get_sort_kind() != ARRAY){
+        cout << "Child is not an array: " << child->to_string() << std::endl;
         assert(substitution_map.find(child) != substitution_map.end());
         substitution_child = substitution_map.at(child);
         substitution_happened = (child != substitution_child);
@@ -233,6 +207,7 @@ void process_two_children_simulation(smt::TermVec children,
     
     for (int i = 0; i < 2; ++i) {
         if (children[i]->get_sort()->get_sort_kind() != ARRAY) { // skip arrays
+        cout << "Child " << i << " is not an array: " << children[i]->to_string() << std::endl;
             assert(substitution_map.find(children[i]) != substitution_map.end());
             auto substitution_child = substitution_map.at(children[i]);
 
@@ -360,7 +335,7 @@ void process_children(Term current,
                       bool& substitution_happened) {
     if (children.size() == 1) {
         if (children[0]->get_sort()->get_sort_kind() == ARRAY) {
-            substitution_happened = false; // 数组节点不需要替换
+            substitution_happened = false;
         }
         process_child_simulation(children[0], current, num_iterations, op_type, node_data_map, substitution_map, substitution_happened);
     } else if (children.size() == 2) {
@@ -405,7 +380,9 @@ void compare_two_nodes(int num_iterations,
             }
         }
 
+        //FIXME:
         if(all_equal) {
+            cout << "All equal here... " << endl;
             auto eq_term = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, current))}));
             if(eq_term.is_unsat()) {
                 std::cout << "******substitution: " << current->to_string() << " -> " << t->to_string() << "*******" << std::endl;
@@ -415,6 +392,10 @@ void compare_two_nodes(int num_iterations,
                 substitution_map.insert({current, current});
             }
         }
+
+        cout << "after comparison: " << current->to_string() << endl;
+        cout << "after comparison: " << t->to_string() << endl;
+        //FIXME:
     }
 }
 
@@ -432,12 +413,10 @@ void update_hash_term_map(Term current,
     }
     auto current_hash = node_data_map[current].hash(node_data_map[current].get_simulation_data());
 
-
-
     std::cout << "current data hash: " << current_hash << std::endl;
     if (hash_term_map.find(current_hash) == hash_term_map.end()) {
         hash_term_map.insert({current_hash, {current}});
-        cout << "---------" <<hash_term_map.at(current_hash).at(0)->to_string() << endl;
+        cout << "=========" <<hash_term_map.at(current_hash).at(0)->to_string() << endl;
         substitution_map.insert({current, current});
     } else {
         cout << "current hash already exists in hash_term_map" << endl;
@@ -555,7 +534,6 @@ int main() {
         rand_guard.random_128(input_mpz);
 
         int bit_length = 128; 
-        int decimal_length = (int)std::ceil(bit_length * std::log10(2));
 
         // Use RAII for GMP strings
         unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 2, key_mpz), free);
@@ -579,7 +557,7 @@ int main() {
         substitution_map.insert({a_input_term, a_input_term});
         substitution_map.insert({b_key_term, b_key_term});
         substitution_map.insert({b_input_term, b_input_term});
-    }  
+    }
     // end of simulation
 
     assert(node_data_map[a_key_term].get_simulation_data().size() == num_iterations);
@@ -652,14 +630,8 @@ int main() {
                 auto child_size = children.size();
                 cout << "children size: " << child_size << endl;
 
-
-//simualtion data for current node
-//create a new current node
-//update hash_term_map and substitution_map
-
                 bool substitution_happened = false;
                 process_children(current, children, num_iterations, op_type, node_data_map, substitution_map, all_luts, node_data_map[current], substitution_happened);
-
                 
                 if(substitution_happened) {
                     std::cout << "***********Substitution happened***********" << std::endl;
@@ -684,7 +656,7 @@ int main() {
                 root_children[0] = substitution_map[root_children[0]];
                 root_children[1] = substitution_map[root_children[1]];
                 root = solver->make_term(op_type, root_children);
-            }            
+            }
 
             node_stack.pop();
         }
@@ -692,7 +664,6 @@ int main() {
 
     print_time();
     std::cout << "Start checking sat" << std::endl;
-
     solver->assert_formula(solver->make_term(Not, root));
     auto res = solver->check_sat();
     if(res.is_unsat()){
