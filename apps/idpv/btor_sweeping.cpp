@@ -33,6 +33,15 @@ inline void hashCombine(std::size_t & seed, T const & v, Rest &&... rest)
   (int[]){ 0, (hashCombine(seed, std::forward<Rest>(rest)), 0)... };
 }
 
+std::chrono::time_point<std::chrono::high_resolution_clock> last_time_point;
+void print_time() {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time_point).count();
+    last_time_point = now;  // Update last time point
+    std::cout << "[" << elapsed_time / 1000.0 << " s]  ";
+}
+
+
 class NodeData {
 private:
     Term term;
@@ -170,7 +179,7 @@ void process_child_simulation(Term child,
                               bool substitution_happened) {
     Term substitution_child;
     if(child->get_sort()->get_sort_kind() != ARRAY){
-        cout << "Child is not an array: " << child->to_string() << std::endl;
+        // cout << "Child is not an array: " << child->to_string() << std::endl;
         assert(substitution_map.find(child) != substitution_map.end());
         substitution_child = substitution_map.at(child);
         substitution_happened = (child != substitution_child);
@@ -207,7 +216,7 @@ void process_two_children_simulation(smt::TermVec children,
     
     for (int i = 0; i < 2; ++i) {
         if (children[i]->get_sort()->get_sort_kind() != ARRAY) { // skip arrays
-        cout << "Child " << i << " is not an array: " << children[i]->to_string() << std::endl;
+        // cout << "Child " << i << " is not an array: " << children[i]->to_string() << std::endl;
             assert(substitution_map.find(children[i]) != substitution_map.end());
             auto substitution_child = substitution_map.at(children[i]);
 
@@ -226,7 +235,7 @@ void process_two_children_simulation(smt::TermVec children,
         auto& array = children[0];
         auto& index = children[1];
 
-        std::cout << "Looking for array: " << array->to_string() << std::endl;
+        // std::cout << "Looking for array: " << array->to_string() << std::endl;
         assert(all_luts.find(array) != all_luts.end());
 
         for (size_t i = 0; i < num_iterations; ++i) {
@@ -236,7 +245,7 @@ void process_two_children_simulation(smt::TermVec children,
 
             auto index_str = std::string(btor_bv_to_char(&sim_data_index[i]));
             auto val_str = all_luts[array][index_str];
-            cout << "index: " << index_str << ", value: " << val_str << endl;
+            // cout << "index: " << index_str << ", value: " << val_str << endl;
             auto val = btor_bv_char_to_bv(val_str.data());
             nd.get_simulation_data().push_back(*val);
         }
@@ -284,18 +293,18 @@ void process_three_children_simulation(smt::TermVec& children,
                 substitution_happened_local[i] = true;
                 substitution_happened = true;
                 children[i] = substitution_child;  // Update child to its resolved (substituted) term
-                std::cout << "Substitution happened for child " << i 
-                          << ": " << substitution_child->to_string() << std::endl;
+                // std::cout << "Substitution happened for child " << i 
+                //           << ": " << substitution_child->to_string() << std::endl;
             }
         }
         else {
             substitution_happened_local[i] = false;
-            std::cout << "Child " << i << " is an array: " << children[i]->to_string() << std::endl;
+            // std::cout << "Child " << i << " is an array: " << children[i]->to_string() << std::endl;
             assert(all_luts.find(children[i]) != all_luts.end());
-            std::cout << "Array LUT entries for child " << i << ":" << std::endl;
-            for (const auto& [idx, val] : all_luts[children[i]]) {
-                std::cout << "Index: " << idx << ", Value: " << val << std::endl;
-            }
+            // std::cout << "Array LUT entries for child " << i << ":" << std::endl;
+            // for (const auto& [idx, val] : all_luts[children[i]]) {
+            //     std::cout << "Index: " << idx << ", Value: " << val << std::endl;
+            // }
         }
     }
 
@@ -354,19 +363,21 @@ void compare_two_nodes(int num_iterations,
                        std::unordered_map<Term, Term> &substitution_map,
                        TermVec terms,
                        Term current,
-                       SmtSolver solver) {
+                       SmtSolver solver,
+                       TransitionSystem &sts1,
+                       TransitionSystem &sts2) {
     
-    cout << "Comparing " << current->to_string() << " with other nodes:" << endl;
+    // cout << "Comparing " << current->to_string() << " with other nodes:" << endl;
     for(auto & t : terms) {
         assert(node_data_map.find(t) != node_data_map.end());
         
         if(t == current) {
-            cout << "Skipping self: " << t->to_string() << endl;
+            // cout << "Skipping self: " << t->to_string() << endl;
             continue;
         }
 
         if(t->get_sort() != current->get_sort()) { // ensure the same sort
-            cout << "Skipping different sorts..." << endl;
+            // cout << "Skipping different sorts..." << endl;
             continue;
         }
 
@@ -374,28 +385,32 @@ void compare_two_nodes(int num_iterations,
         for(size_t i = 0; i < num_iterations; i++) {
             if((btor_bv_compare(&node_data_map[t].get_simulation_data()[i], &node_data_map[current].get_simulation_data()[i])) != 0) {
                 all_equal = false;
-                cout << "Not equal at iteration " << i << ", current: " << current->to_string();
+                // cout << "Not equal at iteration " << i << ", current: " << current->to_string();
                 substitution_map.insert({current,current});
                 break;
             }
         }
 
-        //FIXME:
+        // print_time();
         if(all_equal) {
-            cout << "All equal here... " << endl;
+            // cout << "All equal here... " << endl;
+            solver->push();
+            solver->assert_formula(sts1.init());
+            solver->assert_formula(sts2.init());
+            for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
+            for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
             auto eq_term = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, current))}));
             if(eq_term.is_unsat()) {
-                std::cout << "******substitution: " << current->to_string() << " -> " << t->to_string() << "*******" << std::endl;
+                // std::cout << "******substitution: " << current->to_string() << " -> " << t->to_string() << "*******" << std::endl;
                 substitution_map.insert({current, t});
             }
             else {
+                // std::cout << "******no substitution*******" << std::endl;
                 substitution_map.insert({current, current});
             }
+            solver->pop();
         }
-
-        cout << "after comparison: " << current->to_string() << endl;
-        cout << "after comparison: " << t->to_string() << endl;
-        //FIXME:
+        // print_time();
     }
 }
 
@@ -405,7 +420,9 @@ void update_hash_term_map(Term current,
                           std::unordered_map<Term, NodeData>& node_data_map,
                           std::unordered_map<Term, Term>& substitution_map,
                           size_t num_iterations,
-                          SmtSolver solver) {
+                          SmtSolver solver,
+                          TransitionSystem &sts1,
+                          TransitionSystem &sts2) {
    
     for(size_t i = 0; i < num_iterations; i++){
         auto & data = node_data_map[current].get_simulation_data()[i];
@@ -413,20 +430,20 @@ void update_hash_term_map(Term current,
     }
     auto current_hash = node_data_map[current].hash(node_data_map[current].get_simulation_data());
 
-    std::cout << "current data hash: " << current_hash << std::endl;
+    // std::cout << "current data hash: " << current_hash << std::endl;
     if (hash_term_map.find(current_hash) == hash_term_map.end()) {
         hash_term_map.insert({current_hash, {current}});
-        cout << "=========" <<hash_term_map.at(current_hash).at(0)->to_string() << endl;
+        // cout << "=========" <<hash_term_map.at(current_hash).at(0)->to_string() << endl;
         substitution_map.insert({current, current});
     } else {
-        cout << "current hash already exists in hash_term_map" << endl;
+        // cout << "current hash already exists in hash_term_map" << endl;
         // cout << "current:" << current->to_string() << endl;
         hash_term_map[current_hash].push_back(current);
         // cout << "hash_term_map[current_hash]: " << hash_term_map[current_hash].size() << endl;
         // for(auto & t : hash_term_map[current_hash]) {
         //     cout << "******hash_term_map[current_hash]: " << t->to_string() << endl;
         // }
-        compare_two_nodes(num_iterations, node_data_map, substitution_map, hash_term_map[current_hash], current, solver);
+        compare_two_nodes(num_iterations, node_data_map, substitution_map, hash_term_map[current_hash], current, solver, sts1, sts2);
     }
 }
 
@@ -453,13 +470,6 @@ class GmpRandStateGuard
     // operator gmp_randstate_t &() { return state; }
 };
 
-std::chrono::time_point<std::chrono::high_resolution_clock> last_time_point;
-void print_time() {
-    auto now = std::chrono::high_resolution_clock::now();
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time_point).count();
-    last_time_point = now;  // Update last time point
-    std::cout << "[" << elapsed_time / 1000.0 << " ms]  ";
-}
 
 int main() {
     last_time_point = std::chrono::high_resolution_clock::now();
@@ -489,6 +499,9 @@ int main() {
 
     print_time();
     std::cout << "init solver" << std::endl;
+
+    //FIXME: check sat auusme 之前先push 加入这些条件，在进行check_sat_assuming， 之后哦就pop
+    solver->push();
 
     solver->assert_formula(sts1.init());
     solver->assert_formula(sts2.init());
@@ -526,7 +539,7 @@ int main() {
 
     //simulation
     GmpRandStateGuard rand_guard;
-    int num_iterations = 10;
+    int num_iterations = 30;
 
     for (int i = 0; i < num_iterations; ++i) {
         mpz_t key_mpz, input_mpz;
@@ -589,14 +602,14 @@ int main() {
             visited = true;
         } else {
             auto op_type = current->get_op();
-            std::cout << "-----op: " << op_type.to_string() << "-----" << std::endl;
+            // std::cout << "-----op: " << op_type.to_string() << "-----" << std::endl;
 
             if(current->is_value()) { // constant
-                std::cout << "Constant: " << current->to_string().substr(2) << std::endl;
+                // std::cout << "Constant: " << current->to_string().substr(2) << std::endl;
 
                 auto current_str = current->to_string().substr(2);
                 auto current_bv = btor_bv_char_to_bv(current_str.data());
-                cout << "current_bv width: " << current_bv->width <<", val:" << current_bv->val << endl;
+                // cout << "current_bv width: " << current_bv->width <<", val:" << current_bv->val << endl;
                 for (int i = 0; i < num_iterations; ++i) {
                     node_data_map[current].get_simulation_data().push_back(*current_bv);
                 }
@@ -608,10 +621,10 @@ int main() {
                 // substitution_map.insert({current, current}); 
 
                 //update hash_term_map
-                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver);
+                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2);
             }
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
-                std::cout << "leaf nodes: " << current->to_string() << std::endl;
+                // std::cout << "leaf nodes: " << current->to_string() << std::endl;
 
                 assert(TermVec(current->begin(), current->end()).empty());// no children
                 assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
@@ -622,32 +635,37 @@ int main() {
                 // substitution_map.insert({current, current}); 
 
                 //update hash_term_map 
-                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver);
+                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2);
             }
             else { // compute simulation data for current node
-                std::cout << "Computing : " << current->to_string() << std::endl;
+                // std::cout << "Computing : " << current->to_string() << std::endl;
                 TermVec children(current->begin(), current->end()); // find children
                 auto child_size = children.size();
-                cout << "children size: " << child_size << endl;
+                // cout << "children size: " << child_size << endl;
 
                 bool substitution_happened = false;
                 process_children(current, children, num_iterations, op_type, node_data_map, substitution_map, all_luts, node_data_map[current], substitution_happened);
                 
                 if(substitution_happened) {
-                    std::cout << "***********Substitution happened***********" << std::endl;
+                    // std::cout << "***********Substitution happened***********" << std::endl;
                     Term new_node = solver->make_term(op_type, children);
                     NodeData new_nd = node_data_map[current];
                     node_data_map.insert({new_node, new_nd});
 
                     //update hash_term_map
-                    update_hash_term_map(new_node, hash_term_map, node_data_map, substitution_map, num_iterations, solver);
+                    update_hash_term_map(new_node, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2);
                 } else {
-                    std::cout << "No substitution..." << std::endl;
-                    update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver);
+                    // std::cout << "No substitution..." << std::endl;
+                    update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2);
                 }    
             }
         
             if(node_stack.size() == 1){ // root node
+
+            
+                // TODO: check if we can use substitution map to find the new root nodeq
+
+
                 TermVec root_children(current->begin(), current->end());
                 assert(root_children.size() == 2); // only a::out and b::out are left as root children
                 assert(substitution_map.find(root_children[0]) != substitution_map.end());
@@ -666,6 +684,7 @@ int main() {
     std::cout << "Start checking sat" << std::endl;
     solver->assert_formula(solver->make_term(Not, root));
     auto res = solver->check_sat();
+    print_time();
     if(res.is_unsat()){
         std::cout << "UNSAT" << std::endl;
     } else {
