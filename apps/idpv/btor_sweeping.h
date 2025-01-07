@@ -818,3 +818,26 @@ BtorBitVector *btor_bv_eq (const BtorBitVector *a, const BtorBitVector *b)
 #endif
   return res;
 }
+
+BtorBitVector *btor_bv_xor (const BtorBitVector *a, const BtorBitVector *b) {
+  assert (a);
+  assert (b);
+  assert (a->width == b->width);
+
+  BtorBitVector *res;
+  uint32_t bw = a->width;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_new (bw);
+  mpz_xor (res->val, a->val, b->val);
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
+#else
+  assert (a->len == b->len);
+  uint32_t i;
+
+  res = btor_bv_new (bw);
+  for (i = 0; i < a->len; i++) res->bits[i] = a->bits[i] ^ b->bits[i];
+
+  assert (rem_bits_zero_dbg (res));
+#endif
+  return res;
+}
