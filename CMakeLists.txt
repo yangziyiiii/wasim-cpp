@@ -287,8 +287,8 @@ endif()
 # add_executable(testdivcondeq "apps/idpv/div_condeq.cpp")
 # target_link_libraries(testdivcondeq wasim-lib)
 
-# add_executable(test_aes "apps/idpv/aes.cpp")
-# target_link_libraries(test_aes wasim-lib)
+add_executable(test_aes "apps/idpv/aes.cpp")
+target_link_libraries(test_aes wasim-lib)
 
 # add_executable(test_ast "apps/idpv/ast-test.cpp")
 # target_link_libraries(test_ast wasim-lib)

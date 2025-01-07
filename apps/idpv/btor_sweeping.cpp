@@ -365,7 +365,10 @@ void compare_two_nodes(int num_iterations,
                        Term current,
                        SmtSolver solver,
                        TransitionSystem &sts1,
-                       TransitionSystem &sts2) {
+                       TransitionSystem &sts2,
+                       int &count,
+                       int &unsat_count,
+                       int &sat_count) {
     
     // cout << "Comparing " << current->to_string() << " with other nodes:" << endl;
     for(auto & t : terms) {
@@ -391,26 +394,33 @@ void compare_two_nodes(int num_iterations,
             }
         }
 
-        // print_time();
+        print_time();
         if(all_equal) {
-            // cout << "All equal here... " << endl;
-            solver->push();
-            solver->assert_formula(sts1.init());
-            solver->assert_formula(sts2.init());
-            for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
-            for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
+            cout << "All equal here... " ;
+            count ++;
+
+            //use incremental solving
+           solver->push();
+
             auto eq_term = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, current))}));
             if(eq_term.is_unsat()) {
-                // std::cout << "******substitution: " << current->to_string() << " -> " << t->to_string() << "*******" << std::endl;
+                std::cout << "******substitution: " << current->to_string() << " -> " << t->to_string() << "*******";
+                unsat_count ++;
+                cout << "unsat ";
                 substitution_map.insert({current, t});
             }
             else {
                 // std::cout << "******no substitution*******" << std::endl;
+                sat_count ++;
+                cout << "sat ";
                 substitution_map.insert({current, current});
             }
+            // substitution_map.insert({current, current});
+            // solver->dump_smt2("./temp.smt2");
             solver->pop();
         }
-        // print_time();
+        print_time();
+        std::cout << std::endl;
     }
 }
 
@@ -422,7 +432,11 @@ void update_hash_term_map(Term current,
                           size_t num_iterations,
                           SmtSolver solver,
                           TransitionSystem &sts1,
-                          TransitionSystem &sts2) {
+                          TransitionSystem &sts2,
+                          int &count,
+                          int &unsat_count,
+                          int &sat_count) {
+    
    
     for(size_t i = 0; i < num_iterations; i++){
         auto & data = node_data_map[current].get_simulation_data()[i];
@@ -443,7 +457,7 @@ void update_hash_term_map(Term current,
         // for(auto & t : hash_term_map[current_hash]) {
         //     cout << "******hash_term_map[current_hash]: " << t->to_string() << endl;
         // }
-        compare_two_nodes(num_iterations, node_data_map, substitution_map, hash_term_map[current_hash], current, solver, sts1, sts2);
+        compare_two_nodes(num_iterations, node_data_map, substitution_map, hash_term_map[current_hash], current, solver, sts1, sts2, count, unsat_count, sat_count);
     }
 }
 
@@ -500,8 +514,11 @@ int main() {
     print_time();
     std::cout << "init solver" << std::endl;
 
-    //FIXME: check sat auusme 之前先push 加入这些条件，在进行check_sat_assuming， 之后哦就pop
-    solver->push();
+    int count = 0;
+    int unsat_count = 0;
+    int sat_count = 0;
+
+    solver->push(); // use incremental solving
 
     solver->assert_formula(sts1.init());
     solver->assert_formula(sts2.init());
@@ -539,7 +556,7 @@ int main() {
 
     //simulation
     GmpRandStateGuard rand_guard;
-    int num_iterations = 30;
+    int num_iterations = 40;
 
     for (int i = 0; i < num_iterations; ++i) {
         mpz_t key_mpz, input_mpz;
@@ -577,6 +594,9 @@ int main() {
     assert(node_data_map[a_input_term].get_simulation_data().size() == num_iterations);
     assert(node_data_map[b_key_term].get_simulation_data().size() == num_iterations);
     assert(node_data_map[b_input_term].get_simulation_data().size() == num_iterations);
+
+    solver->assert_formula(solver->make_term(Equal, a_key_term, b_key_term));
+    solver->assert_formula(solver->make_term(Equal, a_input_term, b_input_term));
 
     //start post order traversal
     std::stack<std::pair<Term,bool>> node_stack;
@@ -621,7 +641,7 @@ int main() {
                 // substitution_map.insert({current, current}); 
 
                 //update hash_term_map
-                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2);
+                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
             }
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
                 // std::cout << "leaf nodes: " << current->to_string() << std::endl;
@@ -635,7 +655,7 @@ int main() {
                 // substitution_map.insert({current, current}); 
 
                 //update hash_term_map 
-                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2);
+                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
             }
             else { // compute simulation data for current node
                 // std::cout << "Computing : " << current->to_string() << std::endl;
@@ -653,35 +673,42 @@ int main() {
                     node_data_map.insert({new_node, new_nd});
 
                     //update hash_term_map
-                    update_hash_term_map(new_node, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2);
+                    update_hash_term_map(new_node, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
                 } else {
                     // std::cout << "No substitution..." << std::endl;
-                    update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2);
+                    update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
                 }    
             }
         
             if(node_stack.size() == 1){ // root node
+                assert(substitution_map.find(current) != substitution_map.end());
+                root = substitution_map.at(current);
+                break;
 
-            
-                // TODO: check if we can use substitution map to find the new root nodeq
 
+                // TermVec root_children(current->begin(), current->end());
+                // assert(root_children.size() == 2); // only a::out and b::out are left as root children
+                // assert(substitution_map.find(root_children[0]) != substitution_map.end());
+                // assert(substitution_map.find(root_children[1]) != substitution_map.end());
 
-                TermVec root_children(current->begin(), current->end());
-                assert(root_children.size() == 2); // only a::out and b::out are left as root children
-                assert(substitution_map.find(root_children[0]) != substitution_map.end());
-                assert(substitution_map.find(root_children[1]) != substitution_map.end());
-
-                root_children[0] = substitution_map[root_children[0]];
-                root_children[1] = substitution_map[root_children[1]];
-                root = solver->make_term(op_type, root_children);
+                // root_children[0] = substitution_map[root_children[0]];
+                // root_children[1] = substitution_map[root_children[1]];
+                // root = solver->make_term(op_type, root_children);
             }
 
             node_stack.pop();
         }
     }
 
+    cout << "count: " << count << endl;
+    cout << "unsat_count: " << unsat_count << endl;
+    cout << "sat_count: " << sat_count << endl;
     print_time();
     std::cout << "Start checking sat" << std::endl;
+
+
+    // solver->assert_formula(solver->make_term(Equal, a_key_term, b_key_term));
+    // solver->assert_formula(solver->make_term(Equal, a_input_term, b_input_term));
     solver->assert_formula(solver->make_term(Not, root));
     auto res = solver->check_sat();
     print_time();
