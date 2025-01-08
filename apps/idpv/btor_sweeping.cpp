@@ -362,12 +362,47 @@ void process_children(Term current,
     }
 }
 
+bool is_unproductive_node(const Term &node1, const Term &node2) {
+    // Check if both nodes have the same operation
+    if (node1->get_op() != node2->get_op()) {
+        return false; // Different operations, comparison might be useful
+    }
+
+    // Extract specific operation type
+    auto op = node1->get_op().prim_op;
+
+    if (op == PrimOp::Extract) {
+        // For extract, check if ranges overlap
+        auto range1 = std::make_pair(node1->get_op().idx0, node1->get_op().idx1);
+        auto range2 = std::make_pair(node2->get_op().idx0, node2->get_op().idx1);
+
+        // Skip comparison if ranges overlap
+        if ((range1.first >= range2.second && range1.second <= range2.first) ||
+            (range2.first >= range1.second && range2.second <= range1.first)) {
+            return true;
+        }
+    }
+
+    if (op == PrimOp::Select) {
+        // For select, check if base arrays are the same
+        Term base1 = *(node1->begin());
+        Term base2 = *(node2->begin());
+
+        if (base1 == base2) {
+            // Skip comparison if they depend on the same base array
+            return true;
+        }
+    }
+
+    // Add more operation-specific rules here as needed
+    return false; // Default: comparison is productive
+}
 
 //check two nodes are equal or not
 void compare_two_nodes(int num_iterations, 
                        std::unordered_map<Term, NodeData> &node_data_map,
                        std::unordered_map<Term, Term> &substitution_map,
-                       std::unordered_map<Term, int> &term_depth_map,
+                    //    std::unordered_map<Term, int> &term_depth_map,
                        TermVec terms,
                        Term current,
                        SmtSolver solver,
@@ -380,6 +415,17 @@ void compare_two_nodes(int num_iterations,
     // cout << "Comparing " << current->to_string() << " with other nodes:" << endl;
     for(auto & t : terms) {
         assert(node_data_map.find(t) != node_data_map.end());
+
+        if (is_unproductive_node(current, t)) {
+            std::cout << "unproductive comparison" << std::endl; 
+            substitution_map.insert({current, current});
+            continue;
+        }
+
+        // if(term_depth_map[t] == term_depth_map[current] || (term_depth_map[t] - term_depth_map[current] < 5)) {
+        //     substitution_map.insert({current, current});
+        //     continue;
+        // }
         
         if(t == current || t->get_sort() != current->get_sort()) {
             // cout << "Skipping self or different sorts : " << t->to_string() << endl;
@@ -400,22 +446,18 @@ void compare_two_nodes(int num_iterations,
         print_time();
         if(all_equal) {
             cout << "All equal here... " ;
-            cout << "====comparing " << current->to_string() << " with " << t->to_string() << "====";
+            // cout << "====comparing " << current->to_string() << " with " << t->to_string() << "====";
             count ++;
 
             //use incremental solving
-        //    solver->push();
+            //solver->push();
 
             auto eq_term = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, current))}));
             if(eq_term.is_unsat()) {
-                std::cout << "******substitution: " << current->to_string() << " -> " << t->to_string() << "*******";
+                // std::cout << "****substitution: " << current->to_string() << " -> " << t->to_string() << "****";
                 unsat_count ++;
                 cout << "unsat ";
-               if (term_depth_map[t] < term_depth_map[current]) {
-                    substitution_map.insert({current, t});
-                } else {
-                    substitution_map.insert({current, current});
-                }
+                substitution_map.insert({current, t});
                 // solver->pop(); // End early and replace with the one closest to the input
                 print_time();
                 std::cout << std::endl;
@@ -441,7 +483,7 @@ void update_hash_term_map(Term current,
                           std::unordered_map<uint32_t, smt::TermVec>& hash_term_map,
                           std::unordered_map<Term, NodeData>& node_data_map,
                           std::unordered_map<Term, Term>& substitution_map,
-                          std::unordered_map<Term, int>& term_depth_map,
+                        //   std::unordered_map<Term, int>& term_depth_map,
                           size_t num_iterations,
                           SmtSolver solver,
                           TransitionSystem &sts1,
@@ -470,15 +512,16 @@ void update_hash_term_map(Term current,
         // for(auto & t : hash_term_map[current_hash]) {
         //     cout << "******hash_term_map[current_hash]: " << t->to_string() << endl;
         // }
-        compare_two_nodes(num_iterations, node_data_map, substitution_map, term_depth_map, hash_term_map[current_hash], current, solver, sts1, sts2, count, unsat_count, sat_count);
+        compare_two_nodes(num_iterations, node_data_map, substitution_map, hash_term_map[current_hash], current, solver, sts1, sts2, count, unsat_count, sat_count);
     }
 }
 
 // compute a unique hash for a node
 size_t compute_node_hash(const smt::Op &op,
                          const Term &current,
-                         const TermVec &children,
-                         const std::unordered_map<Term, int> &term_depth_map){
+                         const TermVec &children
+                        //  const std::unordered_map<Term, int> &term_depth_map
+                         ){
     size_t seed = 0;
     hashCombine(seed, op.prim_op); // include operator type
     // cout << "current hash1: " << seed << endl;
@@ -491,10 +534,10 @@ size_t compute_node_hash(const smt::Op &op,
     }
     
     // cout << "current hash2: " << seed << endl;
-    auto depth_it = term_depth_map.find(current); // include depth
-    if (depth_it != term_depth_map.end()) {
-        hashCombine(seed, depth_it->second);
-    }
+    // auto depth_it = term_depth_map.find(current); // include depth
+    // if (depth_it != term_depth_map.end()) {
+    //     hashCombine(seed, depth_it->second);
+    // }
     // cout << "current hash3: " << seed << endl;
 
     for(const auto & child : children) { // include children
@@ -582,7 +625,7 @@ int main() {
 
     //TODO: add strash table and term depth
     std::unordered_map<Term, int> term_depth_map;
-    std::unordered_map<size_t, Term> strash_table; // strash index -> term
+    std::unordered_map<size_t, TermVec> strash_map; // strash index -> term
 
     // ARRAY INIT
     for (const auto & var_val_pair : sts1.init_constants()) {
@@ -679,7 +722,7 @@ int main() {
         } else {
             auto op_type = current->get_op();
             // std::cout << "-----op: " << op_type.to_string() << "-----" << std::endl;
-            cout << "----current: " << current->to_string() << "----" << endl;
+            // cout << "----current: " << current->to_string() << "----" << endl;
 
             TermVec children(current->begin(), current->end());
             int current_depth = 0;
@@ -690,6 +733,8 @@ int main() {
                 }
             }
             term_depth_map[current] = current_depth + 1;
+
+            // cout << "current depth: " << current_depth << endl;
 
             if(current->is_value()) { // constant
                 // std::cout << "Constant: " << current->to_string().substr(2) << std::endl;
@@ -708,7 +753,7 @@ int main() {
                 // substitution_map.insert({current, current}); 
 
                 //update hash_term_map
-                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, term_depth_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
+                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
             }
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
                 // std::cout << "leaf nodes: " << current->to_string() << std::endl;
@@ -722,7 +767,7 @@ int main() {
                 // substitution_map.insert({current, current}); 
 
                 //update hash_term_map 
-                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, term_depth_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
+                update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
             }
             else { // compute simulation data for current node
                 // std::cout << "Computing : " << current->to_string() << std::endl;
@@ -733,46 +778,59 @@ int main() {
                 bool substitution_happened = false;
                 process_children(current, children, num_iterations, op_type, node_data_map, substitution_map, all_luts, node_data_map[current], substitution_happened);
                 
-                // if(substitution_happened) {
-                //     // std::cout << "***********Substitution happened***********" << std::endl;
-                //     Term new_node = solver->make_term(op_type, children);
-                //     NodeData new_nd = node_data_map[current];
-                //     node_data_map.insert({new_node, new_nd});
+                if(substitution_happened) {
+                    // std::cout << "***********Substitution happened***********" << std::endl;
+                    Term new_node = solver->make_term(op_type, children);
+                    NodeData new_nd = node_data_map[current];
+                    node_data_map.insert({new_node, new_nd});
 
-                //     //update hash_term_map
-                //     update_hash_term_map(new_node, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
-                // } else {
-                //     // std::cout << "No substitution..." << std::endl;
-                //     update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
-                // }
-
-                size_t node_hash = compute_node_hash(op_type, current, children, term_depth_map);
-                // cout << "node_hash: " << node_hash << endl;
-                if (strash_table.find(node_hash) != strash_table.end()) {
-                    // Found an equivalent node
-                    Term equivalent_node = strash_table[node_hash];
-                    substitution_map.insert({current, equivalent_node});
-
-                    // Update hash_term_map for the equivalent node
-                    // update_hash_term_map(equivalent_node, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
+                    //update hash_term_map
+                    update_hash_term_map(new_node, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
                 } else {
-                    // No equivalent node, create a new one
-                    if (substitution_happened) {
-                        Term new_node = solver->make_term(op_type, children);
-                        NodeData new_nd = node_data_map[current];
-                        node_data_map.insert({new_node, new_nd});
-
-                        // Add the new node to the hash table
-                        strash_table[node_hash] = new_node;
-
-                        // Update hash_term_map for the new node
-                        update_hash_term_map(new_node, hash_term_map, node_data_map, substitution_map, term_depth_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
-                    } else {
-                        // No substitution happened, use the current node
-                        strash_table[node_hash] = current;
-                        update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, term_depth_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
-                    }
+                    // std::cout << "No substitution..." << std::endl;
+                    update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
                 }
+
+                // size_t node_hash = compute_node_hash(op_type, current, children);
+                // // cout << "node_hash: " << node_hash << endl;
+                // if (strash_map.find(node_hash) != strash_map.end()) {
+                //     strash_map[node_hash].push_back(current);
+                    
+
+
+
+                //     Term equivalent_node = strash_map[node_hash];
+                //     //FIXME:
+                //     assert(equivalent_node->get_sort() == current->get_sort());
+                //     assert(term_depth_map.find(equivalent_node) != term_depth_map.end());
+                    
+                //     if(term_depth_map[equivalent_node] < term_depth_map[current]) {
+                //         substitution_map.insert({current, equivalent_node});
+                //     }else {
+                //         substitution_map.insert({equivalent_node, current});
+                //     }
+                //     // substitution_map.insert({current, equivalent_node});
+
+                //     // Update hash_term_map for the equivalent node
+                //     // update_hash_term_map(equivalent_node, hash_term_map, node_data_map, substitution_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
+                // } else {
+                //     // No equivalent node, create a new one
+                //     if (substitution_happened) {
+                //         Term new_node = solver->make_term(op_type, children);
+                //         NodeData new_nd = node_data_map[current];
+                //         node_data_map.insert({new_node, new_nd});
+
+                //         // Add the new node to the hash table
+                //         strash_map[node_hash] = new_node;
+
+                //         // Update hash_term_map for the new node
+                //         update_hash_term_map(new_node, hash_term_map, node_data_map, substitution_map, term_depth_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
+                //     } else {
+                //         // No substitution happened, use the current node
+                //         strash_map[node_hash] = current;
+                //         update_hash_term_map(current, hash_term_map, node_data_map, substitution_map, term_depth_map, num_iterations, solver, sts1, sts2, count, unsat_count, sat_count);
+                //     }
+                // }
             }
         
             if(node_stack.size() == 1){ // root node
