@@ -362,40 +362,36 @@ void process_children(Term current,
     }
 }
 
-bool is_unproductive_node(const Term &node1, const Term &node2) {
-    // Check if both nodes have the same operation
-    if (node1->get_op() != node2->get_op()) {
-        return false; // Different operations, comparison might be useful
+// compute a unique hash for a node
+size_t compute_node_strash(const Term &current,
+                           const TermVec &children
+                        //  const std::unordered_map<Term, int> &term_depth_map
+                         ){
+    size_t seed = 0;
+    hashCombine(seed, current->get_op().prim_op); // include operator type
+    
+    // cout << current->get_op().to_string() << endl;
+    // cout << "current hash1: " << seed << endl;
+
+    if(current->get_sort()->get_sort_kind() == BOOL) {
+        hashCombine(seed, std::string("BOOL"));
+    } else if(current->get_sort()->get_sort_kind() == ARRAY) {
+        hashCombine(seed, std::string("ARRAY"));
+    } else {
+        hashCombine(seed, current->get_sort()->get_width()); // include width
     }
+    
+    // cout << "current sort: " << current->get_sort()->get_sort_kind() << endl;
+    // cout << "current width: " << current->get_sort()->get_width() << endl;
 
-    // Extract specific operation type
-    auto op = node1->get_op().prim_op;
+    // cout << "current hash2: " << seed << endl;
 
-    if (op == PrimOp::Extract) {
-        // For extract, check if ranges overlap
-        auto range1 = std::make_pair(node1->get_op().idx0, node1->get_op().idx1);
-        auto range2 = std::make_pair(node2->get_op().idx0, node2->get_op().idx1);
-
-        // Skip comparison if ranges overlap
-        if ((range1.first >= range2.second && range1.second <= range2.first) ||
-            (range2.first >= range1.second && range2.second <= range1.first)) {
-            return true;
-        }
-    }
-
-    if (op == PrimOp::Select) {
-        // For select, check if base arrays are the same
-        Term base1 = *(node1->begin());
-        Term base2 = *(node2->begin());
-
-        if (base1 == base2) {
-            // Skip comparison if they depend on the same base array
-            return true;
-        }
-    }
-
-    // Add more operation-specific rules here as needed
-    return false; // Default: comparison is productive
+    // for(const auto & child : children) { // include children
+    //     hashCombine(seed, child->to_string());
+    //     hashCombine(seed, child->get_op().prim_op);
+    // }
+    // cout << "current hash4: " << seed << endl;
+    return seed;
 }
 
 //check two nodes are equal or not
@@ -416,17 +412,6 @@ void compare_two_nodes(int num_iterations,
     for(auto & t : terms) {
         assert(node_data_map.find(t) != node_data_map.end());
 
-        if (is_unproductive_node(current, t)) {
-            std::cout << "unproductive comparison" << std::endl; 
-            substitution_map.insert({current, current});
-            continue;
-        }
-
-        // if(term_depth_map[t] == term_depth_map[current] || (term_depth_map[t] - term_depth_map[current] < 5)) {
-        //     substitution_map.insert({current, current});
-        //     continue;
-        // }
-        
         if(t == current || t->get_sort() != current->get_sort()) {
             // cout << "Skipping self or different sorts : " << t->to_string() << endl;
             substitution_map.insert({current, current});
@@ -445,33 +430,50 @@ void compare_two_nodes(int num_iterations,
 
         print_time();
         if(all_equal) {
-            cout << "All equal here... " ;
-            // cout << "====comparing " << current->to_string() << " with " << t->to_string() << "====";
+            cout << "All equal here... ";
+            // cout << "====comparing " << current->to_string() << " with " << t->to_string() << "====" << endl;
             count ++;
 
             //use incremental solving
             //solver->push();
 
-            auto eq_term = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, current))}));
-            if(eq_term.is_unsat()) {
-                // std::cout << "****substitution: " << current->to_string() << " -> " << t->to_string() << "****";
-                unsat_count ++;
-                cout << "unsat ";
+            //TODO:
+            auto current_hash =compute_node_strash(current, TermVec(current->begin(), current->end()));
+            auto t_hash = compute_node_strash(t, TermVec(t->begin(), t->end()));
+            if(t_hash == current_hash) {
+                // cout << "Skip: " << current->to_string() << " and " << t->to_string() << endl;
+                // cout << "skip, unsat ";
+                // print_time();
+                // std::cout << std::endl;
                 substitution_map.insert({current, t});
-                // solver->pop(); // End early and replace with the one closest to the input
-                print_time();
-                std::cout << std::endl;
-                break;
+                continue;
             }
-            else {
-                // std::cout << "******no substitution*******" << std::endl;
-                sat_count ++;
-                cout << "sat ";
-                substitution_map.insert({current, current});
+
+            else{
+
+
+                auto eq_term = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, current))}));
+                if(eq_term.is_unsat()) {
+                    // std::cout << "****substitution: " << current->to_string() << " -> " << t->to_string() << "****";
+                    unsat_count ++;
+                    cout << "unsat ";
+                    substitution_map.insert({current, t});
+                    // solver->pop(); // End early and replace with the one closest to the input
+                    print_time();
+                    std::cout << std::endl;
+                    break;
+                }
+                else {
+                    // std::cout << "******no substitution*******" << std::endl;
+                    sat_count ++;
+                    cout << "sat ";
+                    substitution_map.insert({current, current});
+                }
+                // substitution_map.insert({current, current});
+                // solver->dump_smt2("./temp.smt2");
+                // solver->pop();
             }
-            // substitution_map.insert({current, current});
-            // solver->dump_smt2("./temp.smt2");
-            // solver->pop();
+            
         }
         print_time();
         std::cout << std::endl;
@@ -514,37 +516,6 @@ void update_hash_term_map(Term current,
         // }
         compare_two_nodes(num_iterations, node_data_map, substitution_map, hash_term_map[current_hash], current, solver, sts1, sts2, count, unsat_count, sat_count);
     }
-}
-
-// compute a unique hash for a node
-size_t compute_node_hash(const smt::Op &op,
-                         const Term &current,
-                         const TermVec &children
-                        //  const std::unordered_map<Term, int> &term_depth_map
-                         ){
-    size_t seed = 0;
-    hashCombine(seed, op.prim_op); // include operator type
-    // cout << "current hash1: " << seed << endl;
-    if(current->get_sort()->get_sort_kind() == BOOL) {
-        hashCombine(seed, std::string("BOOL"));
-    } else if(current->get_sort()->get_sort_kind() == ARRAY) {
-        hashCombine(seed, std::string("ARRAY"));
-    } else {
-        hashCombine(seed, current->get_sort()->get_width()); // include width
-    }
-    
-    // cout << "current hash2: " << seed << endl;
-    // auto depth_it = term_depth_map.find(current); // include depth
-    // if (depth_it != term_depth_map.end()) {
-    //     hashCombine(seed, depth_it->second);
-    // }
-    // cout << "current hash3: " << seed << endl;
-
-    for(const auto & child : children) { // include children
-        hashCombine(seed, child->to_string());
-    }
-    // cout << "current hash4: " << seed << endl;
-    return seed;
 }
 
 // RAII wrapper for GMP random state
