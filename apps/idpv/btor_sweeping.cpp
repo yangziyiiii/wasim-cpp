@@ -379,11 +379,6 @@ int main() {
     std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
     std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
     std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
-    
-
-    //TODO: add strash table and term depth
-    std::unordered_map<Term, int> term_depth_map;
-    std::unordered_map<size_t, TermVec> strash_map; // strash index -> term
 
     // ARRAY INIT
     for (const auto & var_val_pair : sts1.init_constants()) {
@@ -502,9 +497,7 @@ int main() {
     hash_term_map.emplace(node_data_map[a_input_term].hash(), TermVec({a_input_term, b_input_term}));
 
     // end of simulation
-
-    // TODO: compute other variable (array) substitution
-
+    
     assert(node_data_map[a_key_term].get_simulation_data().size() == num_iterations);
     assert(node_data_map[a_input_term].get_simulation_data().size() == num_iterations);
     assert(node_data_map[b_key_term].get_simulation_data().size() == num_iterations);
@@ -548,16 +541,7 @@ int main() {
             // cout << "----current: " << current->to_string() << "----" << endl;
 
             TermVec children(current->begin(), current->end());
-            int current_depth = 0;
 
-            for (const Term &child : children) {
-                if (term_depth_map.find(child) != term_depth_map.end()) {
-                    current_depth = std::max(current_depth, term_depth_map[child]);
-                }
-            }
-            term_depth_map[current] = current_depth + 1;
-
-            // cout << "current depth: " << current_depth << endl;
 
             if(current->is_value()) { // constant
                 // std::cout << "Constant: " << current->to_string().substr(2) << std::endl;
@@ -571,7 +555,7 @@ int main() {
                 // btor_bv_free(current_bv);
 
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
-                // if you can find a term that is equivalent to this constant
+                // TODO: if you can find a term that is equivalent to this constant
                 // case 1 : that term is also a constant, then they should be the same term (Boolector will merge them)
                 // case 2 : that term is not a constant, you should not merge either
                 // so constant don't need substitution
@@ -671,9 +655,10 @@ int main() {
             node_stack.pop();            
         } // end of if visited
     } // end of traversal
+    std::cout << std::endl;
 
-     assert(substitution_map.find(root) != substitution_map.end());
-     root = substitution_map.at(root);
+    assert(substitution_map.find(root) != substitution_map.end());
+    root = substitution_map.at(root);
 
     cout << "count: " << count << endl;
     cout << "unsat_count: " << unsat_count << endl;
