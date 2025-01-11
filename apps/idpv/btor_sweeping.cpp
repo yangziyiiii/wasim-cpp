@@ -497,7 +497,6 @@ int main() {
     hash_term_map.emplace(node_data_map[a_input_term].hash(), TermVec({a_input_term, b_input_term}));
 
     // end of simulation
-    
     assert(node_data_map[a_key_term].get_simulation_data().size() == num_iterations);
     assert(node_data_map[a_input_term].get_simulation_data().size() == num_iterations);
     assert(node_data_map[b_key_term].get_simulation_data().size() == num_iterations);

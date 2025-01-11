@@ -1,0 +1,8 @@
+read_verilog -formal mul_64_golden.v
+prep -top alu_golden
+flatten
+memory -nomap
+hierarchy -check
+setundef -undriven -init -expose
+sim -w alu_golden
+write_btor -s mul_64_golden.btor2
