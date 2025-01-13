@@ -337,8 +337,9 @@ class GmpRandStateGuard
 
 
 int main() {
-    last_time_point = std::chrono::high_resolution_clock::now();
-    auto start_time = std::chrono::high_resolution_clock::now();
+    auto program_start_time = std::chrono::high_resolution_clock::now();
+    last_time_point = program_start_time;
+    // auto start_time = std::chrono::high_resolution_clock::now();
 
     SmtSolver solver = BoolectorSolverFactory::create(true);
 
@@ -673,5 +674,9 @@ int main() {
     } else {
         std::cout << "SAT" << std::endl;
     }
+
+    auto program_end_time = std::chrono::high_resolution_clock::now();
+    auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();
+    std::cout << "Total execution time: " << total_time / 1000.0 << " s" << std::endl;
     return 0;
 }

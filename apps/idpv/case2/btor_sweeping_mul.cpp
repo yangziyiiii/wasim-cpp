@@ -115,9 +115,8 @@ void create_lut(Term current, std::unordered_map<std::string, std::string>& lut)
 void btor_bv_operation_1child(const smt::Op& op, 
                               const BtorBitVector& btor_child_1, 
                               NodeData &nd) {    
-    if(op.prim_op == PrimOp::BVNot) {
-        auto current_val = btor_bv_not(&btor_child_1);                    
-        // nd.add_data(*current_val);
+    if(op.prim_op == PrimOp::Not) {
+        auto current_val = btor_bv_not(&btor_child_1);
         nd.get_simulation_data().push_back(*current_val);
     }
     else if(op.prim_op == PrimOp::Extract) {
@@ -128,15 +127,18 @@ void btor_bv_operation_1child(const smt::Op& op,
         // cout << "btor_child_1: " << btor_child_1.val << ", width: " << btor_child_1.width << endl;
         auto current_val = btor_bv_slice(&btor_child_1, high, low);
         assert(current_val->width == high - low + 1);
-        // nd.add_data(*current_val);
         nd.get_simulation_data().push_back(*current_val);
     }
     else if(op.prim_op == PrimOp::Zero_Extend) {
         auto current_val = btor_bv_uext(&btor_child_1, op.idx0);
-        // nd.add_data(*current_val);
         nd.get_simulation_data().push_back(*current_val);
     }
+    // else if(op.prim_op == PrimOp::Not) {
+    //     auto current_val = btor_bv_not(&btor_child_1);
+    //     nd.get_simulation_data().push_back(*current_val);
+    // }
     else {
+        cout << "Unsupported operation type 1 child: " << op.to_string() << endl;
         throw NotImplementedException("Unsupported operation type 1 child: " + op.to_string());
     }
 }
@@ -165,7 +167,29 @@ void btor_bv_operation_2children(const smt::Op& op,
         auto current_val = btor_bv_xor(&btor_child_1, &btor_child_2);
         nd.get_simulation_data().push_back(*current_val);
     }
+    else if(op.prim_op == PrimOp::BVMul) {
+        auto current_val = btor_bv_mul(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVComp) {
+        auto current_val = btor_bv_compare(&btor_child_1, &btor_child_2);
+        auto current_val_bv = btor_bv_int64_to_bv(current_val, 1);
+        nd.get_simulation_data().push_back(*current_val_bv);
+    }
+    else if(op.prim_op == PrimOp::Distinct) {
+        auto current_val = btor_bv_ne(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVUdiv) {
+        auto current_val = btor_bv_udiv(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVSub) {
+        auto current_val = btor_bv_sub(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
     else {
+        cout << "Unsupported operation type 2 children: " << op.to_string() << endl;
         throw NotImplementedException("Unsupported operation type 2 children: " + op.to_string());
     }
 }
@@ -341,52 +365,11 @@ class GmpRandStateGuard
     // operator gmp_randstate_t &() { return state; }
 };
 
-
-int main() {
-    last_time_point = std::chrono::high_resolution_clock::now();
-    auto start_time = std::chrono::high_resolution_clock::now();
-
-    SmtSolver solver = BoolectorSolverFactory::create(true);
-
-    solver->set_logic("QF_UFBV");
-    solver->set_opt("incremental", "true");
-    solver->set_opt("produce-models", "true");
-    solver->set_opt("produce-unsat-assumptions", "true");
-
-    // cout << "Loading and parsing BTOR2 files...\n";
-    TransitionSystem sts1(solver);
-    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/mul_64_golden.btor2", sts1, "a::");
-
-    auto a_key_term = sts1.lookup("a::a64");
-    auto a_input_term = sts1.lookup("a::b64");
-    auto a_output_term = sts1.lookup("a::out128");
-
-    TransitionSystem sts2(solver);
-    BTOR2Encoder btor_parser2("../design/smt-sweeping/case2/mul_64.btor2", sts2, "b::");
-
-    auto b_key_term = sts2.lookup("b::a");
-    auto b_input_term = sts2.lookup("b::b");
-    auto b_output_term = sts2.lookup("b::out");
-
-    print_time();
-    std::cout << "init solver" << std::endl;
-
-    int count = 0;
-    int unsat_count = 0;
-    int sat_count = 0;
-
-    if (!a_key_term || !a_input_term || !b_input_term || !b_key_term || !a_output_term || !b_output_term) {
-        throw std::runtime_error("Required terms not found in models");
-    }
-
-    auto root = solver->make_term(Equal, a_output_term, b_output_term);
-
-    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
-    std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
-    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
-    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
-
-    // ARRAY INIT
+void initialize_arrays(TransitionSystem& sts1,
+                       TransitionSystem& sts2,
+                       std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
+                       std::unordered_map<Term, Term>& substitution_map
+) {
     for (const auto & var_val_pair : sts1.init_constants()) {
         if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
             continue;
@@ -448,8 +431,56 @@ int main() {
             substitution_map.insert({array_var_i, array_var_i});
         }
     }
+                       }
 
 
+int main() {
+    auto program_start_time = std::chrono::high_resolution_clock::now();
+    last_time_point = program_start_time;
+
+    SmtSolver solver = BoolectorSolverFactory::create(true);
+
+    solver->set_logic("QF_UFBV");
+    solver->set_opt("incremental", "true");
+    solver->set_opt("produce-models", "true");
+    solver->set_opt("produce-unsat-assumptions", "true");
+
+    // cout << "Loading and parsing BTOR2 files...\n";
+    TransitionSystem sts1(solver);
+    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/mul_64.btor2", sts1, "a::");
+
+    auto a_key_term = sts1.lookup("a::a");
+    auto a_input_term = sts1.lookup("a::b");
+    auto a_ctr_term = sts1.lookup("a::control");
+    auto a_output_term = sts1.lookup("a::out");
+
+    TransitionSystem sts2(solver);
+    BTOR2Encoder btor_parser2("../design/smt-sweeping/case2/mul_64_golden.btor2", sts2, "b::");
+
+    auto b_key_term = sts2.lookup("b::a64");
+    auto b_input_term = sts2.lookup("b::b64");
+    auto b_output_term = sts2.lookup("b::out128");
+
+    print_time();
+    std::cout << "init solver" << std::endl;
+
+    int count = 0;
+    int unsat_count = 0;
+    int sat_count = 0;
+
+    if (!a_key_term || !a_input_term || !b_input_term || !b_key_term) {
+        throw std::runtime_error("Required terms not found in models");
+    }
+
+    auto root = solver->make_term(Equal, a_output_term, b_output_term);
+
+    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
+    std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
+    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
+    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
+
+    //Array init
+    initialize_arrays(sts1, sts2, all_luts, substitution_map);
     //End of array init
 
     //print all luts
@@ -513,9 +544,15 @@ int main() {
     solver->assert_formula(solver->make_term(Equal, a_input_term, b_input_term));
 
     solver->assert_formula(sts1.init());
-    solver->assert_formula(sts2.init());
+    // solver->assert_formula(sts2.init());
     for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
-    for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
+    // for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
+
+
+    auto bv_ctr = btor_bv_const("1000", 4);
+    for(auto i = 0; i < num_iterations; ++i)
+        node_data_map[a_ctr_term].get_simulation_data().push_back(*bv_ctr);
+    substitution_map.insert({a_ctr_term, a_ctr_term});
 
 
     //start post order traversal
@@ -578,7 +615,7 @@ int main() {
                 // substitution_map.insert({current, current}); 
 
                 //update hash_term_map 
-                assert(false); // for this example, we should not encounter this case                
+                // assert(false); // for this example, we should not encounter this case                
             }
             else { // compute simulation data for current node
                 // std::cout << "Computing : " << current->to_string() << std::endl;
@@ -679,5 +716,9 @@ int main() {
     } else {
         std::cout << "SAT" << std::endl;
     }
+
+    auto program_end_time = std::chrono::high_resolution_clock::now();
+    auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();
+    std::cout << "Total execution time: " << total_time / 1000.0 << " s" << std::endl;
     return 0;
 }
