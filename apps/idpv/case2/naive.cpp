@@ -18,9 +18,8 @@
 #include <algorithm>
 #include <random>
 
-#include "btor_sweeping.h"
+#include "btor_sweeping.h"  // Remove this line if your project doesn't need it.
 #include "smt-switch/utils.h"
-
 
 using namespace smt;
 using namespace std;
@@ -34,45 +33,63 @@ void print_time() {
     std::cout << "[" << elapsed_time / 1000.0 << " s]  ";
 }
 
-
-
 int main() {
     auto program_start_time = std::chrono::high_resolution_clock::now();
     last_time_point = program_start_time;
 
+    // 1) Create solver
     SmtSolver solver = BoolectorSolverFactory::create(false);
-
     solver->set_logic("QF_UFBV");
     solver->set_opt("incremental", "true");
     solver->set_opt("produce-models", "true");
     solver->set_opt("produce-unsat-assumptions", "true");
 
-    // cout << "Loading and parsing BTOR2 files...\n";
+    // 2) Read BTOR2 file and build Transition System
     TransitionSystem sts1(solver);
+    // Change this to your actual BTOR2 file path
     BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/cond_mul.btor2", sts1, "a::");
 
+    // 3) Get control bit a::control and output decision bit a::result
     auto a_control = sts1.lookup("a::control");
+    auto result = sts1.lookup("a::result");
 
+    // 4) Construct expression: control == 4'b1000
+    //    Create a 4-bit BV constant "1000" (binary)
     std::string aa = "1000";
     Sort bv_sort = solver->make_sort(BV, 4);
-    auto a_ctl_val = solver->make_term(aa, bv_sort, 2);
-    auto control_equals_1000 = solver->make_term(Equal, a_control, a_ctl_val);// a::control == 4'b1000
-    
-    auto result = sts1.lookup("a::result");
-    
-    auto implication = solver->make_term(Implies, control_equals_1000, result);// control -> check mul miter
+    auto a_ctl_val = solver->make_term(aa, bv_sort, 2);  // 2nd prarater - bit-width，3rd- binary
+    auto control_equals_1000 = solver->make_term(Equal, a_control, a_ctl_val);
 
-    auto not_equal = solver->make_term(Not, implication);
-    solver->assert_formula(not_equal);
+    // 5) Property to verify: when control==4'b1000, result should be 0
+    //    Which means: (control==4'b1000) => (result == 0)
+    //    In SMT, this can be written as: Implies(control_equals_1000, Not(result))
+    auto not_result = solver->make_term(Not, result);
+    auto implication = solver->make_term(Implies, control_equals_1000, not_result);
+
+    // 6) During verification, we typically assert the negation of the property
+    //    We want (control==4'b1000) && result=1 to violate this property
+    //    If the result is UNSAT, it means no counterexample exists and the property holds
+    auto neg_property = solver->make_term(Not, implication);
+    solver->assert_formula(neg_property);
+
+    // 7) Solve and output results
     auto res = solver->check_sat();
-    if(res.is_unsat()){
-        std::cout << "UNSAT" << std::endl;
+    if (res.is_unsat()) {
+        std::cout << "UNSAT: No counterexample exists." << std::endl;
+        std::cout << "Property holds: when control == 4'b1000, the two multipliers match (result=0)." << std::endl;
     } else {
-        std::cout << "SAT" << std::endl;
+        std::cout << "SAT: Found a counterexample." << std::endl;
+        std::cout << "Property fails: when control == 4'b1000, result can be 1 (mismatch)." << std::endl;
+        // Print a model for debugging
+        std::cout << "Model example:" << std::endl;
+        std::cout << "  control = " << solver->get_value(a_control) << std::endl;
+        std::cout << "  result  = " << solver->get_value(result) << std::endl;
     }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
-    auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();
+    auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        program_end_time - program_start_time)
+                        .count();
     std::cout << "Total execution time: " << total_time / 1000.0 << " s" << std::endl;
     return 0;
 }
