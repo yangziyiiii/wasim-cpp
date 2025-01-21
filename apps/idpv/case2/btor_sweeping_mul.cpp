@@ -208,6 +208,7 @@ void btor_bv_operation_3children(const smt::Op& op,
         nd.get_simulation_data().push_back(*current_val);
     }
     else {
+        cout << "Unsupported operation type 3 children: " << op.to_string() << endl;
         throw NotImplementedException("Unsupported operation type 3 children: " + op.to_string());
     }
 }
@@ -332,6 +333,7 @@ void compute_simulation(
     } else if(children.size() == 3) {
         process_three_children_simulation(children, num_iterations, op_type, node_data_map, all_luts, nd);
     } else {
+        cout << "Unsupported number of children: " << children.size() << endl;
         throw NotImplementedException("Unsupported number of children: " + std::to_string(children.size()));
     }
 }
@@ -451,7 +453,7 @@ int main() {
 
     // cout << "Loading and parsing BTOR2 files...\n";
     TransitionSystem sts1(solver);
-    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/cond_mul.btor2", sts1, "a::");
+    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/cond_mul_64.btor2", sts1, "a::");
 
     auto a_key_term = sts1.lookup("a::a");
     auto a_input_term = sts1.lookup("a::b");
@@ -467,6 +469,7 @@ int main() {
     Sort bv_sort = solver->make_sort(BV, 4);
     auto a_ctl_val = solver->make_term(aa, bv_sort, 2);  // 2nd prarater - bit-width，3rd- binary
     auto control_equals_1000 = solver->make_term(Equal, a_ctr_term, a_ctl_val);
+    solver->assert_formula(control_equals_1000);
 
     int count = 0;
     int unsat_count = 0;
@@ -497,7 +500,7 @@ int main() {
 
     //simulation
     GmpRandStateGuard rand_guard;
-    int num_iterations = 1;
+    int num_iterations = 10;
 
     for (int i = 0; i < num_iterations; ++i) {
         mpz_t key_mpz, input_mpz;
@@ -567,7 +570,7 @@ int main() {
     cout << "End simulation, Start post order traversal" << endl;
 
     while(!node_stack.empty()) {
-        // std::cout << "."; std::cout.flush();
+        std::cout << "."; std::cout.flush();
         auto & [current,visited] = node_stack.top();
         if(substitution_map.find(current) != substitution_map.end()) {
             node_stack.pop();
@@ -584,7 +587,7 @@ int main() {
             visited = true;
         } else {
             // std::cout << "-----op: " << op_type.to_string() << "-----" << std::endl;
-            // cout << "----current: " << current->to_string() << "----" << endl;
+            cout << "----current: " << current->to_string() << "----" << endl;
 
             TermVec children(current->begin(), current->end());
 
@@ -622,7 +625,7 @@ int main() {
                 // assert(false); // for this example, we should not encounter this case                
             }
             else { // compute simulation data for current node
-                // std::cout << "Computing : " << current->to_string() << std::endl;
+                std::cout << "Computing : " << current->to_string() << std::endl;
                 TermVec children(current->begin(), current->end()); // find children
                 auto child_size = children.size();
                 // cout << "children size: " << child_size << endl;
@@ -674,7 +677,7 @@ int main() {
                             terms_for_solving.push_back(t);
                     } // end of filtering terms in terms_to_check --> terms_for_solving
                     if (term_eq == nullptr) { // if no structural same term found
-                    //    std::cout << "c"  << terms_for_solving.size();
+                       std::cout << "c"  << terms_for_solving.size();
                        std::cout.flush();
                        for (const auto & t : terms_for_solving) {
                           auto result = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, cnode))}));
@@ -691,7 +694,7 @@ int main() {
 
                 if (term_eq) {
                     substitution_map.emplace(current, term_eq);
-                    // std::cout << "s"; std::cout.flush();
+                    std::cout << "s"; std::cout.flush();
                 } else {
                     substitution_map.emplace(current, cnode);
                     hash_term_map[current_hash].push_back(cnode);
@@ -712,10 +715,12 @@ int main() {
     print_time();
     std::cout << "Start checking sat" << std::endl;
 
-    auto not_result = solver->make_term(Not, root);
-    auto implication = solver->make_term(Implies, control_equals_1000, not_result);
-    auto neg_property = solver->make_term(Not, implication);
-    solver->assert_formula(neg_property);
+    
+    auto not_equal = solver->make_term(Not, root);
+    solver->assert_formula(not_equal);
+
+
+
     auto res = solver->check_sat();
     print_time();
     if(res.is_unsat()){

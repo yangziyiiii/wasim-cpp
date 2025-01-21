@@ -457,7 +457,7 @@ int main() {
 
     //simulation
     GmpRandStateGuard rand_guard;
-    int num_iterations = 20;
+    int num_iterations = 40;
 
     for (int i = 0; i < num_iterations; ++i) {
         mpz_t key_mpz, input_mpz;

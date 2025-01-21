@@ -21,6 +21,7 @@
 #include "btor_sweeping.h"
 #include "smt-switch/utils.h"
 
+
 using namespace smt;
 using namespace std;
 using namespace wasim;
@@ -110,7 +111,6 @@ void create_lut(Term current, std::unordered_map<std::string, std::string>& lut)
         current = children[0]; // next iteration
     }
 }
-
 
 void btor_bv_operation_1child(const smt::Op& op, 
                               const BtorBitVector& btor_child_1, 
@@ -362,60 +362,18 @@ class GmpRandStateGuard
 
     void random_128(mpz_t & rand_num)
     {
-        mpz_init2(rand_num, 128);
-        mpz_urandomb(rand_num, state, 128);
+        mpz_init2(rand_num, 64);
+        mpz_urandomb(rand_num, state, 64);
     }
 
     // operator gmp_randstate_t &() { return state; }
 };
 
-
-int main() {
-    auto program_start_time = std::chrono::high_resolution_clock::now();
-    last_time_point = program_start_time;
-    // auto start_time = std::chrono::high_resolution_clock::now();
-
-    SmtSolver solver = BoolectorSolverFactory::create(true);
-
-    solver->set_logic("QF_UFBV");
-    solver->set_opt("incremental", "true");
-    solver->set_opt("produce-models", "true");
-    solver->set_opt("produce-unsat-assumptions", "true");
-
-    // cout << "Loading and parsing BTOR2 files...\n";
-    TransitionSystem sts1(solver);
-    BTOR2Encoder btor_parser1("../design/smt-sweeping/case4/aes-verilog/Encrypt.btor2", sts1, "a::");
-
-    auto a_key_term = sts1.lookup("a::Key");
-    auto a_input_term = sts1.lookup("a::Block");
-    auto a_output_term = sts1.lookup("a::Result");
-
-    TransitionSystem sts2(solver);
-    BTOR2Encoder btor_parser2("../design/smt-sweeping/case4/AES-128-Bit-Verilog/AES_TOP.btor2", sts2, "b::");
-
-    auto b_key_term = sts2.lookup("b::key");
-    auto b_input_term = sts2.lookup("b::datain");
-    auto b_output_term = sts2.lookup("b::finalout");
-
-    print_time();
-    std::cout << "init solver" << std::endl;
-
-    int count = 0;
-    int unsat_count = 0;
-    int sat_count = 0;
-
-    if (!a_key_term || !a_input_term || !b_input_term || !b_key_term || !a_output_term || !b_output_term) {
-        throw std::runtime_error("Required terms not found in models");
-    }
-
-    auto root = solver->make_term(Equal, a_output_term, b_output_term);
-
-    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
-    std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
-    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
-    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
-
-    // ARRAY INIT
+void initialize_arrays(TransitionSystem& sts1,
+                    //    TransitionSystem& sts2,
+                       std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
+                       std::unordered_map<Term, Term>& substitution_map
+) {
     for (const auto & var_val_pair : sts1.init_constants()) {
         if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
             continue;
@@ -426,15 +384,15 @@ int main() {
         std::cout << "[array create] " << var->to_string() << " of size " << all_luts[var].size() << std::endl;
     }
 
-    for (const auto & var_val_pair : sts2.init_constants()) {
-        if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
-            continue;
-        Term var = var_val_pair.first;
-        Term val = var_val_pair.second;
-        assert(all_luts.find(var) == all_luts.end());
-        create_lut(val, all_luts[var]);
-        std::cout << "[array create] " << var->to_string() << " of size " << all_luts[var].size() << std::endl;
-    }
+    // for (const auto & var_val_pair : sts2.init_constants()) {
+    //     if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
+    //         continue;
+    //     Term var = var_val_pair.first;
+    //     Term val = var_val_pair.second;
+    //     assert(all_luts.find(var) == all_luts.end());
+    //     create_lut(val, all_luts[var]);
+    //     std::cout << "[array create] " << var->to_string() << " of size " << all_luts[var].size() << std::endl;
+    // }
 
     // Array comparison
     for (auto pos = all_luts.begin(); pos != all_luts.end(); ++ pos) {
@@ -477,8 +435,56 @@ int main() {
             substitution_map.insert({array_var_i, array_var_i});
         }
     }
+                       }
 
 
+int main() {
+    auto program_start_time = std::chrono::high_resolution_clock::now();
+    last_time_point = program_start_time;
+
+    SmtSolver solver = BoolectorSolverFactory::create(false);
+
+    solver->set_logic("QF_UFBV");
+    solver->set_opt("incremental", "true");
+    solver->set_opt("produce-models", "true");
+    solver->set_opt("produce-unsat-assumptions", "true");
+
+    // cout << "Loading and parsing BTOR2 files...\n";
+    TransitionSystem sts1(solver);
+    BTOR2Encoder btor_parser1("../design/smt-sweeping/case5/cond_mul_128.btor2", sts1, "a::");
+
+    auto a_key_term = sts1.lookup("a::a");
+    auto a_input_term = sts1.lookup("a::b");
+    auto a_ctr_term = sts1.lookup("a::control");
+
+    auto b_key_term = sts1.lookup("a::a");
+    auto b_input_term = sts1.lookup("a::b");
+
+    print_time();
+    std::cout << "init solver" << std::endl;
+
+    std::string aa = "1000";
+    Sort bv_sort = solver->make_sort(BV, 4);
+    auto a_ctl_val = solver->make_term(aa, bv_sort, 2);  // 2nd prarater - bit-width，3rd- binary
+    auto control_equals_1000 = solver->make_term(Equal, a_ctr_term, a_ctl_val);
+
+    int count = 0;
+    int unsat_count = 0;
+    int sat_count = 0;
+
+    if (!a_key_term || !a_input_term || !b_input_term || !b_key_term) {
+        throw std::runtime_error("Required terms not found in models");
+    }
+
+    auto root =  sts1.lookup("a::result");;
+
+    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
+    std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
+    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
+    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
+
+    //Array init
+    initialize_arrays(sts1, all_luts, substitution_map);
     //End of array init
 
     //print all luts
@@ -491,7 +497,7 @@ int main() {
 
     //simulation
     GmpRandStateGuard rand_guard;
-    int num_iterations = 30;
+    int num_iterations = 50;
 
     for (int i = 0; i < num_iterations; ++i) {
         mpz_t key_mpz, input_mpz;
@@ -542,9 +548,15 @@ int main() {
     solver->assert_formula(solver->make_term(Equal, a_input_term, b_input_term));
 
     solver->assert_formula(sts1.init());
-    solver->assert_formula(sts2.init());
+    // solver->assert_formula(sts2.init());
     for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
-    for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
+    // for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
+
+
+    auto bv_ctr = btor_bv_const("1000", 4);
+    for(auto i = 0; i < num_iterations; ++i)
+        node_data_map[a_ctr_term].get_simulation_data().push_back(*bv_ctr);
+    substitution_map.insert({a_ctr_term, a_ctr_term});
 
 
     //start post order traversal
@@ -596,7 +608,7 @@ int main() {
                 substitution_map.insert({current, current}); 
                 hash_term_map[node_data_map[current].hash()].push_back(current);
             } else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
-                // std::cout << "leaf nodes: " << current->to_string() << std::endl;
+                std::cout << "leaf nodes: " << current->to_string() << std::endl;
 
                 assert(TermVec(current->begin(), current->end()).empty());// no children
                 assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
@@ -607,7 +619,7 @@ int main() {
                 // substitution_map.insert({current, current}); 
 
                 //update hash_term_map 
-                assert(false); // for this example, we should not encounter this case                
+                // assert(false); // for this example, we should not encounter this case                
             }
             else { // compute simulation data for current node
                 // std::cout << "Computing : " << current->to_string() << std::endl;
@@ -700,7 +712,10 @@ int main() {
     print_time();
     std::cout << "Start checking sat" << std::endl;
 
-    solver->assert_formula(solver->make_term(Not, root));
+    auto not_result = solver->make_term(Not, root);
+    auto implication = solver->make_term(Implies, control_equals_1000, not_result);
+    auto neg_property = solver->make_term(Not, implication);
+    solver->assert_formula(neg_property);
     auto res = solver->check_sat();
     print_time();
     if(res.is_unsat()){
