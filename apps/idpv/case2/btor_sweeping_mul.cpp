@@ -587,14 +587,13 @@ int main() {
             visited = true;
         } else {
             // std::cout << "-----op: " << op_type.to_string() << "-----" << std::endl;
-            cout << "----current: " << current->to_string() << "----" << endl;
+            // cout << "----current: " << current->to_string() << "----" << endl;
 
             TermVec children(current->begin(), current->end());
 
 
             if(current->is_value()) { // constant
                 // std::cout << "Constant: " << current->to_string().substr(2) << std::endl;
-
                 auto current_str = current->to_string().substr(2);
                 auto current_bv = btor_bv_char_to_bv(current_str.data());
                 // cout << "current_bv width: " << current_bv->width <<", val:" << current_bv->val << endl;
@@ -610,7 +609,8 @@ int main() {
                 // so constant don't need substitution
                 substitution_map.insert({current, current}); 
                 hash_term_map[node_data_map[current].hash()].push_back(current);
-            } else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
+            } 
+            else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
                 std::cout << "leaf nodes: " << current->to_string() << std::endl;
 
                 assert(TermVec(current->begin(), current->end()).empty());// no children
