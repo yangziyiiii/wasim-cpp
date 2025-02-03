@@ -452,16 +452,12 @@ int main() {
     solver->set_opt("produce-unsat-assumptions", "true");
 
     // cout << "Loading and parsing BTOR2 files...\n";
-    TransitionSystem sts1(solver);
-    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/cond_mul_64.btor2", sts1, "a::");
+    TransitionSystem sts(solver);
+    BTOR2Encoder btor_parser1("../design/smt-sweeping/case6/sequence.btor2", sts, "a::");
 
-    auto a_key_term = sts1.lookup("a::a");
-    auto a_input_term = sts1.lookup("a::b");
+    auto a_key_term = sts.lookup("a::a");
+    auto a_input_term = sts.lookup("a::b");
     auto a_ctr_term = sts1.lookup("a::control");
-
-    auto a_condition = sts1.lookup("a::condition");
-    solver->assert_formula(a_condition);
-    cout << a_condition << endl;
 
     auto b_key_term = sts1.lookup("a::a");
     auto b_input_term = sts1.lookup("a::b");
