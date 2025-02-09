@@ -44,6 +44,11 @@ class BTOR2Encoder
     parse(filename);
   };
 
+  std::vector<smt::Term> input_terms_;
+  std::vector<smt::Term> output_terms_;
+  const std::vector<smt::Term>& get_input_terms() const { return input_terms_; }
+  const std::vector<smt::Term>& get_output_terms() const { return output_terms_; }
+
   const smt::TermVec & propvec() const { return propvec_; };
   const smt::TermVec & justicevec() const { return justicevec_; };
   const smt::TermVec & fairvec() const { return fairvec_; };

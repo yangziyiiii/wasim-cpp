@@ -334,6 +334,7 @@ void BTOR2Encoder::parse(const std::string filename)
       Term input = ts_.make_inputvar(symbol_, linesort_); // make_inputvar will name_term
       terms_[l_->id] = input;
       inputsvec_.push_back(input);
+      input_terms_.push_back(input);  // new: record input term
     } else if (l_->tag == BTOR2_TAG_output) {
       if (l_->symbol) {
         symbol_ = name_prefix + l_->symbol;
@@ -347,6 +348,7 @@ void BTOR2Encoder::parse(const std::string filename)
         ts_.name_term("_out_" + symbol_, termargs_[0]);
       }
       terms_[l_->id] = termargs_[0];
+      output_terms_.push_back(termargs_[0]); // new: record output term
     } else if (l_->tag == BTOR2_TAG_sort) {
       switch (l_->sort.tag) {
         case BTOR2_TAG_SORT_bitvec: {
