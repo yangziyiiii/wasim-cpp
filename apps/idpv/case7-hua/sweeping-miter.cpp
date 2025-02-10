@@ -345,32 +345,27 @@ void children_substitution(const smt::TermVec& children, smt::TermVec& out, cons
 
 
 // RAII wrapper for GMP random state
-// class GmpRandStateGuard
-// {
-//     gmp_randstate_t state;
+class GmpRandStateGuard
+{
+    gmp_randstate_t state;
 
-// public:
-//     GmpRandStateGuard(void (*init_func)(gmp_randstate_t, ...) = gmp_randinit_default, unsigned long seed = time(NULL))
-//     {
-//         init_func(state);
-//         gmp_randseed_ui(state, seed);
-//     }
+    public:
+    GmpRandStateGuard()
+    {
+        gmp_randinit_default(state);
+        gmp_randseed_ui(state, time(NULL));
+    }
 
-//     // 析构函数，清理随机数生成器状态
-//     ~GmpRandStateGuard()
-//     {
-//         gmp_randclear(state);
-//     }
+    ~GmpRandStateGuard() { gmp_randclear(state); }
 
-//     // 生成指定位数的随机数
-//     void random_number(mpz_t &rand_num, unsigned long num_bits)
-//     {
-//         mpz_init2(rand_num, num_bits);
-//         mpz_urandomb(rand_num, state, num_bits);
-//     }
+    void random_input(mpz_t & rand_num, int num)
+    {
+        mpz_init2(rand_num, num);
+        mpz_urandomb(rand_num, state, num);
+    }
 
-//     // operator gmp_randstate_t &() { return state; }
-// };
+    // operator gmp_randstate_t &() { return state; }
+};
 
 void initialize_arrays(TransitionSystem& sts,
                        std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
@@ -429,72 +424,46 @@ void initialize_arrays(TransitionSystem& sts,
     }
 }
 
+void simulation(const TermVec & input_terms,
+                const int &num_iterations,
+                TransitionSystem& sts,
+                std::unordered_map<Term, NodeData>& node_data_map
+){
+    GmpRandStateGuard rand_guard;
+    for(int i=0; i<num_iterations; i++){
+        for(auto it : input_terms){
+            auto width = it->get_sort()->get_width();
+            mpz_t input_mpz;
+            rand_guard.random_input(input_mpz,width);
+            unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
+            mpz_clear(input_mpz);
 
-void process_inputs_and_outputs(const TransitionSystem& sts, const SmtSolver& solver, const BTOR2Encoder& btor_parser) {
-    // 获取所有 input terms
-    const auto& input_terms = btor_parser.get_input_terms();
-    std::cout << "Processing Input Terms:" << std::endl;
-    for (const auto& term : input_terms) {
-        // 获取 input 的名称
-        std::string input_name = term->to_string();
-        std::cout << "Input: " << input_name << std::endl;
-
-        // 自动生成变量并命名
-        auto input_var = sts.lookup(input_name);
-        // std::cout << "Created input variable: " << input_name << " = " << input_var << std::endl;
-    }
-
-    // 获取所有 output terms
-    const auto& output_terms = btor_parser.get_output_terms();
-    std::cout << "Processing Output Terms:" << std::endl;
-    for (const auto& term : output_terms) {
-        // 获取 output 的名称
-        std::string output_name = term->to_string();
-        std::cout << "Output: " << output_name << std::endl;
-
-    //     // 将 output 作为约束添加到 solver 中
-        solver->assert_formula(term);
-        std::cout << "Asserted output formula: " << output_name << std::endl;
+            auto bv_input = btor_bv_const(input_str.get(), width);
+            cout << "value:" << bv_input->width << endl;
+            node_data_map[it].get_simulation_data().push_back(*bv_input);
+        }
     }
 }
 
 
-// void simulation(const TermVec& input_term, 
-//                 const TermVec& output_term, 
-//                 ){
-//      GmpRandStateGuard rand_guard;
-//     int num_iterations = 10;
-
-//     for (int i = 0; i < num_iterations; ++i) {
-//         mpz_t key_mpz, input_mpz;
-//         rand_guard.random_128(key_mpz);
-//         rand_guard.random_128(input_mpz);
-
-//         int bit_length = input_terms->get_width(); // TODO: each input has its own width
-
-//         // TODO: Use RAII for GMP strings
-//         unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 2, key_mpz), free);
-//         unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
-
-//         mpz_clear(key_mpz);
-//         mpz_clear(input_mpz);
-        
-//        for(size_t i = 0; i < input_num; i++) {//TODO:
-//         auto bv_input[i] = btor_bv_const(input_str[i].get(), input_str[i].width);
-//         node_data_map[input_term[i]].get_simulation_data().push_back(*bv_input[i]);
-//        }
-
-//     }
-// }
-
-
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
+    if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH>" << std::endl;
         return 1;
     }
 
     std::string btor2_file = argv[1];
+    
+    int num_iterations = 0;
+    try {
+        num_iterations = std::stoi(argv[2]);
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Error: Invalid number format for NUM_ITERATIONS" << std::endl;
+        return 1;
+    } catch (const std::out_of_range& e) {
+        std::cerr << "Error: NUM_ITERATIONS is out of range" << std::endl;
+        return 1;
+    }
 
     auto program_start_time = std::chrono::high_resolution_clock::now();
     last_time_point = program_start_time;
@@ -512,10 +481,8 @@ int main(int argc, char* argv[]) {
 
     cout << "Loading and parsing BTOR2 files..." << endl;
 
-    const auto& input_terms = btor_parser.get_input_terms();
-    const auto& output_terms = btor_parser.get_output_terms();
-
-    process_inputs_and_outputs(sts, solver, btor_parser);
+    const auto& input_terms = btor_parser.get_input_terms(); // all input here
+    const auto& output_terms = btor_parser.get_output_terms(); // all output here
 
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
     std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
@@ -526,49 +493,24 @@ int main(int argc, char* argv[]) {
     initialize_arrays(sts, all_luts, substitution_map);
     //End of array init
 
-    //TODO: simulation
-    //for each input, use a function to build a new bv type to present the value, width of the term
-   
+    //simulation
+    simulation(input_terms, num_iterations, sts, node_data_map);
 
-    return 0;
-}
-/*
+    for(auto i : input_terms){
+        assert(node_data_map[i].get_simulation_data().size() == num_iterations);
+    }
+    //end of simulation
 
-    print_time();
-    std::cout << "init solver" << std::endl;
-
-
+    solver->assert_formula(sts.init());
+    for (const auto & c : sts.constraints()) solver->assert_formula(c.first);
+    
+    //start post order traversal
     int count = 0;
     int unsat_count = 0;
     int sat_count = 0;
-
-
-
-    // end of simulation
-    assert(node_data_map[a_key_term].get_simulation_data().size() == num_iterations);
-    assert(node_data_map[a_input_term].get_simulation_data().size() == num_iterations);
-    assert(node_data_map[b_key_term].get_simulation_data().size() == num_iterations);
-    assert(node_data_map[b_input_term].get_simulation_data().size() == num_iterations);
-
-
-    solver->assert_formula(solver->make_term(Equal, a_key_term, b_key_term));
-    solver->assert_formula(solver->make_term(Equal, a_input_term, b_input_term));
-
-    solver->assert_formula(sts1.init());
-    // solver->assert_formula(sts2.init());
-    for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
-    // for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
-
-
-    auto bv_ctr = btor_bv_const("1000", 4);
-    for(auto i = 0; i < num_iterations; ++i)
-        node_data_map[a_ctr_term].get_simulation_data().push_back(*bv_ctr);
-    substitution_map.insert({a_ctr_term, a_ctr_term});
-
-
-    //start post order traversal
+    
     std::stack<std::pair<Term,bool>> node_stack;
-    node_stack.push({root,false});
+    node_stack.push({root,false}); //TODO:
 
     print_time();
     cout << "End simulation, Start post order traversal" << endl;
@@ -710,7 +652,7 @@ int main(int argc, char* argv[]) {
     } // end of traversal
     std::cout << std::endl;
 
-
+    //TODO:Check UNSAT for the miter circuit
     root = substitution_map.at(root);
 
     cout << "count: " << count << endl;
@@ -723,8 +665,6 @@ int main(int argc, char* argv[]) {
     auto not_equal = solver->make_term(Not, root);
     solver->assert_formula(not_equal);
 
-
-
     auto res = solver->check_sat();
     print_time();
     if(res.is_unsat()){
@@ -736,6 +676,17 @@ int main(int argc, char* argv[]) {
     auto program_end_time = std::chrono::high_resolution_clock::now();
     auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();
     std::cout << "Total execution time: " << total_time / 1000.0 << " s" << std::endl;
+   
+
+    return 0;
+}
+/*
+
+    ;
+
+
+
+   
     return 0;
 }
 
