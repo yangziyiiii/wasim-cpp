@@ -345,27 +345,32 @@ void children_substitution(const smt::TermVec& children, smt::TermVec& out, cons
 
 
 // RAII wrapper for GMP random state
-class GmpRandStateGuard
-{
-    gmp_randstate_t state;
+// class GmpRandStateGuard
+// {
+//     gmp_randstate_t state;
 
-    public:
-    GmpRandStateGuard()
-    {
-        gmp_randinit_default(state);
-        gmp_randseed_ui(state, time(NULL));
-    }
+// public:
+//     GmpRandStateGuard(void (*init_func)(gmp_randstate_t, ...) = gmp_randinit_default, unsigned long seed = time(NULL))
+//     {
+//         init_func(state);
+//         gmp_randseed_ui(state, seed);
+//     }
 
-    ~GmpRandStateGuard() { gmp_randclear(state); }
+//     // 析构函数，清理随机数生成器状态
+//     ~GmpRandStateGuard()
+//     {
+//         gmp_randclear(state);
+//     }
 
-    void random_128(mpz_t & rand_num)
-    {
-        mpz_init2(rand_num, 64); //TODO:
-        mpz_urandomb(rand_num, state, 64);
-    }
+//     // 生成指定位数的随机数
+//     void random_number(mpz_t &rand_num, unsigned long num_bits)
+//     {
+//         mpz_init2(rand_num, num_bits);
+//         mpz_urandomb(rand_num, state, num_bits);
+//     }
 
-    // operator gmp_randstate_t &() { return state; }
-};
+//     // operator gmp_randstate_t &() { return state; }
+// };
 
 void initialize_arrays(TransitionSystem& sts,
                        std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
@@ -432,7 +437,7 @@ void process_inputs_and_outputs(const TransitionSystem& sts, const SmtSolver& so
     for (const auto& term : input_terms) {
         // 获取 input 的名称
         std::string input_name = term->to_string();
-        // std::cout << "Input: " << input_name << std::endl;
+        std::cout << "Input: " << input_name << std::endl;
 
         // 自动生成变量并命名
         auto input_var = sts.lookup(input_name);
@@ -440,49 +445,47 @@ void process_inputs_and_outputs(const TransitionSystem& sts, const SmtSolver& so
     }
 
     // 获取所有 output terms
-    // const auto& output_terms = btor_parser.get_output_terms();
-    // std::cout << "Processing Output Terms:" << std::endl;
-    // for (const auto& term : output_terms) {
-    //     // 获取 output 的名称
-    //     std::string output_name = term->to_string();
-    //     std::cout << "Output: " << output_name << std::endl;
+    const auto& output_terms = btor_parser.get_output_terms();
+    std::cout << "Processing Output Terms:" << std::endl;
+    for (const auto& term : output_terms) {
+        // 获取 output 的名称
+        std::string output_name = term->to_string();
+        std::cout << "Output: " << output_name << std::endl;
 
     //     // 将 output 作为约束添加到 solver 中
-    //     solver->assert_formula(term);
-    //     std::cout << "Asserted output formula: " << output_name << std::endl;
-    // }
-}
-
-
-void simulation(){
-     GmpRandStateGuard rand_guard;
-    int num_iterations = 10;
-
-    for (int i = 0; i < num_iterations; ++i) {
-        mpz_t key_mpz, input_mpz;
-        rand_guard.random_128(key_mpz);
-        rand_guard.random_128(input_mpz);
-
-        int bit_length = input_terms->get_width(); // TODO: each input has its own width
-
-        // TODO: Use RAII for GMP strings
-        unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 2, key_mpz), free);
-        unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
-
-        mpz_clear(key_mpz);
-        mpz_clear(input_mpz);
-        
-       for(size_t i = 0; i < input_num; i++) {//TODO:
-        auto bv_input[i] = btor_bv_const(input_str[i].get(), input_str[i].width);
-        node_data_map[input_term[i]].get_simulation_data().push_back(*bv_input[i]);
-       }
-
-        substitution_map.insert({a_key_term, a_key_term});
-        substitution_map.insert({a_input_term, a_input_term});
-        substitution_map.insert({b_key_term, a_key_term}); // b_key_term -> a_key_term
-        substitution_map.insert({b_input_term, a_input_term}); // b_input_term -> a_input_term
+        solver->assert_formula(term);
+        std::cout << "Asserted output formula: " << output_name << std::endl;
     }
 }
+
+
+// void simulation(const TermVec& input_term, 
+//                 const TermVec& output_term, 
+//                 ){
+//      GmpRandStateGuard rand_guard;
+//     int num_iterations = 10;
+
+//     for (int i = 0; i < num_iterations; ++i) {
+//         mpz_t key_mpz, input_mpz;
+//         rand_guard.random_128(key_mpz);
+//         rand_guard.random_128(input_mpz);
+
+//         int bit_length = input_terms->get_width(); // TODO: each input has its own width
+
+//         // TODO: Use RAII for GMP strings
+//         unique_ptr<char, void (*)(void *)> key_str(mpz_get_str(NULL, 2, key_mpz), free);
+//         unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
+
+//         mpz_clear(key_mpz);
+//         mpz_clear(input_mpz);
+        
+//        for(size_t i = 0; i < input_num; i++) {//TODO:
+//         auto bv_input[i] = btor_bv_const(input_str[i].get(), input_str[i].width);
+//         node_data_map[input_term[i]].get_simulation_data().push_back(*bv_input[i]);
+//        }
+
+//     }
+// }
 
 
 int main(int argc, char* argv[]) {

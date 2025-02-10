@@ -459,10 +459,6 @@ int main() {
     auto a_input_term = sts1.lookup("a::b");
     auto a_ctr_term = sts1.lookup("a::control");
 
-    auto a_condition = sts1.lookup("a::condition");
-    solver->assert_formula(a_condition);
-    cout << a_condition << endl;
-
     auto b_key_term = sts1.lookup("a::a");
     auto b_input_term = sts1.lookup("a::b");
 
@@ -472,11 +468,11 @@ int main() {
     print_time();
     std::cout << "init solver" << std::endl;
 
-    std::string aa = "1000";
-    Sort bv_sort = solver->make_sort(BV, 4);
-    auto a_ctl_val = solver->make_term(aa, bv_sort, 2);  // 2nd prarater - bit-width，3rd- binary
-    auto control_equals_1000 = solver->make_term(Equal, a_ctr_term, a_ctl_val);
-    solver->assert_formula(control_equals_1000);
+    // std::string aa = "1000";
+    // Sort bv_sort = solver->make_sort(BV, 4);
+    // auto a_ctl_val = solver->make_term(aa, bv_sort, 2);  // 2nd prarater - bit-width，3rd- binary
+    // auto control_equals_1000 = solver->make_term(Equal, a_ctr_term, a_ctl_val);
+    // solver->assert_formula(control_equals_1000);
 
     int count = 0;
     int unsat_count = 0;
@@ -722,6 +718,8 @@ int main() {
     print_time();
     std::cout << "Start checking sat" << std::endl;
 
+    auto condition = sts1.lookup("a::condition");
+    solver->assert_formula(condition);
     
     auto not_equal = solver->make_term(Not, root);
     solver->assert_formula(not_equal);
