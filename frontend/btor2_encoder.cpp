@@ -334,7 +334,6 @@ void BTOR2Encoder::parse(const std::string filename)
       Term input = ts_.make_inputvar(symbol_, linesort_); // make_inputvar will name_term
       terms_[l_->id] = input;
       inputsvec_.push_back(input);
-      input_terms_.push_back(input);  // new: record input term
     } else if (l_->tag == BTOR2_TAG_output) {
       if (l_->symbol) {
         symbol_ = name_prefix + l_->symbol;
@@ -370,7 +369,7 @@ void BTOR2Encoder::parse(const std::string filename)
       }
     } else if (l_->tag == BTOR2_TAG_constraint) {
       Term constraint = bv_to_bool(termargs_[0]);
-      constraint_terms_.push_back(constraint);
+      constraint_terms_.push_back(constraint); // new: record constraint terms
 
       // BTOR2 allows constraints over inputs
       // in Pono these need to be promoted to state variables

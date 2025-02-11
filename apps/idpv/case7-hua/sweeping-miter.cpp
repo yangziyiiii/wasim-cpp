@@ -480,10 +480,10 @@ int main(int argc, char* argv[]) {
 
     cout << "Loading and parsing BTOR2 files..." << endl;
 
-    const auto& input_terms = btor_parser.get_input_terms(); // all input here
+    const auto& input_terms = btor_parser.inputsvec(); // all input here
     const auto& output_terms = btor_parser.get_output_terms(); // all output here
     const auto& constraints = btor_parser.get_const_terms(); // all constraints here
-    const auto& bad = btor_parser.get_prop_terms(); // all bad state here
+    const auto& bad = btor_parser.propvec(); // all bad state here
 
     cout << "Constraints: " << constraints.size() << endl;
     for(auto c : constraints) {
@@ -493,6 +493,11 @@ int main(int argc, char* argv[]) {
     cout << "Out: " << output_terms.size() << endl;
     for(auto o : output_terms) {
         cout << o->to_string() << endl;
+    }
+
+    cout << "Bad: " << bad.size() << endl;
+    for(auto b:bad ){
+        cout << b->to_string() << endl;
     }
 
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
