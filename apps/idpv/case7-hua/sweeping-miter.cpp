@@ -444,94 +444,19 @@ void simulation(const TermVec & input_terms,
     }
 }
 
-
-int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH>" << std::endl;
-        return 1;
-    }
-
-    std::string btor2_file = argv[1];
-    
-    int num_iterations = 0;
-    try {
-        num_iterations = std::stoi(argv[2]);
-    } catch (const std::invalid_argument& e) {
-        std::cerr << "Error: Invalid number format for NUM_ITERATIONS" << std::endl;
-        return 1;
-    } catch (const std::out_of_range& e) {
-        std::cerr << "Error: NUM_ITERATIONS is out of range" << std::endl;
-        return 1;
-    }
-
-    auto program_start_time = std::chrono::high_resolution_clock::now();
-    last_time_point = program_start_time;
-
-    SmtSolver solver = BoolectorSolverFactory::create(false);
-
-    solver->set_logic("QF_UFBV");
-    solver->set_opt("incremental", "true");
-    solver->set_opt("produce-models", "true");
-    solver->set_opt("produce-unsat-assumptions", "true");
-
-    // Loading and parsing BTOR2 files
-    TransitionSystem sts(solver);
-    BTOR2Encoder btor_parser(btor2_file, sts, "a::");
-
-    cout << "Loading and parsing BTOR2 files..." << endl;
-
-    const auto& input_terms = btor_parser.inputsvec(); // all input here
-    const auto& output_terms = btor_parser.get_output_terms(); // all output here
-    const auto& constraints = btor_parser.get_const_terms(); // all constraints here
-    const auto& bad = btor_parser.propvec(); // all bad state here
-
-    cout << "Constraints: " << constraints.size() << endl;
-    for(auto c : constraints) {
-        cout << c->to_string() << endl;
-    }
-
-    cout << "Out: " << output_terms.size() << endl;
-    for(auto o : output_terms) {
-        cout << o->to_string() << endl;
-    }
-
-    cout << "Bad: " << bad.size() << endl;
-    for(auto b:bad ){
-        cout << b->to_string() << endl;
-    }
-
-    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
-    std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
-    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
-    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
-
-    //Array init
-    initialize_arrays(sts, all_luts, substitution_map);
-    //End of array init
-
-    //simulation
-    simulation(input_terms, num_iterations, sts, node_data_map);
-
-    for(auto i : input_terms){
-        assert(node_data_map[i].get_simulation_data().size() == num_iterations);
-        substitution_map.insert({i, i});
-        hash_term_map[node_data_map[i].hash()].push_back(i);
-    }
-    //end of simulation
-
-    solver->assert_formula(sts.init());
-    for (const auto & c : sts.constraints()) solver->assert_formula(c.first);
-    
-    //start post order traversal
-    int count = 0;
-    int unsat_count = 0;
-    int sat_count = 0;
-
-    auto root = output_terms.back(); //TODO: how to find the root
-
+void post_order(smt::Term& root,
+                std::unordered_map<Term, NodeData>& node_data_map,
+                std::unordered_map<uint32_t, TermVec>& hash_term_map,
+                std::unordered_map<Term, Term>& substitution_map,
+                std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts,
+                int count,
+                int unsat_count,
+                int sat_count,
+                SmtSolver& solver,
+                int& num_iterations
+){
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
-    solver->assert_formula(output_terms[0]); // condition == 1000
 
     print_time();
     cout << "End simulation, Start post order traversal" << endl;
@@ -671,6 +596,100 @@ int main(int argc, char* argv[]) {
             node_stack.pop();            
         } // end of if visited
     } // end of traversal
+}
+
+int main(int argc, char* argv[]) {
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH>" << std::endl;
+        return 1;
+    }
+
+    std::string btor2_file = argv[1];
+    
+    int num_iterations = 0;
+    try {
+        num_iterations = std::stoi(argv[2]);
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Error: Invalid number format for NUM_ITERATIONS" << std::endl;
+        return 1;
+    } catch (const std::out_of_range& e) {
+        std::cerr << "Error: NUM_ITERATIONS is out of range" << std::endl;
+        return 1;
+    }
+
+    auto program_start_time = std::chrono::high_resolution_clock::now();
+    last_time_point = program_start_time;
+
+    SmtSolver solver = BoolectorSolverFactory::create(false);
+
+    solver->set_logic("QF_UFBV");
+    solver->set_opt("incremental", "true");
+    solver->set_opt("produce-models", "true");
+    solver->set_opt("produce-unsat-assumptions", "true");
+
+    // Loading and parsing BTOR2 files
+    TransitionSystem sts(solver);
+    BTOR2Encoder btor_parser(btor2_file, sts, "a::");
+
+    cout << "Loading and parsing BTOR2 files..." << endl;
+
+    const auto& input_terms = btor_parser.inputsvec(); // all input here
+    const auto& output_terms = btor_parser.get_output_terms(); // all output here
+    const auto& constraints = btor_parser.get_const_terms(); // all constraints here
+    const auto& bad = btor_parser.propvec(); // all bad state here
+
+    // cout << "Constraints: " << constraints.size() << endl;
+    // for(auto c : constraints) {
+    //     cout << c->to_string() << endl;
+    // }
+
+    // cout << "Out: " << output_terms.size() << endl;
+    // for(auto o : output_terms) {
+    //     cout << o->to_string() << endl;
+    // }
+
+    // cout << "Bad: " << bad.size() << endl;
+    // for(auto b:bad ){
+    //     cout << b->to_string() << endl;
+    // }
+
+    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
+    std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
+    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
+    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
+
+    //Array init
+    initialize_arrays(sts, all_luts, substitution_map);
+    //End of array init
+
+    //simulation
+    simulation(input_terms, num_iterations, sts, node_data_map);
+
+    for(auto i : input_terms){
+        assert(node_data_map[i].get_simulation_data().size() == num_iterations);
+        substitution_map.insert({i, i});
+        hash_term_map[node_data_map[i].hash()].push_back(i);
+    }
+    //end of simulation
+
+    solver->assert_formula(sts.init());
+    for (const auto & c : sts.constraints()) solver->assert_formula(c.first);
+    
+    //start post order traversal
+    int count = 0;
+    int unsat_count = 0;
+    int sat_count = 0;
+    Term root;
+
+    for(auto b : bad) {
+        cout << b->to_string() <<endl;
+        root = solver->make_term(OR, root, b);
+       
+        std::cout << std::endl;
+    }
+
+    post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
+    //end of traversal
     std::cout << std::endl;
     
 
