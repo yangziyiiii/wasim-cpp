@@ -323,6 +323,9 @@ target_link_libraries(test_case7 wasim-lib)
 add_executable(test_case8 "apps/idpv/case8/btor_sweeping.cpp")
 target_link_libraries(test_case8 wasim-lib)
 
+add_executable(test_case9 "apps/idpv/case9/bmc.cpp")
+target_link_libraries(test_case9 wasim-lib)
+
 # add_executable(test_case4 "apps/idpv/case4/aes.cpp")
 # target_link_libraries(test_case4 wasim-lib)
 
