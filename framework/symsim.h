@@ -130,10 +130,10 @@ class SymbolicSimulator
   void undo_set_input();
 
   /// similar to cur(), but will check no reference to the input variables
-  smt::Term interpret_state_expr_on_curr_frame(const smt::Term & expr) const;
+  smt::Term interpret_state_expr_on_curr_frame(const smt::Term & expr, bool state_var_only = true) const;
   /// similar to cur(), but will check no reference to the input variables
   smt::TermVec interpret_state_expr_on_curr_frame(
-      const smt::TermVec & expr) const;
+      const smt::TermVec & expr, bool state_var_only = true) const;
 
   /// do simulation
   void sim_one_step();

@@ -232,3 +232,4 @@
 231 mul 7 217 230
 232 and 7 231 66
 233 uext 7 232 0 #3.SPEC.output_data
+; end of yosys output_data

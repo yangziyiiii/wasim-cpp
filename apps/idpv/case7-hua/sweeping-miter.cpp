@@ -336,6 +336,7 @@ void compute_simulation(
 
 void children_substitution(const smt::TermVec& children, smt::TermVec& out, const std::unordered_map<Term, Term>& substitution_map) {
 	for (const auto & c : children) {
+        // cout <<"c: "<< c->to_string() << endl;
         auto pos = substitution_map.find(c);
         assert(pos != substitution_map.end());
         out.push_back(pos->second);
@@ -449,9 +450,9 @@ void post_order(smt::Term& root,
                 std::unordered_map<uint32_t, TermVec>& hash_term_map,
                 std::unordered_map<Term, Term>& substitution_map,
                 std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts,
-                int count,
-                int unsat_count,
-                int sat_count,
+                int& count,
+                int& unsat_count,
+                int& sat_count,
                 SmtSolver& solver,
                 int& num_iterations
 ){
@@ -478,7 +479,7 @@ void post_order(smt::Term& root,
             }
             visited = true;
         } else {
-            // std::cout << "-----op: " << op_type.to_string() << "-----" << std::endl;
+            // std::cout << "-----op: " << current->get_op().to_string() << "-----" << std::endl;
             // cout << "----current: " << current->to_string() << "----" << endl;
 
             TermVec children(current->begin(), current->end());
@@ -495,7 +496,7 @@ void post_order(smt::Term& root,
                 // btor_bv_free(current_bv);
 
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
-                // TODO: if you can find a term that is equivalent to this constant
+                // if you can find a term that is equivalent to this constant
                 // case 1 : that term is also a constant, then they should be the same term (Boolector will merge them)
                 // case 2 : that term is not a constant, you should not merge either
                 // so constant don't need substitution
@@ -511,7 +512,7 @@ void post_order(smt::Term& root,
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
 
                 //leaf nodes don't need substitution
-                // substitution_map.insert({current, current}); 
+                substitution_map.insert({current, current}); 
 
                 //update hash_term_map 
                 // assert(false); // for this example, we should not encounter this case                
@@ -636,7 +637,8 @@ int main(int argc, char* argv[]) {
     const auto& input_terms = btor_parser.inputsvec(); // all input here
     const auto& output_terms = btor_parser.get_output_terms(); // all output here
     const auto& constraints = btor_parser.get_const_terms(); // all constraints here
-    const auto& bad = btor_parser.propvec(); // all bad state here
+    const auto& property = btor_parser.propvec(); // all properties here
+    const auto& states = btor_parser.statesvec();
 
     cout << "Constraints: " << constraints.size() << endl;
     for(auto c : constraints) {
@@ -649,10 +651,14 @@ int main(int argc, char* argv[]) {
     //     cout << o->to_string() << endl;
     // }
 
-    // cout << "Bad: " << bad.size() << endl;
-    // for(auto b:bad ){
-    //     cout << b->to_string() << endl;
-    // }
+    cout << "Const: " << constraints.size() << endl;
+    for(auto c : constraints) {
+        cout << c->to_string() << endl;
+        solver->assert_formula(c);
+    }
+
+    
+
 
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
     std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
@@ -680,39 +686,60 @@ int main(int argc, char* argv[]) {
     int count = 0;
     int unsat_count = 0;
     int sat_count = 0;
-    Term root = solver->make_term(false);
 
-    for(auto b : bad) {
-        cout << b->to_string() <<endl;
-        root = solver->make_term(Or, root, b);
-        std::cout << std::endl;
+    Term root = solver->make_term(true);
+    cout << "Prop: " << property.size() << endl;
+    for(auto p : property) {
+        cout << p->to_string();
+        root = solver->make_term(And, root , p);
+        post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
+        root = substitution_map.at(root);
+
+        cout << "count: " << count << endl;
+        cout << "unsat_count: " << unsat_count << endl;
+        cout << "sat_count: " << sat_count << endl;
+        
+        print_time();
+        std::cout << "Start checking sat" << std::endl;
+
+        solver->assert_formula(root);
+
+        auto res = solver->check_sat();
+        print_time();
+        if(res.is_unsat()){
+            std::cout << "-------------------------------------UNSAT" << std::endl;
+        } else {
+            std::cout << "*******************************SAT" << std::endl;
+        }
     }
 
-    post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
+    
     //end of traversal
     std::cout << std::endl;
     
 
     //Check UNSAT for the miter circuit
-    root = substitution_map.at(root);
+    // root = substitution_map.at(root);
 
-    cout << "count: " << count << endl;
-    cout << "unsat_count: " << unsat_count << endl;
-    cout << "sat_count: " << sat_count << endl;
+    // cout << "count: " << count << endl;
+    // cout << "unsat_count: " << unsat_count << endl;
+    // cout << "sat_count: " << sat_count << endl;
     
-    print_time();
-    std::cout << "Start checking sat" << std::endl;
+    // print_time();
+    // std::cout << "Start checking sat" << std::endl;
 
+    // auto condition = output_terms.front();
+    // solver->assert_formula(condition);
+    
+    // solver->assert_formula(root);
 
-    solver->assert_formula(root);
-
-    auto res = solver->check_sat();
-    print_time();
-    if(res.is_unsat()){
-        std::cout << "UNSAT" << std::endl;
-    } else {
-        std::cout << "SAT" << std::endl;
-    }
+    // auto res = solver->check_sat();
+    // print_time();
+    // if(res.is_unsat()){
+    //     std::cout << "UNSAT" << std::endl;
+    // } else {
+    //     std::cout << "SAT" << std::endl;
+    // }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
     auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();

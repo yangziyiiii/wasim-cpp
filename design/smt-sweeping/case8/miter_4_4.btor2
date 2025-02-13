@@ -213,7 +213,7 @@
 212 concat 5 205 211
 213 xor 5 105 212
 214 redor 4 213
-215 bad 214 mismatch ; 4_4_U_SP_WT_RC_GenMul.v:373.10-373.18
+215 output 214 mismatch ; 4_4_U_SP_WT_RC_GenMul.v:373.10-373.18
 216 uext 1 2 0 Mult_4_4_1.IN1 ; 4_4_U_SP_WT_RC_GenMul.v:65.15-65.18
 217 uext 1 3 0 Mult_4_4_1.IN2 ; 4_4_U_SP_WT_RC_GenMul.v:66.15-66.18
 218 uext 5 105 0 Mult_4_4_1.Out ; 4_4_U_SP_WT_RC_GenMul.v:67.16-67.19
