@@ -217,7 +217,7 @@
 216 const 1 1
 217 not 1 215
 218 and 1 216 217
-219 constraint 218 pass1
+219 bad 218 pass1
 220 input 1
 221 uext 1 220 0 #0.IMP.clk
 222 uext 46 78 0 #0.IMP.din_a

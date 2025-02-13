@@ -638,10 +638,11 @@ int main(int argc, char* argv[]) {
     const auto& constraints = btor_parser.get_const_terms(); // all constraints here
     const auto& bad = btor_parser.propvec(); // all bad state here
 
-    // cout << "Constraints: " << constraints.size() << endl;
-    // for(auto c : constraints) {
-    //     cout << c->to_string() << endl;
-    // }
+    cout << "Constraints: " << constraints.size() << endl;
+    for(auto c : constraints) {
+        cout << c->to_string() << endl;
+        solver->assert_formula(c);
+    }
 
     // cout << "Out: " << output_terms.size() << endl;
     // for(auto o : output_terms) {
@@ -679,12 +680,11 @@ int main(int argc, char* argv[]) {
     int count = 0;
     int unsat_count = 0;
     int sat_count = 0;
-    Term root;
+    Term root = solver->make_term(false);
 
     for(auto b : bad) {
         cout << b->to_string() <<endl;
-        root = solver->make_term(OR, root, b);
-       
+        root = solver->make_term(Or, root, b);
         std::cout << std::endl;
     }
 
