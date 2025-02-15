@@ -654,7 +654,9 @@ int main() {
 
     SymbolicSimulator sim(sts1, solver);
     sim.init();
-    sim.set_input({},{});
+    auto inputvar = sim.convert({{"", ""},{"", ""}});
+    inputvar["key"]
+    sim.set_input(inputvar,{});
 
     int unroll_iterations = 4;
     // auto b_output = sts1.lookup("out");
@@ -662,16 +664,20 @@ int main() {
     std::vector<decltype(s1)> states;
     states.push_back(s1);
 
-    // for(int i=1; i<4; i++) {
-    //     sim.set_input({},{});
-    //     sim.sim_one_step();
-    //     s1 = sim.get_curr_state();
-    //     states.push_back(s1);
-    // }
+    for(int i=1; i<4; i++) {
+        sim.sim_one_step();
+        s1 = sim.get_curr_state();
+        states.push_back(s1);
+        sim.set_input({},{});
+    }
 
-    // for (const auto & a: s1.get_assumptions() ) {
-    //    solver->assert_formula(a);
-    // }
+
+
+    for (const auto & a: s1.get_assumptions() ) {
+       solver->assert_formula(a);
+    }
+
+    solver->make_term(Equal, s1.get_sv().at(sim.var("out")), sts2.lookup("OUT"));
 
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
