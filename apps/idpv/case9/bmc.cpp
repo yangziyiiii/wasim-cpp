@@ -654,12 +654,13 @@ int main() {
 
     SymbolicSimulator sim(sts1, solver);
     sim.init();
-    auto inputvar = sim.convert({{"", ""},{"", ""}});
-    inputvar["key"]
+    auto key = sts1.lookup("a::key");
+
+    auto inputvar = sim.convert({{"a::key","a"},{"a::state","b"}});
+
     sim.set_input(inputvar,{});
 
     int unroll_iterations = 4;
-    // auto b_output = sts1.lookup("out");
     auto s1 = sim.get_curr_state();    
     std::vector<decltype(s1)> states;
     states.push_back(s1);
@@ -677,7 +678,19 @@ int main() {
        solver->assert_formula(a);
     }
 
-    solver->make_term(Equal, s1.get_sv().at(sim.var("out")), sts2.lookup("OUT"));
+    solver->assert_formula(sts1.init());
+    solver->assert_formula(sts2.init());
+    for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
+    for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
+
+    auto root = solver->make_term(Equal, s1.get_sv().at(sim.var("a::out")), sts2.lookup("b::Result"));
+    solver->assert_formula(root);
+    auto  res = solver->check_sat();
+    if(res.is_unsat()){
+        cout << "UNSAT" << endl;
+    } else {
+        cout << "SAT" << endl;
+    }
 
 
     auto program_end_time = std::chrono::high_resolution_clock::now();

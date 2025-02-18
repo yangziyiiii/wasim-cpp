@@ -47,16 +47,18 @@ int main() {
     // 2) Read BTOR2 file and build Transition System
     TransitionSystem sts1(solver);
     // Change this to your actual BTOR2 file path
-    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/cond_mul.btor2", sts1, "a::");
+    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/mul_fix.btor2", sts1, "a::");
 
     // 3) Get control bit a::control and output decision bit a::result
     auto a_control = sts1.lookup("a::control");
     auto result = sts1.lookup("a::result");
+    auto a_a = sts1.lookup("a::a");
+    auto a_b = sts1.lookup("a::b");
 
     // 4) Construct expression: control == 4'b1000
     //    Create a 4-bit BV constant "1000" (binary)
-    std::string aa = "1000";
-    Sort bv_sort = solver->make_sort(BV, 4);
+    std::string aa = "10000";
+    Sort bv_sort = solver->make_sort(BV, 5);
     auto a_ctl_val = solver->make_term(aa, bv_sort, 2);  // 2nd prarater - bit-width，3rd- binary
     auto control_equals_1000 = solver->make_term(Equal, a_control, a_ctl_val);
 
@@ -65,7 +67,7 @@ int main() {
     //    In SMT, this can be written as: Implies(control_equals_1000, Not(result))
     auto not_result = solver->make_term(Not, result);
     auto implication = solver->make_term(Implies, control_equals_1000, not_result);
-
+ 
     // 6) During verification, we typically assert the negation of the property
     //    We want (control==4'b1000) && result=1 to violate this property
     //    If the result is UNSAT, it means no counterexample exists and the property holds
@@ -82,8 +84,8 @@ int main() {
         std::cout << "Property fails: when control == 4'b1000, result can be 1 (mismatch)." << std::endl;
         // Print a model for debugging
         std::cout << "Model example:" << std::endl;
-        std::cout << "  control = " << solver->get_value(a_control) << std::endl;
-        std::cout << "  result  = " << solver->get_value(result) << std::endl;
+        std::cout << "  control = " << solver->get_value(a_a) << std::endl;
+        std::cout << "  result  = " << solver->get_value(a_b) << std::endl;
     }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
