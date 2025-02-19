@@ -72,6 +72,8 @@ set(SMT_SWITCH_DIR "${PROJECT_SOURCE_DIR}/deps/smt-switch")
 set(CMAKE_MODULE_PATH ${SMT_SWITCH_DIR}/cmake)
 
 find_package(GMP REQUIRED)
+find_package(PkgConfig REQUIRED)
+list(APPEND CMAKE_PREFIX_PATH "${SMT_SWITCH_DIR}/deps/install")
 
 # Check that dependencies are there
 if (NOT EXISTS "${SMT_SWITCH_DIR}/local/include/smt-switch/smt.h")
@@ -82,11 +84,17 @@ if (NOT EXISTS "${SMT_SWITCH_DIR}/local/lib/libsmt-switch.a")
   message(FATAL_ERROR "Missing smt-switch library -- try running ./contrib/setup-smt-switch.sh")
 endif()
 
-if (NOT EXISTS "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-btor.a")
-  message(FATAL_ERROR "Missing smt-switch boolector library -- try running ./contrib/setup-smt-switch.sh")
+# if (NOT EXISTS "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-btor.a")
+#   message(FATAL_ERROR "Missing smt-switch boolector library -- try running ./contrib/setup-smt-switch.sh")
+# endif()
+
+if (NOT EXISTS "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-bitwuzla.a")
+  message(FATAL_ERROR "Missing smt-switch bitwuzla library -- try running ./contrib/setup-smt-switch.sh")
 endif()
 
-
+if (NOT EXISTS "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-cvc5.a")
+  message(FATAL_ERROR "Missing smt-switch cvc5 library -- try running ./contrib/setup-smt-switch.sh")
+endif()
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/deps/btor2tools/src")
   message(FATAL_ERROR "Missing btor2tools -- try running ./contrib/setup-btor2tools.sh")
@@ -144,15 +152,24 @@ set_target_properties(wasim-lib PROPERTIES OUTPUT_NAME wasim)
 
 target_include_directories(wasim-lib PUBLIC ${INCLUDE_DIRS})
 
-target_link_libraries(wasim-lib PUBLIC "${PROJECT_SOURCE_DIR}/deps/glog/install/lib/libglog.a")
-target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-btor.a")
+target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-bitwuzla.a")
 target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-cvc5.a")
-target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch.a")
-target_link_libraries(wasim-lib PUBLIC "${PROJECT_SOURCE_DIR}/deps/btor2tools/build/lib/libbtor2parser.a")
-target_link_libraries(wasim-lib PUBLIC "${GMPXX_LIBRARIES}")
-target_link_libraries(wasim-lib PUBLIC "${GMP_LIBRARIES}")
-target_link_libraries(wasim-lib PUBLIC pthread)
-target_link_libraries(wasim-lib PUBLIC Boost::system)
+
+if (WITH_BOOLECTOR)
+  target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-btor.a")
+endif()
+
+if (WITH_MSAT)
+  target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-msat.a")
+endif()
+
+if (WITH_YICES2)
+  target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-yices2.a")
+endif()
+
+if (WITH_MSAT_IC3IA)
+  target_link_libraries(wasim-lib PUBLIC "${PROJECT_SOURCE_DIR}/deps/ic3ia/build/libic3ia.a")
+endif()
 
 find_library(UNWIND_LIB unwind)
 if(UNWIND_LIB)
@@ -299,11 +316,11 @@ endif()
 # add_executable(test_case1 "apps/idpv/case1/btor_sweeping.cpp")
 # target_link_libraries(test_case1 wasim-lib)
 
-add_executable(test_case2n "apps/idpv/case2/naive.cpp")
-target_link_libraries(test_case2n wasim-lib)
+# add_executable(test_case2n "apps/idpv/case2/naive.cpp")
+# target_link_libraries(test_case2n wasim-lib)
 
-add_executable(test_case2 "apps/idpv/case2/btor_sweeping_mul.cpp")
-target_link_libraries(test_case2 wasim-lib)
+# add_executable(test_case2 "apps/idpv/case2/btor_sweeping_mul.cpp")
+# target_link_libraries(test_case2 wasim-lib)
 
 # add_executable(test_case3 "apps/idpv/case3/aes.cpp")
 # target_link_libraries(test_case3 wasim-lib)
@@ -323,8 +340,8 @@ target_link_libraries(test_case2 wasim-lib)
 # add_executable(test_case8 "apps/idpv/case8/btor_sweeping.cpp")
 # target_link_libraries(test_case8 wasim-lib)
 
-add_executable(test_case9 "apps/idpv/case9/bmc.cpp")
-target_link_libraries(test_case9 wasim-lib)
+# add_executable(test_case9 "apps/idpv/case9/bmc.cpp")
+# target_link_libraries(test_case9 wasim-lib)
 
 # add_executable(test_case4 "apps/idpv/case4/aes.cpp")
 # target_link_libraries(test_case4 wasim-lib)
@@ -341,8 +358,8 @@ target_link_libraries(test_case9 wasim-lib)
 # add_executable(independence_check_test "independence_check_test.cpp")
 # target_link_libraries(independence_check_test wasim)
 
-# add_executable(solver_test "apps/solver_test.cpp")
-# target_link_libraries(solver_test wasim-lib)
+add_executable(solver_test "apps/solver_test.cpp")
+target_link_libraries(solver_test wasim-lib)
 
 # add_executable(symsim_test "symsim_test.cpp")
 # target_link_libraries(symsim_test wasim)

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "../deps/smt-switch/include/boolector_factory.h"
+#include "../deps/smt-switch/include/bitwuzla_factory.h"
 #include "../deps/smt-switch/include/smt.h"
 using namespace smt;
 using namespace std;
@@ -9,7 +9,7 @@ int main()
   // and also performs on-the-fly rewriting
   // if you'd like to maintain the term structure, you can
   // enable logging by passing true
-  SmtSolver s = BoolectorSolverFactory::create(false);
+  SmtSolver s = BitwuzlaSolverFactory::create(false);
 
   s->set_logic("QF_UFBV");
   s->set_opt("incremental", "true");

@@ -76,7 +76,7 @@ assign internal_a1 = cond[1:0] == 2'b00	? a << 1 :
 			        (cond[1:0] == 2'b01)? {1'b0, a[62:0]} :
 			        (cond[1:0] == 2'b10)? {a[63:1], 1'b0} : a & b;
 
-assign internal_a2 =  (cond[2] == 1'b0) ? { a[63], internal_a1[63:1]} : a | b;
+assign internal_a2 =  (cond[2] == 1'b0) ? { a[63], internal_a1}  - {1'b0, a} : b;
 
 assign out = (cond[4:3] == 2'b00) ? {internal_a2 + b} :
              (cond[4:3] == 2'b01) ? {internal_a2 - b} :

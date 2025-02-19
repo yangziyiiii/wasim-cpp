@@ -3,7 +3,8 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 DEPS=$DIR/../deps
 
-SMT_SWITCH_VERSION=b812cc4bddddde33d2fd05f4044f4fcfb8d648d8
+# SMT_SWITCH_VERSION=b812cc4bddddde33d2fd05f4044f4fcfb8d648d8
+SMT_SWITCH_VERSION=1f708c2da4aa102e45848b6a349d1d3260d262a5
 
 usage () {
     cat <<EOF
@@ -12,8 +13,10 @@ Usage: $0 [<option> ...]
 Sets up the smt-switch API for interfacing with SMT solvers through a C++ API.
 
 -h, --help              display this message and exit
+--with-btor             include Boolector (default: off)
 --with-msat             include MathSAT which is under a custom non-BSD compliant license (default: off)
 --python                build python bindings (default: off)
+--cvc5-home             use an already downloaded version of cvc5
 EOF
     exit 0
 }
@@ -23,6 +26,7 @@ die () {
     exit 1
 }
 
+WITH_BOOLECOR=default
 WITH_MSAT=default
 CONF_OPTS=""
 WITH_PYTHON=default
@@ -32,12 +36,26 @@ while [ $# -gt 0 ]
 do
     case $1 in
         -h|--help) usage;;
+        --with-btor)
+            WITH_BOOLECTOR=ON
+            CONF_OPTS="$CONF_OPTS --btor";;
         --with-msat)
             WITH_MSAT=ON
             CONF_OPTS="$CONF_OPTS --msat --msat-home=../mathsat";;
         --python)
             WITH_PYTHON=YES
             CONF_OPTS="$CONF_OPTS --python";;
+        --cvc5-home) die "missing argument to $1 (see -h)" ;;
+        --cvc5-home=*)
+            cvc5_home=${1##*=}
+            # Check if cvc5_home is an absolute path and if not, make it
+            # absolute.
+            case $cvc5_home in
+                /*) ;;                            # absolute path
+                *) cvc5_home=$(pwd)/$cvc5_home ;; # make absolute path
+            esac
+            CONF_OPTS="$CONF_OPTS --cvc5-home=$cvc5_home"
+            ;;
         *) die "unexpected argument: $1";;
     esac
     shift
@@ -49,16 +67,26 @@ if [ ! -d "$DEPS/smt-switch" ]; then
     cd $DEPS
     git clone https://github.com/zhanghongce/smt-switch.git
     cd smt-switch
-    git checkout -f $SMT_SWITCH_VERSION
-    ./contrib/setup-btor.sh
-    cd deps
-    wget https://github.com/cvc5/cvc5/releases/download/cvc5-1.1.2/cvc5-Linux-static.zip
-    unzip cvc5-Linux-static.zip -d .
-    cd ..
-    CONF_OPTS="$CONF_OPTS --cvc5-home=$(pwd)/deps/cvc5-Linux-static"
+    git checkout ziyi-bzla
+
+    # git clone https://github.com/stanford-centaur/smt-switch
+    # cd smt-switch
+    # git checkout -f $SMT_SWITCH_VERSION
+    ./contrib/setup-bitwuzla.sh
+    # cd deps
+    # wget https://github.com/cvc5/cvc5/releases/download/cvc5-1.1.2/cvc5-Linux-static.zip
+    # unzip cvc5-Linux-static.zip -d .
+    # cd ..
+    if [ $cvc5_home = default ]; then
+        ./contrib/setup-cvc5.sh
+    fi
+    if [ $WITH_BOOLECTOR = ON ]; then
+        ./contrib/setup-btor.sh
+    fi
+    # CONF_OPTS="$CONF_OPTS --cvc5-home=$(pwd)/deps/cvc5-Linux-static"
     
     # pass bison/flex directories from smt-switch perspective
-    ./configure.sh --btor --cvc5 $CONF_OPTS --prefix=local --static --smtlib-reader --bison-dir=../bison/bison-install --flex-dir=../flex/flex-install
+    ./configure.sh --bitwuzla --cvc5 $CONF_OPTS --prefix=local --static --smtlib-reader --bison-dir=../bison/bison-install --flex-dir=../flex/flex-install
     cd build
     make -j$(nproc)
     # TODO put this back
