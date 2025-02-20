@@ -1,6 +1,6 @@
 #include <iostream>
-#include "../deps/smt-switch/include/bitwuzla_factory.h"
-#include "../deps/smt-switch/include/smt.h"
+#include "/data/ziyi/wasim-cpp/deps/smt-switch/include/bitwuzla_factory.h"
+#include "/data/ziyi/wasim-cpp/deps/smt-switch/include/smt.h"
 using namespace smt;
 using namespace std;
 int main()

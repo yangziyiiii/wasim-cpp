@@ -74,6 +74,7 @@ set(CMAKE_MODULE_PATH ${SMT_SWITCH_DIR}/cmake)
 find_package(GMP REQUIRED)
 find_package(PkgConfig REQUIRED)
 list(APPEND CMAKE_PREFIX_PATH "${SMT_SWITCH_DIR}/deps/install")
+pkg_check_modules(BITWUZLA REQUIRED bitwuzla)
 
 # Check that dependencies are there
 if (NOT EXISTS "${SMT_SWITCH_DIR}/local/include/smt-switch/smt.h")
@@ -144,6 +145,8 @@ set(SOURCES
     "${PROJECT_SOURCE_DIR}/utils/logger.cpp"
 )
 
+file(GLOB HEADER_FILES "${PROJECT_SOURCE_DIR}/deps/*.h")
+include_directories(${HEADER_FILES})
 
 
 
@@ -179,6 +182,13 @@ endif()
 find_package(gflags REQUIRED)
 target_link_libraries(wasim-lib PUBLIC gflags)
 
+target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch.a")
+target_link_libraries(wasim-lib PUBLIC "${PROJECT_SOURCE_DIR}/deps/btor2tools/build/lib/libbtor2parser.a")
+target_link_libraries(wasim-lib PUBLIC "${BITWUZLA_LDFLAGS}")
+target_link_libraries(wasim-lib PUBLIC "${GMPXX_LIBRARIES}")
+target_link_libraries(wasim-lib PUBLIC "${GMP_LIBRARIES}")
+target_link_libraries(wasim-lib PUBLIC pthread)
+
 # if (LIBRT)
 #   target_link_libraries(wasim-lib PUBLIC ${LIBRT})
 # endif()
@@ -197,12 +207,12 @@ target_link_libraries(wasim-lib PUBLIC gflags)
 #set_target_properties(wasim-bin PROPERTIES OUTPUT_NAME wasim)
 
 
-# target_include_directories(wasim-bin PUBLIC
-#   "${PROJECT_SOURCE_DIR}/utils/"
-#   "${PROJECT_SOURCE_DIR}/contrib/"
-#   "${PROJECT_SOURCE_DIR}/contrib/optionparser-1.7/src"
-#   "${PROJECT_SOURCE_DIR}/deps/btor2tools/src"
-#   "${SMT_SWITCH_DIR}/local/include")
+target_include_directories(wasim-lib PUBLIC
+  "${PROJECT_SOURCE_DIR}/utils/"
+  "${PROJECT_SOURCE_DIR}/contrib/"
+  "${PROJECT_SOURCE_DIR}/contrib/optionparser-1.7/src"
+  "${PROJECT_SOURCE_DIR}/deps/btor2tools/src"
+  "${SMT_SWITCH_DIR}/local/include")
 
 # target_link_libraries(wasim-bin PUBLIC wasim-lib)
 
