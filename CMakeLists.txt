@@ -158,9 +158,9 @@ target_include_directories(wasim-lib PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-bitwuzla.a")
 target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-cvc5.a")
 
-if (WITH_BOOLECTOR)
-  target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-btor.a")
-endif()
+# if (WITH_BOOLECTOR)
+#   target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-btor.a")
+# endif()
 
 if (WITH_MSAT)
   target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch-msat.a")
@@ -185,9 +185,11 @@ target_link_libraries(wasim-lib PUBLIC gflags)
 target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch.a")
 target_link_libraries(wasim-lib PUBLIC "${PROJECT_SOURCE_DIR}/deps/btor2tools/build/lib/libbtor2parser.a")
 target_link_libraries(wasim-lib PUBLIC "${BITWUZLA_LDFLAGS}")
-target_link_libraries(wasim-lib PUBLIC "${GMPXX_LIBRARIES}")
-target_link_libraries(wasim-lib PUBLIC "${GMP_LIBRARIES}")
-target_link_libraries(wasim-lib PUBLIC pthread)
+target_link_libraries(wasim-lib PUBLIC "${PROJECT_SOURCE_DIR}/deps/glog/install/lib/libglog.a")
+
+# target_link_libraries(wasim-lib PUBLIC "${GMPXX_LIBRARIES}")
+# target_link_libraries(wasim-lib PUBLIC "${GMP_LIBRARIES}")
+# target_link_libraries(wasim-lib PUBLIC pthread)
 
 # if (LIBRT)
 #   target_link_libraries(wasim-lib PUBLIC ${LIBRT})
@@ -207,12 +209,12 @@ target_link_libraries(wasim-lib PUBLIC pthread)
 #set_target_properties(wasim-bin PROPERTIES OUTPUT_NAME wasim)
 
 
-target_include_directories(wasim-lib PUBLIC
-  "${PROJECT_SOURCE_DIR}/utils/"
-  "${PROJECT_SOURCE_DIR}/contrib/"
-  "${PROJECT_SOURCE_DIR}/contrib/optionparser-1.7/src"
-  "${PROJECT_SOURCE_DIR}/deps/btor2tools/src"
-  "${SMT_SWITCH_DIR}/local/include")
+# target_include_directories(wasim-lib PUBLIC
+#   "${PROJECT_SOURCE_DIR}/utils/"
+#   "${PROJECT_SOURCE_DIR}/contrib/"
+#   "${PROJECT_SOURCE_DIR}/contrib/optionparser-1.7/src"
+#   "${PROJECT_SOURCE_DIR}/deps/btor2tools/src"
+#   "${SMT_SWITCH_DIR}/local/include")
 
 # target_link_libraries(wasim-bin PUBLIC wasim-lib)
 
@@ -344,8 +346,8 @@ endif()
 # add_executable(test_case5 "apps/idpv/case5/btor_sweeping_mul.cpp")
 # target_link_libraries(test_case5 wasim-lib)
 
-# add_executable(test_case7 "apps/idpv/case7-hua/sweeping-miter.cpp")
-# target_link_libraries(test_case7 wasim-lib)
+add_executable(test_case7 "apps/idpv/case7-hua/sweeping-miter.cpp")
+target_link_libraries(test_case7 wasim-lib)
 
 # add_executable(test_case8 "apps/idpv/case8/btor_sweeping.cpp")
 # target_link_libraries(test_case8 wasim-lib)
@@ -368,8 +370,8 @@ endif()
 # add_executable(independence_check_test "independence_check_test.cpp")
 # target_link_libraries(independence_check_test wasim)
 
-add_executable(solver_test "apps/solver_test.cpp")
-target_link_libraries(solver_test wasim-lib)
+# add_executable(solver_test "apps/solver_test.cpp")
+# target_link_libraries(solver_test wasim-lib)
 
 # add_executable(symsim_test "symsim_test.cpp")
 # target_link_libraries(symsim_test wasim)

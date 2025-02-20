@@ -1136,7 +1136,7 @@ namespace wasim {
   struct TransSys {
 
     TransSys(const std::string & btorname) { 
-      smt::SmtSolver solver = smt::BoolectorSolverFactory::create(false);
+      smt::SmtSolver solver = smt::BitwuzlaSolverFactory::create(false);
       solver->set_logic("QF_UFBV");
       solver->set_opt("incremental", "true");
       solver->set_opt("produce-models", "true");

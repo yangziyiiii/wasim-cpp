@@ -992,6 +992,29 @@ BtorBitVector *btor_bv_udiv (const BtorBitVector *a, const BtorBitVector *b)
   return res;
 }
 
+
+BtorBitVector *btor_bv_neg (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  BtorBitVector *res;
+  uint32_t bw = bv->width;
+#ifdef BTOR_USE_GMP
+  res = btor_bv_not (bv);
+  mpz_add_ui (res->val, res->val, 1);
+  mpz_fdiv_r_2exp (res->val, res->val, bw);
+#else
+  BtorBitVector *not_bv, *one;
+  not_bv = btor_bv_not (bv);
+  one    = btor_bv_uint64_to_bv (1, bw);
+  res    = btor_bv_add (not_bv, one);
+  btor_bv_free (not_bv);
+  btor_bv_free (one);
+#endif
+  return res;
+}
+
+
 BtorBitVector *btor_bv_sub (const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (a);
@@ -1013,4 +1036,21 @@ BtorBitVector *btor_bv_sub (const BtorBitVector *a, const BtorBitVector *b)
   btor_bv_free (negb);
 #endif
   return res;
+}
+
+
+bool btor_bv_is_true (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  if (bv->width != 1) return 0;
+  return btor_bv_get_bit (bv, 0);
+}
+
+bool btor_bv_is_false (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  if (bv->width != 1) return 0;
+  return !btor_bv_get_bit (bv, 0);
 }

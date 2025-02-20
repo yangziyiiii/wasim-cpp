@@ -4,7 +4,7 @@
 #include "framework/ts.h"
 #include "frontend/btor2_encoder.h"
 #include "smt-switch/bitwuzla_factory.h"
-#include "smt-switch/boolector_factory.h"
+#include "smt-switch/bitwuzla_factory.h"
 #include "smt-switch/identity_walker.h"
 #include "smt-switch/smtlib_reader.h"
 #include "smt-switch/substitution_walker.h"
@@ -375,7 +375,7 @@ int main() {
     last_time_point = program_start_time;
     // auto start_time = std::chrono::high_resolution_clock::now();
 
-    SmtSolver solver = BoolectorSolverFactory::create(true);
+    SmtSolver solver = BitwuzlaSolverFactory::create(true);
 
     solver->set_logic("QF_UFBV");
     solver->set_opt("incremental", "true");

@@ -4,7 +4,7 @@
 // #include "frontend/btor2_encoder.h"
 // #include "framework/symsim.h"
 // #include "framework/ts.h"
-// #include "smt-switch/boolector_factory.h"
+// #include "smt-switch/bitwuzla_factory.h"
 // #include "smt-switch/smtlib_reader.h"
 // #include "smt-switch/utils.h"
 // #include "smt-switch/identity_walker.h"
@@ -252,7 +252,7 @@
 
 
 // int main() {
-//     SmtSolver solver = BoolectorSolverFactory::create(false);
+//     SmtSolver solver = BitwuzlaSolverFactory::create(false);
 
 //     solver->set_logic("QF_UFBV");
 //     solver->set_opt("incremental", "true");

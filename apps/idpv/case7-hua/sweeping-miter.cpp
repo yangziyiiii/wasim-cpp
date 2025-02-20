@@ -4,7 +4,6 @@
 #include "framework/ts.h"
 #include "frontend/btor2_encoder.h"
 #include "smt-switch/bitwuzla_factory.h"
-#include "smt-switch/boolector_factory.h"
 #include "smt-switch/identity_walker.h"
 #include "smt-switch/smtlib_reader.h"
 #include "smt-switch/substitution_walker.h"
@@ -112,10 +111,12 @@ void create_lut(Term current, std::unordered_map<std::string, std::string>& lut)
     }
 }
 
+
 void btor_bv_operation_1child(const smt::Op& op, 
                               const BtorBitVector& btor_child_1, 
                               NodeData &nd) {    
     if(op.prim_op == PrimOp::Not) {
+        cout << "here into Not" << endl;
         auto current_val = btor_bv_not(&btor_child_1);
         nd.get_simulation_data().push_back(*current_val);
     }
@@ -217,6 +218,10 @@ void process_single_child_simulation(const Term & child,  // HZ: const Term &
                               const std::unordered_map<Term, NodeData> & node_data_map,
                               NodeData & out) {
 
+    // cout << "--child: " << child->to_string() << endl;
+    // cout << "***child type:" << child->get_sort()->get_width() << endl;
+    // cout << "***child type:" << child->get_op().to_string() << endl;
+
     assert(child->get_sort()->get_sort_kind() != ARRAY);
     // check if substitution happened
 
@@ -227,7 +232,6 @@ void process_single_child_simulation(const Term & child,  // HZ: const Term &
         const auto & bv_child = sim_data[i];
         btor_bv_operation_1child(op_type, bv_child, out);
     }
-
     assert(out.get_simulation_data().size() == num_iterations);
 }
 
@@ -519,6 +523,8 @@ void post_order(smt::Term& root,
             }
             else { // compute simulation data for current node
                 // std::cout << "Computing : " << current->to_string() << std::endl;
+                // std::cout << "Computing : " << current->get_op() << std::endl;
+                
                 TermVec children(current->begin(), current->end()); // find children
                 auto child_size = children.size();
                 // cout << "children size: " << child_size << endl;
@@ -621,7 +627,7 @@ int main(int argc, char* argv[]) {
     auto program_start_time = std::chrono::high_resolution_clock::now();
     last_time_point = program_start_time;
 
-    SmtSolver solver = BoolectorSolverFactory::create(false);
+    SmtSolver solver = BitwuzlaSolverFactory::create(false);
 
     solver->set_logic("QF_UFBV");
     solver->set_opt("incremental", "true");
@@ -649,16 +655,7 @@ int main(int argc, char* argv[]) {
     // cout << "Out: " << output_terms.size() << endl;
     // for(auto o : output_terms) {
     //     cout << o->to_string() << endl;
-    // }
-
-    cout << "Const: " << constraints.size() << endl;
-    for(auto c : constraints) {
-        cout << c->to_string() << endl;
-        solver->assert_formula(c);
-    }
-
-    
-
+    // }F
 
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
     std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
@@ -690,7 +687,7 @@ int main(int argc, char* argv[]) {
     Term root = solver->make_term(true);
     cout << "Prop: " << property.size() << endl;
     for(auto p : property) {
-        cout << p->to_string();
+        // cout << p->to_string();
         root = solver->make_term(And, root , p);
         post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
         root = substitution_map.at(root);
@@ -707,9 +704,9 @@ int main(int argc, char* argv[]) {
         auto res = solver->check_sat();
         print_time();
         if(res.is_unsat()){
-            std::cout << "-------------------------------------UNSAT" << std::endl;
+            std::cout << "UNSAT" << std::endl;
         } else {
-            std::cout << "*******************************SAT" << std::endl;
+            std::cout << "SAT" << std::endl;
         }
     }
 

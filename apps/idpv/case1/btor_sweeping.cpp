@@ -4,7 +4,7 @@
 #include "framework/ts.h"
 #include "frontend/btor2_encoder.h"
 #include "smt-switch/bitwuzla_factory.h"
-#include "smt-switch/boolector_factory.h"
+// #include "smt-switch/bitwuzla_factory.h"
 #include "smt-switch/identity_walker.h"
 #include "smt-switch/smtlib_reader.h"
 #include "smt-switch/substitution_walker.h"
@@ -375,6 +375,12 @@ int main() {
     }
 
     auto root = solver->make_term(Equal, a_output_term, b_output_term);
+
+    // solver->assert_formula(sts1.init());
+    // for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
+
+    // solver->assert_formula(sts2.init());
+    // for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
 
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
     std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
