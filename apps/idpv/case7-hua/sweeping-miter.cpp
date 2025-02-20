@@ -652,10 +652,10 @@ int main(int argc, char* argv[]) {
         solver->assert_formula(c);
     }
 
-    // cout << "Out: " << output_terms.size() << endl;
-    // for(auto o : output_terms) {
-    //     cout << o->to_string() << endl;
-    // }F
+    cout << "Out: " << output_terms.size() << endl;
+    for(auto o : output_terms) {
+        cout << o->to_string() << endl;
+    }
 
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
     std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
