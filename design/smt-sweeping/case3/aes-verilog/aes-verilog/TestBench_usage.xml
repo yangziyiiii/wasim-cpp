@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- IMPORTANT: This is an internal file that has been generated
+     by the Xilinx ISE software.  Any direct editing or
+     changes made to this file may result in unpredictable
+     behavior or data corruption.  It is strongly advised that
+     users do not edit the contents of this file. -->
+<DeviceUsageSummary rev="13">
+<DesignStatistics TimeStamp="Sun Mar 25 23:34:08 2018"><group name="NetStatistics">
+<item name="NumNets_Active" rev="13">
+<attrib name="value" value="2"/></item>
+</group>
+<group name="SiteStatistics">
+<item name="IOB-DIFFM" rev="13">
+<attrib name="value" value="1"/></item>
+</group>
+<group name="MiscellaneousStatistics">
+<item name="AGG_BONDED_IO" rev="12">
+<attrib name="value" value="1"/></item>
+<item name="AGG_IO" rev="12">
+<attrib name="value" value="1"/></item>
+<item name="NUM_BONDED_IOB" rev="12">
+<attrib name="value" value="1"/></item>
+</group>
+</DesignStatistics>
+<DeviceUsage TimeStamp="Sun Mar 25 23:34:08 2018"><group name="SiteSummary">
+<item name="IOB" rev="13">
+<attrib name="total" value="1000000"/><attrib name="used" value="1"/></item>
+<item name="IOB_INBUF" rev="13">
+<attrib name="total" value="1000000"/><attrib name="used" value="1"/></item>
+<item name="IOB_PAD" rev="13">
+<attrib name="total" value="1000000"/><attrib name="used" value="1"/></item>
+</group>
+</DeviceUsage>
+<ReportConfigData TimeStamp="Sun Mar 25 23:34:08 2018"><group name="IOB_OUTBUF">
+<item name="IN" rev="11">
+<attrib name="IN_INV" value="0"/><attrib name="IN" value="1"/></item>
+</group>
+<group name="IOB_PAD">
+<item name="IOATTRBOX" rev="13">
+<attrib name="LVCMOS25" value="1"/></item>
+</group>
+<group name="IOB">
+<item name="O1" rev="11">
+<attrib name="O1_INV" value="0"/><attrib name="O1" value="1"/></item>
+</group>
+</ReportConfigData>
+<ReportPinData TimeStamp="Sun Mar 25 23:34:08 2018"><group name="IOB_OUTBUF">
+<item name="IN" rev="11">
+<attrib name="value" value="1"/></item>
+<item name="OUT" rev="11">
+<attrib name="value" value="1"/></item>
+</group>
+<group name="IOB_INBUF">
+<item name="IN" rev="13">
+<attrib name="value" value="1"/></item>
+<item name="OUT" rev="13">
+<attrib name="value" value="1"/></item>
+</group>
+<group name="IOB_PAD">
+<item name="PAD" rev="13">
+<attrib name="value" value="1"/></item>
+</group>
+<group name="IOB">
+<item name="I" rev="13">
+<attrib name="value" value="1"/></item>
+<item name="PAD" rev="13">
+<attrib name="value" value="1"/></item>
+</group>
+</ReportPinData>
+<CmdHistory>
+</CmdHistory>
+</DeviceUsageSummary>

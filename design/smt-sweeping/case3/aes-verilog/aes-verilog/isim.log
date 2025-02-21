@@ -1,0 +1,80 @@
+ISim log file
+Running: /home/superuser/Workspace/Verilog/AES/AES/TestBench_isim_beh.exe -intstyle ise -gui -tclbatch isim.cmd -wdb /home/superuser/Workspace/Verilog/AES/AES/TestBench_isim_beh.wdb 
+ISim P.20131013 (signature 0xfbc00daa)
+WARNING: A WEBPACK license was found.
+WARNING: Please use Xilinx License Configuration Manager to check out a full ISim license.
+WARNING: ISim will run in Lite mode. Please refer to the ISim documentation for more information on the differences between the Lite and the Full version.
+This is a Lite version of ISim.
+Time resolution is 1 ps
+# onerror resume
+# wave add /
+# run 1000 ns
+Simulator is doing circuit initialization process.
+@*
+FINAL_UPDATE
+SubBytes
+SubBytes
+SubBytes
+SubBytes
+SubBytes
+SubBytes
+SubBytes
+SubBytes
+SubBytes
+SubBytes
+aes_key d6aa74fdd2af72fadaa678f1d6ab76feb692cf0b643dbdf1be9bc5006830b3feb6ff744ed2c2c9bf6c590cbf0469bf4147f7f7bc95353e03f96c32bcfd058dfd3caaa3e8a99f9deb50f3af57adf622aa5e390f7df7a69296a7553dc10aa31f6b14f9701ae35fe28c440adf4d4ea9c02647438735a41c65b9e016baf4aebf7ad2549932d1f08557681093ed9cbe2c974e13111d7fe3944a17f307a78b4d2b30c5
+AddRoundKey state is 12edf70abe44d3596c48a1da8fc224d7, Roundkey is 13111d7fe3944a17f307a78b4d2b30c5
+output is 01fcea755dd0994e9f4f0651c2e91412
+Inv_ShiftRow
+Inv_SubBytes
+MAIN_UPDATE 00000009
+AddRoundKey state is 09eba5b68d559b706e60bb39a892f93f, Roundkey is 549932d1f08557681093ed9cbe2c974e
+output is 5d7297677dd0cc187ef356a516be6e71
+Inv_ShiftRow
+Inv_SubBytes
+MAIN_UPDATE 00000008
+AddRoundKey state is 03b86f6448cfa9c801af9b4a9cf6e3a2, Roundkey is 47438735a41c65b9e016baf4aebf7ad2
+output is 44fbe851ecd3cc71e1b921be32499970
+Inv_ShiftRow
+Inv_SubBytes
+MAIN_UPDATE 00000007
+AddRoundKey state is acc1f07c833f1ddbe5182e8a080ba9a9, Roundkey is 14f9701ae35fe28c440adf4d4ea9c026
+output is b83880666060ff57a112f1c746a2698f
+Inv_ShiftRow
+Inv_SubBytes
+MAIN_UPDATE 00000006
+AddRoundKey state is 76f238bdd2cc7c4b98a527474902d8e5, Roundkey is 5e390f7df7a69296a7553dc10aa31f6b
+output is 28cb37c0256aeedd3ff01a8643a1c78e
+Inv_ShiftRow
+Inv_SubBytes
+MAIN_UPDATE 00000005
+AddRoundKey state is 8bed6cb39efc2651a994a3b2d1097622, Roundkey is 3caaa3e8a99f9deb50f3af57adf622aa
+output is b747cf5b3763bbbaf9670ce57cff5488
+Inv_ShiftRow
+Inv_SubBytes
+MAIN_UPDATE 00000004
+AddRoundKey state is 9cae9c5b48edc709075c45fa6cb3ca91, Roundkey is 47f7f7bc95353e03f96c32bcfd058dfd
+output is db596be7ddd8f90afe30774691b6476c
+Inv_ShiftRow
+Inv_SubBytes
+MAIN_UPDATE 00000003
+AddRoundKey state is 5dd3f8c972b4bf6ffae1a01dc749224e, Roundkey is b6ff744ed2c2c9bf6c590cbf0469bf41
+output is eb2c8c87a07676d096b8aca2c3209d0f
+Inv_ShiftRow
+Inv_SubBytes
+MAIN_UPDATE 00000002
+AddRoundKey state is fb4c0064f4442ff98e363caeb733f266, Roundkey is b692cf0b643dbdf1be9bc5006830b3fe
+output is 4ddecf6f9079920830adf9aedf034198
+Inv_ShiftRow
+Inv_SubBytes
+MAIN_UPDATE 00000001
+AddRoundKey state is 0c17dfa2855ace682d1843d8cb128fe4, Roundkey is d6aa74fdd2af72fadaa678f1d6ab76fe
+output is dabdab5f57f5bc92f7be3b291db9f91a
+Inv_ShiftRow
+Inv_SubBytes
+INIT_UPDATE
+AddRoundKey state is aa102030405060708090a0b0c0d0e0f0, Roundkey is 000102030405060708090a0b0c0d0e0f
+output is aa112233445566778899aabbccddeeff
+State after INIT_UPDATE is aa112233445566778899aabbccddeeff
+Finished circuit initialization process.
+# exit 0

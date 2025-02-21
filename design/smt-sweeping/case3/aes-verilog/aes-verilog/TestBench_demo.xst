@@ -1,0 +1,5 @@
+set -tmpdir "/home/superuser/Workspace/Verilog/AES/AES/xst/projnav.tmp"
+set -xsthdpdir "/home/superuser/Workspace/Verilog/AES/AES/xst"
+elaborate
+-ifn TestBench_demo.prj
+-ifmt mixed

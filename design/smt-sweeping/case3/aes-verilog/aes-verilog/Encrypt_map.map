@@ -1,0 +1,84 @@
+Release 14.7 Map P.20131013 (lin64)
+Xilinx Map Application Log File for Design 'Encrypt'
+
+Design Information
+------------------
+Command Line   : map -intstyle ise -p xc3s400-pq208-4 -cm area -ir off -pr off
+-c 100 -o Encrypt_map.ncd Encrypt.ngd Encrypt.pcf 
+Target Device  : xc3s400
+Target Package : pq208
+Target Speed   : -4
+Mapper Version : spartan3 -- $Revision: 1.55 $
+Mapped Date    : Sat Mar 24 12:50:04 2018
+
+Mapping design into LUTs...
+Running directed packing...
+Running delay-based LUT packing...
+Running related packing...
+Updating timing models...
+WARNING:PhysDesignRules:372 - Gated clock. Clock net update_type_not0001 is
+   sourced by a combinatorial pin. This is not good design practice. Use the CE
+   pin to control the loading of data into the flip-flop.
+WARNING:PhysDesignRules:372 - Gated clock. Clock net counter_or0000 is sourced
+   by a combinatorial pin. This is not good design practice. Use the CE pin to
+   control the loading of data into the flip-flop.
+ERROR:Pack:2309 - Too many bonded comps of type "IOB" found to fit this device.
+ERROR:Pack:18 - The design is too large for the given device and package. 
+   Please check the Design Summary section to see which resource requirement for
+   your design exceeds the resources available in the device.
+
+   NOTE: An NCD file will still be generated to allow you to examine the mapped
+   design.  This file is intended for evaluation use only, and will not process
+   successfully through PAR.
+
+   This mapped NCD file can be used to evaluate how the design's logic has been
+   mapped into FPGA logic resources.  It can also be used to analyze
+   preliminary, logic-level (pre-route) timing with one of the Xilinx static
+   timing analysis tools (TRCE or Timing Analyzer).
+
+Design Summary
+--------------
+
+Design Summary:
+Number of errors:      2
+Number of warnings:    2
+Logic Utilization:
+  Number of Slice Latches:              390 out of   7,168    5%
+  Number of 4 input LUTs:             1,084 out of   7,168   15%
+Logic Distribution:
+  Number of occupied Slices:            555 out of   3,584   15%
+    Number of Slices containing only related logic:     555 out of     555 100%
+    Number of Slices containing unrelated logic:          0 out of     555   0%
+      *See NOTES below for an explanation of the effects of unrelated logic.
+  Total Number of 4 input LUTs:       1,084 out of   7,168   15%
+  Number of bonded IOBs:                385 out of     141  273% (OVERMAPPED)
+    IOB Latches:                        256
+  Number of BUFGMUXs:                     4 out of       8   50%
+
+Average Fanout of Non-Clock Nets:                2.89
+
+Peak Memory Usage:  555 MB
+Total REAL time to MAP completion:  3 secs 
+Total CPU time to MAP completion:   3 secs 
+
+NOTES:
+
+   Related logic is defined as being logic that shares connectivity - e.g. two
+   LUTs are "related" if they share common inputs.  When assembling slices,
+   Map gives priority to combine logic that is related.  Doing so results in
+   the best timing performance.
+
+   Unrelated logic shares no connectivity.  Map will only begin packing
+   unrelated logic into a slice once 99% of the slices are occupied through
+   related logic packing.
+
+   Note that once logic distribution reaches the 99% level through related
+   logic packing, this does not mean the device is completely utilized.
+   Unrelated logic packing will then begin, continuing until all usable LUTs
+   and FFs are occupied.  Depending on your timing budget, increased levels of
+   unrelated logic packing may adversely affect the overall timing performance
+   of your design.
+
+Mapping completed.
+See MAP report file "Encrypt_map.mrp" for details.
+Problem encountered during the packing phase.

@@ -443,6 +443,13 @@ void simulation(const TermVec & input_terms,
     GmpRandStateGuard rand_guard;
     for(int i=0; i<num_iterations; i++){
         for(auto it : input_terms){
+            // if(it->get_sort()->get_sort_kind() == ARRAY){
+            //     TermVec children(it->begin(),it->end());
+            //     auto array_var = children[0];
+            //     auto index_term = children[1];
+                
+            //     rand_guard.random_input(input_mpz,width);
+            // }
             auto width = it->get_sort()->get_width();
             mpz_t input_mpz;
             rand_guard.random_input(input_mpz,width);
@@ -684,6 +691,55 @@ int main() {
     for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
 
     auto root = solver->make_term(Equal, s1.get_sv().at(sim.var("a::out")), sts2.lookup("b::Result"));
+
+
+    //simulation and post order traverse
+    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
+    std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
+    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
+    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
+
+    //Array init
+    initialize_arrays(sts1,sts2, all_luts, substitution_map);
+    //End of array init
+
+    auto a = sts1.inputvars();
+    auto b = sts2.inputvars();
+
+    TermVec input_terms;
+    for(auto aa :a ){
+        input_terms.push_back(aa);
+    }
+    for(auto bb : b) {
+        input_terms.push_back(bb);
+    }
+
+    int num_iterations = 20;
+
+    //simulation
+    simulation(input_terms, num_iterations, node_data_map);
+
+    for(auto i : input_terms){
+        assert(node_data_map[i].get_simulation_data().size() == num_iterations);
+        substitution_map.insert({i, i});
+        hash_term_map[node_data_map[i].hash()].push_back(i);
+    }
+    //end of simulation
+
+    // //start post order traversal
+    int count = 0;
+    int unsat_count = 0;
+    int sat_count = 0;
+
+    post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
+    root = substitution_map.at(root);
+
+    cout << "count: " << count << endl;
+    cout << "unsat_count: " << unsat_count << endl;
+    cout << "sat_count: " << sat_count << endl;
+
+    print_time();
+    std::cout << "Start checking sat" << std::endl;
     solver->assert_formula(root);
     auto  res = solver->check_sat();
     if(res.is_unsat()){
@@ -691,7 +747,6 @@ int main() {
     } else {
         cout << "SAT" << endl;
     }
-
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
     auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();
@@ -737,61 +792,3 @@ int main() {
 // for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
 // solver->assert_formula(sts2.init());
 // for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
-
-
-// //simulation and post order traverse
-// std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
-// std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
-// std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
-// std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
-
-// //Array init
-// initialize_arrays(sts1,sts2, all_luts, substitution_map);
-// //End of array init
-
-// auto a = sts1.inputvars();
-// auto b = sts2.inputvars();
-
-// TermVec input_terms;
-// for(auto aa :a ){
-//     input_terms.push_back(aa);
-// }
-// for(auto bb : b) {
-//     input_terms.push_back(bb);
-// }
-
-// int num_iterations = 20;
-
-// //simulation
-// simulation(input_terms, num_iterations, node_data_map);
-
-// for(auto i : input_terms){
-//     assert(node_data_map[i].get_simulation_data().size() == num_iterations);
-//     substitution_map.insert({i, i});
-//     hash_term_map[node_data_map[i].hash()].push_back(i);
-// }
-// //end of simulation
-
-// // //start post order traversal
-// int count = 0;
-// int unsat_count = 0;
-// int sat_count = 0;
-
-// post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
-// root = substitution_map.at(root);
-
-// cout << "count: " << count << endl;
-// cout << "unsat_count: " << unsat_count << endl;
-// cout << "sat_count: " << sat_count << endl;
-
-// print_time();
-// std::cout << "Start checking sat" << std::endl;
-// solver->assert_formula(root);
-
-// auto res = solver->check_sat();
-// print_time();
-// if(res.is_unsat()){
-//     std::cout << "UNSAT" << std::endl;
-// } else {
-//     std::cout << "SAT" << std::endl;
-// }

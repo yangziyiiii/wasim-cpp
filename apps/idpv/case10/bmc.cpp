@@ -368,22 +368,11 @@ class GmpRandStateGuard
     // operator gmp_randstate_t &() { return state; }
 };
 
-void initialize_arrays(TransitionSystem& sts1,
-                        TransitionSystem& sts2,
+void initialize_arrays(TransitionSystem& sts,
                        std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
                        std::unordered_map<Term, Term>& substitution_map
 ) {
-    for (const auto & var_val_pair : sts1.init_constants()) {
-        if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
-            continue;
-        Term var = var_val_pair.first;
-        Term val = var_val_pair.second;
-        assert(all_luts.find(var) == all_luts.end());
-        create_lut(val, all_luts[var]);
-        std::cout << "[array create] " << var->to_string() << " of size " << all_luts[var].size() << std::endl;
-    }
-
-    for (const auto & var_val_pair : sts2.init_constants()) {
+    for (const auto & var_val_pair : sts.init_constants()) {
         if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
             continue;
         Term var = var_val_pair.first;
@@ -438,6 +427,7 @@ void initialize_arrays(TransitionSystem& sts1,
 
 void simulation(const TermVec & input_terms,
                 const int &num_iterations,
+                TransitionSystem& sts,
                 std::unordered_map<Term, NodeData>& node_data_map
 ){
     GmpRandStateGuard rand_guard;
@@ -515,6 +505,7 @@ void post_order(smt::Term& root,
             } 
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
                 std::cout << "leaf nodes: " << current->to_string() << std::endl;
+                std::cout << current->get_sort() << endl;
 
                 assert(TermVec(current->begin(), current->end()).empty());// no children
                 assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
@@ -609,32 +600,25 @@ void post_order(smt::Term& root,
     } // end of traversal
 }
 
-
-bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver) {
-    solver->push();
-    for (const auto & a : asmpt) {
-      solver->assert_formula(a);
+int main(int argc, char* argv[]) {
+    if (argc < 4) {
+        std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH>" << " sim_num" << " unroll_num" <<std::endl;
+        return 1;
     }
-    solver->assert_formula(solver->make_term(Not, p));
-    auto res = solver->check_sat();
-    solver->pop();
-    return res.is_unsat();
-}
-  
-static Term and_vec(const TermVec & v, SmtSolver & solver) {
-    if (v.empty())
-      return solver->make_term(true);
-    if (v.size() == 1)
-      return v.at(0);
-  
-    auto ret = v.at(0);
-    for (size_t idx = 1; idx < v.size() ; ++idx)
-      ret = solver->make_term(smt::And, ret, v.at(idx));
-    return ret;
-}
 
-int main() {
+    std::string btor2_file = argv[1];
     
+    int num_iterations = 0;
+    try {
+        num_iterations = std::stoi(argv[2]);
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Error: Invalid number format for NUM_ITERATIONS" << std::endl;
+        return 1;
+    } catch (const std::out_of_range& e) {
+        std::cerr << "Error: NUM_ITERATIONS is out of range" << std::endl;
+        return 1;
+    }
+
     auto program_start_time = std::chrono::high_resolution_clock::now();
     last_time_point = program_start_time;
 
@@ -646,21 +630,16 @@ int main() {
     solver->set_opt("produce-unsat-assumptions", "true");
 
     // Loading and parsing BTOR2 files
-    TransitionSystem sts1(solver);
-    BTOR2Encoder btor_parser1("../design/smt-sweeping/case9/aes_128_unroll4.btor2", sts1, "a::");
+    TransitionSystem sts(solver);
+    BTOR2Encoder btor_parser(btor2_file, sts, "a::");
 
-    TransitionSystem sts2(solver);
-    BTOR2Encoder btor_parser2("../design/smt-sweeping/case3/aes-verilog/Encrypt.btor2", sts2, "b::");
+    cout << "Loading and parsing BTOR2 files..." << endl;
 
-    SymbolicSimulator sim(sts1, solver);
+    SymbolicSimulator sim(sts, solver);
     sim.init();
-    auto key = sts1.lookup("a::key");
+    sim.set_input({},{});
 
-    auto inputvar = sim.convert({{"a::key","a"},{"a::state","b"}});
-
-    sim.set_input(inputvar,{});
-
-    int unroll_iterations = 4;
+    int unroll_iterations = std::stoi(argv[3]);
     auto s1 = sim.get_curr_state();    
     std::vector<decltype(s1)> states;
     states.push_back(s1);
@@ -672,26 +651,105 @@ int main() {
         sim.set_input({},{});
     }
 
-
-
     for (const auto & a: s1.get_assumptions() ) {
        solver->assert_formula(a);
     }
+    
+    solver->assert_formula(sts.init());
+    for (const auto & c : sts.constraints()) solver->assert_formula(c.first);
 
-    solver->assert_formula(sts1.init());
-    solver->assert_formula(sts2.init());
-    for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
-    for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
+    const auto& input_terms = btor_parser.inputsvec(); // all input here
+    const auto& output_terms = btor_parser.get_output_terms(); // all output here
+    const auto& constraints = btor_parser.get_const_terms(); // all constraints here
+    const auto& property = btor_parser.propvec(); // all properties here
 
-    auto root = solver->make_term(Equal, s1.get_sv().at(sim.var("a::out")), sts2.lookup("b::Result"));
-    solver->assert_formula(root);
-    auto  res = solver->check_sat();
-    if(res.is_unsat()){
-        cout << "UNSAT" << endl;
-    } else {
-        cout << "SAT" << endl;
+    cout << "Constraints: " << constraints.size() << endl;
+    cout << "Prop: " << property.size() << endl;
+
+    for(auto c : constraints) {
+        // cout << c->to_string() << endl;
+        solver->assert_formula(c);
     }
 
+    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
+    std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
+    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
+    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
+
+    //Array init
+    initialize_arrays(sts, all_luts, substitution_map);
+    //End of array init
+
+    //simulation
+    simulation(input_terms, num_iterations, sts, node_data_map);
+
+    for(auto i : input_terms){
+        assert(node_data_map[i].get_simulation_data().size() == num_iterations);
+        substitution_map.insert({i, i});
+        hash_term_map[node_data_map[i].hash()].push_back(i);
+    }
+    //end of simulation
+
+    solver->assert_formula(sts.init());
+    for (const auto & c : sts.constraints()) solver->assert_formula(c.first);
+    
+    //start post order traversal
+    int count = 0;
+    int unsat_count = 0;
+    int sat_count = 0;
+
+    Term root = solver->make_term(true);
+    for(auto p : property) {
+        cout << p->to_string();
+        root = solver->make_term(And, root , p);
+        post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
+        root = substitution_map.at(root);
+
+        cout << "count: " << count << endl;
+        cout << "unsat_count: " << unsat_count << endl;
+        cout << "sat_count: " << sat_count << endl;
+        
+        print_time();
+        std::cout << "Start checking sat" << std::endl;
+
+        solver->assert_formula(root);
+
+        auto res = solver->check_sat();
+        print_time();
+        if(res.is_unsat()){
+            std::cout << "UNSAT" << std::endl;
+        } else {
+            std::cout << "SAT" << std::endl;
+        }
+    }
+
+    
+    //end of traversal
+    std::cout << std::endl;
+    
+
+    //Check UNSAT for the miter circuit
+    // root = substitution_map.at(root);
+
+    // cout << "count: " << count << endl;
+    // cout << "unsat_count: " << unsat_count << endl;
+    // cout << "sat_count: " << sat_count << endl;
+    
+    // print_time();
+    // std::cout << "Start checking sat" << std::endl;
+
+    // auto condition = output_terms.front();
+    // solver->assert_formula(condition);
+    
+    // solver->assert_formula(root);
+
+    // auto res = solver->check_sat();
+    // print_time();
+    // if(res.is_unsat()){
+    //     std::cout << "UNSAT" << std::endl;
+    // } else {
+    //     std::cout << "SAT" << std::endl;
+    // }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
     auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();
@@ -699,99 +757,3 @@ int main() {
 
     return 0;
 }
-
-// cout << "Loading and parsing BTOR2 files..." << endl;
-
-// cout << btor_parser1.propvec().size() << endl;
-
-// // const auto & propvec = sts2.prop();
-// // cout << propvec.size() << endl;
-
-// // auto prop = and_vec(propvec, solver); // using 'and' to make a property
-
-// // SymbolicSimulator sim(sts2, solver);
-// // sim.init();
-// // // check init condition
-// // if (! check_prop(
-// //     sim.interpret_state_expr_on_curr_frame(prop, false),
-// //     sim.all_assumptions(),
-// //     solver )) {
-// //     std::cout << "[bmc] failed at init!" << std::endl;
-// //     return 2;
-// // }
-
-// int unroll_iterations = 4;
-
-// cout << "unroll: " << unroll_iterations << endl;
-
-// sim.set_input({},{});
-// for (unsigned i = 1; i <= unroll_iterations; ++i) {
-//     sim.sim_one_step();
-// }
-// std::cout << "[bmc] unroll_iterations " << unroll_iterations << " is reached." << std::endl;
-// auto b_output = sim.interpret_state_expr_on_curr_frame(prop, false);
-// auto a_output = sts1.lookup("Result");
-// auto root = solver->make_term(Equal, a_output, b_output);
-
-// solver->assert_formula(sts1.init());
-// for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
-// solver->assert_formula(sts2.init());
-// for (const auto & c : sts2.constraints()) solver->assert_formula(c.first);
-
-
-// //simulation and post order traverse
-// std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
-// std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
-// std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
-// std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
-
-// //Array init
-// initialize_arrays(sts1,sts2, all_luts, substitution_map);
-// //End of array init
-
-// auto a = sts1.inputvars();
-// auto b = sts2.inputvars();
-
-// TermVec input_terms;
-// for(auto aa :a ){
-//     input_terms.push_back(aa);
-// }
-// for(auto bb : b) {
-//     input_terms.push_back(bb);
-// }
-
-// int num_iterations = 20;
-
-// //simulation
-// simulation(input_terms, num_iterations, node_data_map);
-
-// for(auto i : input_terms){
-//     assert(node_data_map[i].get_simulation_data().size() == num_iterations);
-//     substitution_map.insert({i, i});
-//     hash_term_map[node_data_map[i].hash()].push_back(i);
-// }
-// //end of simulation
-
-// // //start post order traversal
-// int count = 0;
-// int unsat_count = 0;
-// int sat_count = 0;
-
-// post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
-// root = substitution_map.at(root);
-
-// cout << "count: " << count << endl;
-// cout << "unsat_count: " << unsat_count << endl;
-// cout << "sat_count: " << sat_count << endl;
-
-// print_time();
-// std::cout << "Start checking sat" << std::endl;
-// solver->assert_formula(root);
-
-// auto res = solver->check_sat();
-// print_time();
-// if(res.is_unsat()){
-//     std::cout << "UNSAT" << std::endl;
-// } else {
-//     std::cout << "SAT" << std::endl;
-// }

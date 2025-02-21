@@ -1,0 +1,628 @@
+Release 14.7 - xst P.20131013 (lin64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+--> 
+Parameter TMPDIR set to xst/projnav.tmp
+
+
+Total REAL time to Xst completion: 0.00 secs
+Total CPU time to Xst completion: 0.07 secs
+ 
+--> 
+Parameter xsthdpdir set to xst
+
+
+Total REAL time to Xst completion: 0.00 secs
+Total CPU time to Xst completion: 0.07 secs
+ 
+--> 
+Reading design: Encrypt.prj
+
+TABLE OF CONTENTS
+  1) Synthesis Options Summary
+  2) HDL Compilation
+  3) Design Hierarchy Analysis
+  4) HDL Analysis
+  5) HDL Synthesis
+     5.1) HDL Synthesis Report
+  6) Advanced HDL Synthesis
+     6.1) Advanced HDL Synthesis Report
+  7) Low Level Synthesis
+  8) Partition Report
+  9) Final Report
+	9.1) Device utilization summary
+	9.2) Partition Resource Summary
+	9.3) TIMING REPORT
+
+
+=========================================================================
+*                      Synthesis Options Summary                        *
+=========================================================================
+---- Source Parameters
+Input File Name                    : "Encrypt.prj"
+Input Format                       : mixed
+Ignore Synthesis Constraint File   : NO
+
+---- Target Parameters
+Output File Name                   : "Encrypt"
+Output Format                      : NGC
+Target Device                      : xc3s400-4-pq208
+
+---- Source Options
+Top Module Name                    : Encrypt
+Automatic FSM Extraction           : YES
+FSM Encoding Algorithm             : Auto
+Safe Implementation                : No
+FSM Style                          : LUT
+RAM Extraction                     : Yes
+RAM Style                          : Auto
+ROM Extraction                     : Yes
+Mux Style                          : Auto
+Decoder Extraction                 : YES
+Priority Encoder Extraction        : Yes
+Shift Register Extraction          : YES
+Logical Shifter Extraction         : YES
+XOR Collapsing                     : YES
+ROM Style                          : Auto
+Mux Extraction                     : Yes
+Resource Sharing                   : YES
+Asynchronous To Synchronous        : NO
+Multiplier Style                   : Auto
+Automatic Register Balancing       : No
+
+---- Target Options
+Add IO Buffers                     : YES
+Global Maximum Fanout              : 100000
+Add Generic Clock Buffer(BUFG)     : 8
+Register Duplication               : YES
+Slice Packing                      : YES
+Optimize Instantiated Primitives   : NO
+Use Clock Enable                   : Yes
+Use Synchronous Set                : Yes
+Use Synchronous Reset              : Yes
+Pack IO Registers into IOBs        : Auto
+Equivalent register Removal        : YES
+
+---- General Options
+Optimization Goal                  : Speed
+Optimization Effort                : 1
+Keep Hierarchy                     : No
+Netlist Hierarchy                  : As_Optimized
+RTL Output                         : Yes
+Global Optimization                : AllClockNets
+Read Cores                         : YES
+Write Timing Constraints           : NO
+Cross Clock Analysis               : NO
+Hierarchy Separator                : /
+Bus Delimiter                      : <>
+Case Specifier                     : Maintain
+Slice Utilization Ratio            : 100
+BRAM Utilization Ratio             : 100
+Verilog 2001                       : YES
+Auto BRAM Packing                  : NO
+Slice Utilization Ratio Delta      : 5
+
+=========================================================================
+
+
+=========================================================================
+*                          HDL Compilation                              *
+=========================================================================
+Compiling verilog file "Encrypt.v" in library work
+Module <Encrypt> compiled
+No errors in compilation
+Analysis of file <"Encrypt.prj"> succeeded.
+ 
+
+=========================================================================
+*                     Design Hierarchy Analysis                         *
+=========================================================================
+Analyzing hierarchy for module <Encrypt> in library <work> with parameters.
+	FINAL_UPDATE = "011"
+	INIT_UPDATE = "001"
+	MAIN_UPDATE = "010"
+	NO_UPDATE = "000"
+	ROUND_NO = "0000"
+
+
+=========================================================================
+*                            HDL Analysis                               *
+=========================================================================
+Analyzing top module <Encrypt>.
+	FINAL_UPDATE = 3'b011
+	INIT_UPDATE = 3'b001
+	MAIN_UPDATE = 3'b010
+	NO_UPDATE = 3'b000
+	ROUND_NO = 4'b0000
+"Encrypt.v" line 381: $display : @*
+"Encrypt.v" line 385: $display : INIT_UPDATE
+	Calling function <AddRoundKey>.
+"Encrypt.v" line 16: $display : AddRoundKey
+WARNING:Xst:2323 - "Encrypt.v" line 398: Parameter 2 is not constant in call of system task $display.
+"Encrypt.v" line 398: $display : MAIN_UPDATE %h
+	Calling function <SubBytes>.
+"Encrypt.v" line 24: $display : SubBytes
+	Calling function <ShiftRow>.
+"Encrypt.v" line 292: $display : ShiftRow
+	Calling function <mixcolumn>.
+"Encrypt.v" line 344: $display : mixcolumn
+	Calling function <mul_32bit>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <mul_32bit>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <mul_32bit>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <mul_32bit>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m3>.
+	Calling function <m2>.
+	Calling function <m2>.
+"Encrypt.v" line 415: $display : FINAL_UPDATE
+	Calling function <SubBytes>.
+"Encrypt.v" line 24: $display : SubBytes
+	Calling function <ShiftRow>.
+"Encrypt.v" line 292: $display : ShiftRow
+WARNING:Xst:905 - "Encrypt.v" line 376: One or more signals are missing in the sensitivity list of always block. To enable synthesis of FPGA/CPLD hardware, XST will assume that all necessary signals are present in the sensitivity list. Please note that the result of the synthesis may differ from the initial design specification. The missing signals are:
+   <round_logic/block_new>
+Module <Encrypt> is correct for synthesis.
+ 
+
+=========================================================================
+*                           HDL Synthesis                               *
+=========================================================================
+
+Performing bidirectional port resolution...
+INFO:Xst:2679 - Register <ready> in unit <Encrypt> has a constant value of 1 during circuit operation. The register is replaced by logic.
+
+Synthesizing Unit <Encrypt>.
+    Related source file is "Encrypt.v".
+WARNING:Xst:647 - Input <next> is never used. This port will be preserved and left unconnected if it belongs to a top-level block or it belongs to a sub-block and the hierarchy of this sub-block is preserved.
+WARNING:Xst:646 - Signal <sbox> is assigned but never used. This unconnected signal will be trimmed during the optimization process.
+WARNING:Xst:646 - Signal <round_logic/key_new> is assigned but never used. This unconnected signal will be trimmed during the optimization process.
+WARNING:Xst:646 - Signal <round_logic/SubBytes/2/SubBytes> is assigned but never used. This unconnected signal will be trimmed during the optimization process.
+WARNING:Xst:646 - Signal <round_logic/SubBytes/1/SubBytes> is assigned but never used. This unconnected signal will be trimmed during the optimization process.
+WARNING:Xst:646 - Signal <round_logic/ShiftRow/1/ShiftRow> is assigned but never used. This unconnected signal will be trimmed during the optimization process.
+WARNING:Xst:737 - Found 128-bit latch for signal <round_logic/key_old>. Latches may be generated from incomplete case or if statements. We do not recommend the use of latches in FPGA/CPLD designs, as they may lead to timing problems.
+WARNING:Xst:737 - Found 128-bit latch for signal <Result>. Latches may be generated from incomplete case or if statements. We do not recommend the use of latches in FPGA/CPLD designs, as they may lead to timing problems.
+    Using one-hot encoding for signal <update_type>.
+WARNING:Xst:737 - Found 128-bit latch for signal <round_logic/block_old>. Latches may be generated from incomplete case or if statements. We do not recommend the use of latches in FPGA/CPLD designs, as they may lead to timing problems.
+INFO:Xst:2371 - HDL ADVISOR - Logic functions respectively driving the data and gate enable inputs of this latch share common terms. This situation will potentially lead to setup/hold violations and, as a result, to simulation problems. This situation may come from an incomplete case statement (all selector values are not covered). You should carefully review if it was in your intentions to describe such a latch.
+WARNING:Xst:737 - Found 128-bit latch for signal <round_logic/block_new>. Latches may be generated from incomplete case or if statements. We do not recommend the use of latches in FPGA/CPLD designs, as they may lead to timing problems.
+INFO:Xst:2371 - HDL ADVISOR - Logic functions respectively driving the data and gate enable inputs of this latch share common terms. This situation will potentially lead to setup/hold violations and, as a result, to simulation problems. This situation may come from an incomplete case statement (all selector values are not covered). You should carefully review if it was in your intentions to describe such a latch.
+WARNING:Xst:737 - Found 3-bit latch for signal <counter>. Latches may be generated from incomplete case or if statements. We do not recommend the use of latches in FPGA/CPLD designs, as they may lead to timing problems.
+INFO:Xst:2371 - HDL ADVISOR - Logic functions respectively driving the data and gate enable inputs of this latch share common terms. This situation will potentially lead to setup/hold violations and, as a result, to simulation problems. This situation may come from an incomplete case statement (all selector values are not covered). You should carefully review if it was in your intentions to describe such a latch.
+WARNING:Xst:737 - Found 4-bit latch for signal <update_type>. Latches may be generated from incomplete case or if statements. We do not recommend the use of latches in FPGA/CPLD designs, as they may lead to timing problems.
+INFO:Xst:2371 - HDL ADVISOR - Logic functions respectively driving the data and gate enable inputs of this latch share common terms. This situation will potentially lead to setup/hold violations and, as a result, to simulation problems. This situation may come from an incomplete case statement (all selector values are not covered). You should carefully review if it was in your intentions to describe such a latch.
+WARNING:Xst:737 - Found 128-bit latch for signal <round_logic/temp>. Latches may be generated from incomplete case or if statements. We do not recommend the use of latches in FPGA/CPLD designs, as they may lead to timing problems.
+INFO:Xst:2371 - HDL ADVISOR - Logic functions respectively driving the data and gate enable inputs of this latch share common terms. This situation will potentially lead to setup/hold violations and, as a result, to simulation problems. This situation may come from an incomplete case statement (all selector values are not covered). You should carefully review if it was in your intentions to describe such a latch.
+    Found 3-bit adder for signal <counter$addsub0000> created at line 408.
+    Found 1-bit xor2 for signal <m2$xor0000> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0001> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0002> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0003> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0004> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0005> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0006> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0007> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0008> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0009> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0010> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0011> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0012> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0013> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0014> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0015> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0016> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0017> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0018> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0019> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0020> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0021> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0022> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0023> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0024> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0025> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0026> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0027> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0028> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0029> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0030> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0031> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0032> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0033> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0034> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0035> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0036> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0037> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0038> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0039> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0040> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0041> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0042> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0043> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0044> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0045> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0046> created at line 311.
+    Found 1-bit xor2 for signal <m2$xor0047> created at line 311.
+    Found 128-bit xor2 for signal <round_logic/AddRoundKey/1/AddRoundKey>.
+    Summary:
+	inferred   1 Adder/Subtractor(s).
+	inferred 128 Xor(s).
+Unit <Encrypt> synthesized.
+
+
+=========================================================================
+HDL Synthesis Report
+
+Macro Statistics
+# Adders/Subtractors                                   : 1
+ 3-bit adder                                           : 1
+# Latches                                              : 7
+ 128-bit latch                                         : 5
+ 3-bit latch                                           : 1
+ 4-bit latch                                           : 1
+# Xors                                                 : 65
+ 1-bit xor2                                            : 48
+ 128-bit xor2                                          : 1
+ 8-bit xor5                                            : 16
+
+=========================================================================
+
+=========================================================================
+*                       Advanced HDL Synthesis                          *
+=========================================================================
+
+WARNING:Xst:1426 - The value init of the FF/Latch 0 hinder the constant cleaning in the block 1.
+   You should achieve better results by setting this init to 0.
+
+=========================================================================
+Advanced HDL Synthesis Report
+
+Macro Statistics
+# Adders/Subtractors                                   : 1
+ 3-bit adder                                           : 1
+# Latches                                              : 7
+ 128-bit latch                                         : 5
+ 3-bit latch                                           : 1
+ 4-bit latch                                           : 1
+# Xors                                                 : 65
+ 1-bit xor2                                            : 48
+ 128-bit xor2                                          : 1
+ 8-bit xor5                                            : 16
+
+=========================================================================
+
+=========================================================================
+*                         Low Level Synthesis                           *
+=========================================================================
+WARNING:Xst:1426 - The value init of the FF/Latch update_type_1 hinder the constant cleaning in the block Encrypt.
+   You should achieve better results by setting this init to 0.
+WARNING:Xst:2677 - Node <update_type_0> of sequential type is unconnected in block <Encrypt>.
+
+Optimizing unit <Encrypt> ...
+
+Mapping all equations...
+Building and optimizing final netlist ...
+Found area constraint ratio of 100 (+ 5) on block Encrypt, actual ratio is 15.
+
+Final Macro Processing ...
+
+=========================================================================
+Final Register Report
+
+Found no macro
+=========================================================================
+
+=========================================================================
+*                           Partition Report                            *
+=========================================================================
+
+Partition Implementation Status
+-------------------------------
+
+  No Partitions were found in this design.
+
+-------------------------------
+
+=========================================================================
+*                            Final Report                               *
+=========================================================================
+Final Results
+RTL Top Level Output File Name     : Encrypt.ngr
+Top Level Output File Name         : Encrypt
+Output Format                      : NGC
+Optimization Goal                  : Speed
+Keep Hierarchy                     : No
+
+Design Statistics
+# IOs                              : 386
+
+Cell Usage :
+# BELS                             : 1271
+#      GND                         : 1
+#      LUT2                        : 36
+#      LUT2_D                      : 5
+#      LUT2_L                      : 73
+#      LUT3                        : 163
+#      LUT3_L                      : 23
+#      LUT4                        : 762
+#      LUT4_L                      : 22
+#      MUXF5                       : 185
+#      VCC                         : 1
+# FlipFlops/Latches                : 646
+#      LD                          : 646
+# Clock Buffers                    : 4
+#      BUFG                        : 4
+# IO Buffers                       : 385
+#      IBUF                        : 256
+#      OBUF                        : 129
+=========================================================================
+
+Device utilization summary:
+---------------------------
+
+Selected Device : 3s400pq208-4 
+
+ Number of Slices:                      577  out of   3584    16%  
+ Number of Slice Flip Flops:            390  out of   7168     5%  
+ Number of 4 input LUTs:               1084  out of   7168    15%  
+ Number of IOs:                         386
+ Number of bonded IOBs:                 385  out of    141   273% (*) 
+    IOB Flip Flops:                     256
+ Number of GCLKs:                         4  out of      8    50%  
+
+WARNING:Xst:1336 -  (*) More than 100% of Device resources are used
+
+---------------------------
+Partition Resource Summary:
+---------------------------
+
+  No Partitions were found in this design.
+
+---------------------------
+
+
+=========================================================================
+TIMING REPORT
+
+NOTE: THESE TIMING NUMBERS ARE ONLY A SYNTHESIS ESTIMATE.
+      FOR ACCURATE TIMING INFORMATION PLEASE REFER TO THE TRACE REPORT
+      GENERATED AFTER PLACE-and-ROUTE.
+
+Clock Information:
+------------------
+---------------------------------------------+---------------------------------+-------+
+Clock Signal                                 | Clock buffer(FF name)           | Load  |
+---------------------------------------------+---------------------------------+-------+
+update_type_not0001(update_type_not0001_f5:O)| NONE(*)(update_type_1)          | 3     |
+counter_or0000(counter_or00001:O)            | NONE(*)(counter_0)              | 3     |
+temp_or00001(temp_or00001:O)                 | BUFG(*)(round_logic_temp_0)     | 128   |
+block_old_or00001(block_old_or00001:O)       | BUFG(*)(round_logic_block_new_0)| 256   |
+update_type_31                               | BUFG                            | 128   |
+update_type_11                               | BUFG                            | 128   |
+---------------------------------------------+---------------------------------+-------+
+(*) These 4 clock signal(s) are generated by combinatorial logic,
+and XST is not able to identify which are the primary clock signals.
+Please use the CLOCK_SIGNAL constraint to specify the clock signal(s) generated by combinatorial logic.
+INFO:Xst:2169 - HDL ADVISOR - Some clock signals were not automatically buffered by XST with BUFG/BUFR resources. Please use the buffer_type constraint in order to insert these buffers to the clock signals to help prevent skew problems.
+
+Asynchronous Control Signals Information:
+----------------------------------------
+No asynchronous control signals found in this design
+
+Timing Summary:
+---------------
+Speed Grade: -4
+
+   Minimum period: 5.947ns (Maximum Frequency: 168.152MHz)
+   Minimum input arrival time before clock: 2.715ns
+   Maximum output required time after clock: 7.078ns
+   Maximum combinational path delay: No path found
+
+Timing Detail:
+--------------
+All values displayed in nanoseconds (ns)
+
+=========================================================================
+Timing constraint: Default period analysis for Clock 'update_type_not0001'
+  Clock period: 5.947ns (frequency: 168.152MHz)
+  Total number of paths / destination ports: 2 / 2
+-------------------------------------------------------------------------
+Delay:               5.947ns (Levels of Logic = 1)
+  Source:            update_type_2 (LATCH)
+  Destination:       update_type_3 (LATCH)
+  Source Clock:      update_type_not0001 falling
+  Destination Clock: update_type_not0001 falling
+
+  Data Path: update_type_2 to update_type_3
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     LD:G->Q             540   0.633   4.560  update_type_2 (update_type_2)
+     LUT4:I3->O            1   0.551   0.000  update_type_mux0000<3>1 (update_type_mux0000<3>)
+     LD:D                      0.203          update_type_3
+    ----------------------------------------
+    Total                      5.947ns (1.387ns logic, 4.560ns route)
+                                       (23.3% logic, 76.7% route)
+
+=========================================================================
+Timing constraint: Default period analysis for Clock 'counter_or0000'
+  Clock period: 2.503ns (frequency: 399.521MHz)
+  Total number of paths / destination ports: 6 / 3
+-------------------------------------------------------------------------
+Delay:               2.503ns (Levels of Logic = 1)
+  Source:            counter_0 (LATCH)
+  Destination:       counter_0 (LATCH)
+  Source Clock:      counter_or0000 falling
+  Destination Clock: counter_or0000 falling
+
+  Data Path: counter_0 to counter_0
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     LD:G->Q               5   0.633   1.116  counter_0 (counter_0)
+     LUT3:I1->O            1   0.551   0.000  counter_mux0000<0>1 (counter_mux0000<0>)
+     LD:D                      0.203          counter_0
+    ----------------------------------------
+    Total                      2.503ns (1.387ns logic, 1.116ns route)
+                                       (55.4% logic, 44.6% route)
+
+=========================================================================
+Timing constraint: Default period analysis for Clock 'temp_or00001'
+  Clock period: 5.082ns (frequency: 196.759MHz)
+  Total number of paths / destination ports: 1508 / 128
+-------------------------------------------------------------------------
+Delay:               5.082ns (Levels of Logic = 3)
+  Source:            round_logic_temp_63 (LATCH)
+  Destination:       round_logic_temp_47 (LATCH)
+  Source Clock:      temp_or00001 falling
+  Destination Clock: temp_or00001 falling
+
+  Data Path: round_logic_temp_63 to round_logic_temp_47
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     LD:G->Q              31   0.633   1.915  round_logic_temp_63 (round_logic_temp_63)
+     LUT3:I2->O            1   0.551   0.000  temp_mux0000<47>6_SW1_F (N1224)
+     MUXF5:I0->O           1   0.360   0.869  temp_mux0000<47>6_SW1 (N643)
+     LUT4:I2->O            1   0.551   0.000  temp_mux0000<47>15 (temp_mux0000<47>)
+     LD:D                      0.203          round_logic_temp_47
+    ----------------------------------------
+    Total                      5.082ns (2.298ns logic, 2.784ns route)
+                                       (45.2% logic, 54.8% route)
+
+=========================================================================
+Timing constraint: Default period analysis for Clock 'block_old_or00001'
+  Clock period: 2.527ns (frequency: 395.726MHz)
+  Total number of paths / destination ports: 256 / 256
+-------------------------------------------------------------------------
+Delay:               2.527ns (Levels of Logic = 1)
+  Source:            round_logic_block_old_0 (LATCH)
+  Destination:       round_logic_block_new_0 (LATCH)
+  Source Clock:      block_old_or00001 falling
+  Destination Clock: block_old_or00001 falling
+
+  Data Path: round_logic_block_old_0 to round_logic_block_new_0
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     LD:G->Q               1   0.633   1.140  round_logic_block_old_0 (round_logic_block_old_0)
+     LUT4:I0->O            1   0.551   0.000  block_new_mux0000<0> (block_new_mux0000<0>)
+     LD:D                      0.203          round_logic_block_new_0
+    ----------------------------------------
+    Total                      2.527ns (1.387ns logic, 1.140ns route)
+                                       (54.9% logic, 45.1% route)
+
+=========================================================================
+Timing constraint: Default OFFSET IN BEFORE for Clock 'block_old_or00001'
+  Total number of paths / destination ports: 128 / 128
+-------------------------------------------------------------------------
+Offset:              2.715ns (Levels of Logic = 2)
+  Source:            Block<0> (PAD)
+  Destination:       round_logic_block_old_0 (LATCH)
+  Destination Clock: block_old_or00001 falling
+
+  Data Path: Block<0> to round_logic_block_old_0
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     IBUF:I->O             1   0.821   1.140  Block_0_IBUF (Block_0_IBUF)
+     LUT4:I0->O            1   0.551   0.000  block_old_mux0000<0>1 (block_old_mux0000<0>)
+     LD:D                      0.203          round_logic_block_old_0
+    ----------------------------------------
+    Total                      2.715ns (1.575ns logic, 1.140ns route)
+                                       (58.0% logic, 42.0% route)
+
+=========================================================================
+Timing constraint: Default OFFSET IN BEFORE for Clock 'update_type_11'
+  Total number of paths / destination ports: 128 / 128
+-------------------------------------------------------------------------
+Offset:              1.825ns (Levels of Logic = 1)
+  Source:            Key<0> (PAD)
+  Destination:       round_logic_key_old_0 (LATCH)
+  Destination Clock: update_type_11 falling
+
+  Data Path: Key<0> to round_logic_key_old_0
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     IBUF:I->O             1   0.821   0.801  Key_0_IBUF (Key_0_IBUF)
+     LD:D                      0.203          round_logic_key_old_0
+    ----------------------------------------
+    Total                      1.825ns (1.024ns logic, 0.801ns route)
+                                       (56.1% logic, 43.9% route)
+
+=========================================================================
+Timing constraint: Default OFFSET OUT AFTER for Clock 'update_type_31'
+  Total number of paths / destination ports: 128 / 128
+-------------------------------------------------------------------------
+Offset:              7.078ns (Levels of Logic = 1)
+  Source:            Result_127 (LATCH)
+  Destination:       Result<127> (PAD)
+  Source Clock:      update_type_31 falling
+
+  Data Path: Result_127 to Result<127>
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     LD:G->Q               1   0.633   0.801  Result_127 (Result_127)
+     OBUF:I->O                 5.644          Result_127_OBUF (Result<127>)
+    ----------------------------------------
+    Total                      7.078ns (6.277ns logic, 0.801ns route)
+                                       (88.7% logic, 11.3% route)
+
+=========================================================================
+
+
+Total REAL time to Xst completion: 14.00 secs
+Total CPU time to Xst completion: 13.07 secs
+ 
+--> 
+
+
+Total memory usage is 553536 kilobytes
+
+Number of errors   :    0 (   0 filtered)
+Number of warnings :   19 (   0 filtered)
+Number of infos    :    7 (   0 filtered)
+

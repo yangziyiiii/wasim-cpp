@@ -1,0 +1,8 @@
+xst -intstyle ise -ifn "/home/superuser/Workspace/Verilog/AES/AES/Encrypt.xst" -ofn "/home/superuser/Workspace/Verilog/AES/AES/Encrypt.syr" 
+xst -intstyle ise -ifn "/home/superuser/Workspace/Verilog/AES/AES/Encrypt.xst" -ofn "/home/superuser/Workspace/Verilog/AES/AES/Encrypt.syr" 
+xst -intstyle ise -ifn "/home/superuser/Workspace/Verilog/AES/AES/Encrypt.xst" -ofn "/home/superuser/Workspace/Verilog/AES/AES/Encrypt.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -i -p xc3s400-pq208-4 Encrypt.ngc Encrypt.ngd  
+map -intstyle ise -p xc3s400-pq208-4 -cm area -ir off -pr off -c 100 -o Encrypt_map.ncd Encrypt.ngd Encrypt.pcf 
+xst -intstyle ise -ifn "/home/superuser/Workspace/Verilog/AES/AES/Encrypt.xst" -ofn "/home/superuser/Workspace/Verilog/AES/AES/Encrypt.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -i -p xc3s400-pq208-4 Encrypt.ngc Encrypt.ngd  
+map -intstyle ise -p xc3s400-pq208-4 -cm area -ir off -pr off -c 100 -o Encrypt_map.ncd Encrypt.ngd Encrypt.pcf 

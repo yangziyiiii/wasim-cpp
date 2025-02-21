@@ -1,0 +1,12 @@
+NET "clk" LOC = P181;
+NET "data[0]" LOC = P167;
+NET "data[1]" LOC = P166;
+NET "data[2]" LOC = P165;
+NET "data[3]" LOC = P162;
+NET "data[4]" LOC = P161;
+NET "data[5]" LOC = P156;
+NET "data[6]" LOC = P155;
+NET "data[7]" LOC = P154;
+NET "lcd_e" LOC = P168;
+NET "lcd_rs" LOC = P171;
+NET "lcd_rw" LOC = P169;

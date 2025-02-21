@@ -665,6 +665,12 @@ int main(int argc, char* argv[]) {
     solver->assert_formula(sts.init());
     for (const auto & c : sts.constraints()) solver->assert_formula(c.first);
     
+
+    auto condition = output_terms.front();
+    cout << "condition: " << condition->to_string() << std::endl;
+    auto nc = solver->make_term(Not, condition);
+    // solver->assert_formula(nc);
+    
     //start post order traversal
     int count = 0;
     int unsat_count = 0;
@@ -685,12 +691,11 @@ int main(int argc, char* argv[]) {
     print_time();
     std::cout << "Start checking sat" << std::endl;
 
-    auto condition = output_terms.front();
-    cout << "condition: " << condition->to_string() << std::endl;
-    solver->assert_formula(condition);
-    
-    solver->assert_formula(root);
+    auto not_root = solver->make_term(Not, root);
+    auto implication = solver->make_term(Implies, condition, not_root);
+    auto ni = solver->make_term(Not,implication);
 
+    solver->assert_formula(ni);
     auto res = solver->check_sat();
     print_time();
     if(res.is_unsat()){
