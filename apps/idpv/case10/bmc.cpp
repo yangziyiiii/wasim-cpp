@@ -649,6 +649,9 @@ int main(int argc, char* argv[]) {
         s1 = sim.get_curr_state();
         states.push_back(s1);
         sim.set_input({},{});
+
+
+
     }
 
     for (const auto & a: s1.get_assumptions() ) {
@@ -660,8 +663,8 @@ int main(int argc, char* argv[]) {
 
     const auto& input_terms = btor_parser.inputsvec(); // all input here
     const auto& output_terms = btor_parser.get_output_terms(); // all output here
-    const auto& constraints = btor_parser.get_const_terms(); // all constraints here
-    const auto& property = btor_parser.propvec(); // all properties here
+    // const auto& constraints = btor_parser.get_const_terms(); // all constraints here
+    // const auto& property = btor_parser.propvec(); // all properties here FIXME:
 
     cout << "Constraints: " << constraints.size() << endl;
     cout << "Prop: " << property.size() << endl;
@@ -689,9 +692,6 @@ int main(int argc, char* argv[]) {
         hash_term_map[node_data_map[i].hash()].push_back(i);
     }
     //end of simulation
-
-    solver->assert_formula(sts.init());
-    for (const auto & c : sts.constraints()) solver->assert_formula(c.first);
     
     //start post order traversal
     int count = 0;
@@ -702,8 +702,15 @@ int main(int argc, char* argv[]) {
     for(auto p : property) {
         cout << p->to_string();
         root = solver->make_term(And, root , p);
+
+        sim.interpret_state_expr_on_curr_frame(prop, false);//TODO:
+
         post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
         root = substitution_map.at(root);
+
+        UnorderedTermSet out;
+        smt::get_free_symbols(root, out);// get all 
+        
 
         cout << "count: " << count << endl;
         cout << "unsat_count: " << unsat_count << endl;

@@ -54,6 +54,10 @@ int main() {
     auto result = sts1.lookup("a::result");
     auto a_a = sts1.lookup("a::a");
     auto a_b = sts1.lookup("a::b");
+    auto internal_a1 = sts1.lookup("a::ALU.internal_a1");
+    auto internal_a2 = sts1.lookup("a::ALU.internal_a2");
+    auto alu_out = sts1.lookup("a::ALU.out");
+    auto alu_golden_out = sts1.lookup("a::alu_golden.out");
 
     // 4) Construct expression: control == 4'b1000
     //    Create a 4-bit BV constant "1000" (binary)
@@ -84,8 +88,12 @@ int main() {
         std::cout << "Property fails: when control == 4'b1000, result can be 1 (mismatch)." << std::endl;
         // Print a model for debugging
         std::cout << "Model example:" << std::endl;
-        std::cout << "  control = " << solver->get_value(a_a) << std::endl;
-        std::cout << "  result  = " << solver->get_value(a_b) << std::endl;
+        std::cout << "  a = " << solver->get_value(a_a) << std::endl;
+        std::cout << "  b = " << solver->get_value(a_b) << std::endl;
+        std::cout << "  1 = " << solver->get_value(internal_a1) << std::endl;
+        std::cout << "  2 = " << solver->get_value(internal_a2) << std::endl;
+        std::cout << "  g = " << solver->get_value(alu_golden_out) << std::endl;
+        std::cout << "  u = " << solver->get_value(alu_out) << std::endl;
     }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();

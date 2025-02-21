@@ -12,42 +12,258 @@
 11 ite 6 10 8 7
 12 output 11 condition ; cond_mul.v:89.93-89.102
 13 sort bitvec 128
-14 or 1 2 3
-15 slice 6 5 2 2
-16 ite 1 15 14 2
-17 udiv 1 16 3
-18 mul 1 16 3
-19 sort bitvec 2
-20 slice 19 5 4 3
-21 const 19 10
-22 eq 6 20 21
-23 ite 1 22 18 17
-24 sub 1 16 3
-25 uext 19 8 1
-26 eq 6 20 25
-27 ite 1 26 24 23
-28 add 1 16 3
-29 redor 6 20
-30 not 6 29
-31 ite 1 30 28 27
-32 const 1 0000000000000000000000000000000000000000000000000000000000000000
-33 concat 13 32 31
-34 uext 13 2 64
-35 uext 13 3 64
-36 mul 13 34 35
-37 xor 13 33 36
-38 redor 6 37
-39 output 38 result ; cond_mul.v:89.78-89.84
-40 uext 1 2 0 ALU.a ; cond_mul.v:71.25-71.26
-41 uext 1 3 0 ALU.b ; cond_mul.v:71.41-71.42
-42 uext 4 5 0 ALU.control ; cond_mul.v:71.56-71.63
-43 uext 1 16 0 ALU.internal_a2 ; cond_mul.v:73.26-73.37
-44 uext 1 3 0 ALU.internal_b ; cond_mul.v:73.39-73.49
-45 uext 13 33 0 ALU.out ; cond_mul.v:71.80-71.83
-46 uext 1 2 0 alu_golden.a ; cond_mul.v:64.32-64.33
-47 uext 1 3 0 alu_golden.b ; cond_mul.v:64.48-64.49
-48 uext 13 36 0 alu_golden.out ; cond_mul.v:64.66-64.69
-49 uext 13 36 0 alu_golden_out ; cond_mul.v:92.14-92.28
-50 uext 13 33 0 alu_out ; cond_mul.v:91.14-91.21
-51 uext 13 37 0 miter_out ; cond_mul.v:93.14-93.23
+14 and 1 2 3
+15 sort bitvec 63
+16 slice 15 2 63 1
+17 concat 1 16 7
+18 sort bitvec 2
+19 slice 18 5 1 0
+20 const 18 10
+21 eq 6 19 20
+22 ite 1 21 17 14
+23 slice 15 2 62 0
+24 concat 1 7 23
+25 uext 18 8 1
+26 eq 6 19 25
+27 ite 1 26 24 22
+28 slice 15 2 62 0
+29 concat 1 28 7
+30 redor 6 19
+31 not 6 30
+32 ite 1 31 29 27
+33 sub 1 32 2
+34 or 1 2 3
+35 slice 6 5 2 2
+36 ite 1 35 34 33
+37 uext 13 36 64
+38 uext 13 3 64
+39 udiv 13 37 38
+40 uext 13 36 64
+41 uext 13 3 64
+42 mul 13 40 41
+43 slice 18 5 4 3
+44 eq 6 43 20
+45 ite 13 44 42 39
+46 sort bitvec 65
+47 uext 46 36 1
+48 uext 46 3 1
+49 sub 46 47 48
+50 slice 6 49 64 64
+51 sort bitvec 66
+52 concat 51 50 49
+53 slice 6 49 64 64
+54 sort bitvec 67
+55 concat 54 53 52
+56 slice 6 49 64 64
+57 sort bitvec 68
+58 concat 57 56 55
+59 slice 6 49 64 64
+60 sort bitvec 69
+61 concat 60 59 58
+62 slice 6 49 64 64
+63 sort bitvec 70
+64 concat 63 62 61
+65 slice 6 49 64 64
+66 sort bitvec 71
+67 concat 66 65 64
+68 slice 6 49 64 64
+69 sort bitvec 72
+70 concat 69 68 67
+71 slice 6 49 64 64
+72 sort bitvec 73
+73 concat 72 71 70
+74 slice 6 49 64 64
+75 sort bitvec 74
+76 concat 75 74 73
+77 slice 6 49 64 64
+78 sort bitvec 75
+79 concat 78 77 76
+80 slice 6 49 64 64
+81 sort bitvec 76
+82 concat 81 80 79
+83 slice 6 49 64 64
+84 sort bitvec 77
+85 concat 84 83 82
+86 slice 6 49 64 64
+87 sort bitvec 78
+88 concat 87 86 85
+89 slice 6 49 64 64
+90 sort bitvec 79
+91 concat 90 89 88
+92 slice 6 49 64 64
+93 sort bitvec 80
+94 concat 93 92 91
+95 slice 6 49 64 64
+96 sort bitvec 81
+97 concat 96 95 94
+98 slice 6 49 64 64
+99 sort bitvec 82
+100 concat 99 98 97
+101 slice 6 49 64 64
+102 sort bitvec 83
+103 concat 102 101 100
+104 slice 6 49 64 64
+105 sort bitvec 84
+106 concat 105 104 103
+107 slice 6 49 64 64
+108 sort bitvec 85
+109 concat 108 107 106
+110 slice 6 49 64 64
+111 sort bitvec 86
+112 concat 111 110 109
+113 slice 6 49 64 64
+114 sort bitvec 87
+115 concat 114 113 112
+116 slice 6 49 64 64
+117 sort bitvec 88
+118 concat 117 116 115
+119 slice 6 49 64 64
+120 sort bitvec 89
+121 concat 120 119 118
+122 slice 6 49 64 64
+123 sort bitvec 90
+124 concat 123 122 121
+125 slice 6 49 64 64
+126 sort bitvec 91
+127 concat 126 125 124
+128 slice 6 49 64 64
+129 sort bitvec 92
+130 concat 129 128 127
+131 slice 6 49 64 64
+132 sort bitvec 93
+133 concat 132 131 130
+134 slice 6 49 64 64
+135 sort bitvec 94
+136 concat 135 134 133
+137 slice 6 49 64 64
+138 sort bitvec 95
+139 concat 138 137 136
+140 slice 6 49 64 64
+141 sort bitvec 96
+142 concat 141 140 139
+143 slice 6 49 64 64
+144 sort bitvec 97
+145 concat 144 143 142
+146 slice 6 49 64 64
+147 sort bitvec 98
+148 concat 147 146 145
+149 slice 6 49 64 64
+150 sort bitvec 99
+151 concat 150 149 148
+152 slice 6 49 64 64
+153 sort bitvec 100
+154 concat 153 152 151
+155 slice 6 49 64 64
+156 sort bitvec 101
+157 concat 156 155 154
+158 slice 6 49 64 64
+159 sort bitvec 102
+160 concat 159 158 157
+161 slice 6 49 64 64
+162 sort bitvec 103
+163 concat 162 161 160
+164 slice 6 49 64 64
+165 sort bitvec 104
+166 concat 165 164 163
+167 slice 6 49 64 64
+168 sort bitvec 105
+169 concat 168 167 166
+170 slice 6 49 64 64
+171 sort bitvec 106
+172 concat 171 170 169
+173 slice 6 49 64 64
+174 sort bitvec 107
+175 concat 174 173 172
+176 slice 6 49 64 64
+177 sort bitvec 108
+178 concat 177 176 175
+179 slice 6 49 64 64
+180 sort bitvec 109
+181 concat 180 179 178
+182 slice 6 49 64 64
+183 sort bitvec 110
+184 concat 183 182 181
+185 slice 6 49 64 64
+186 sort bitvec 111
+187 concat 186 185 184
+188 slice 6 49 64 64
+189 sort bitvec 112
+190 concat 189 188 187
+191 slice 6 49 64 64
+192 sort bitvec 113
+193 concat 192 191 190
+194 slice 6 49 64 64
+195 sort bitvec 114
+196 concat 195 194 193
+197 slice 6 49 64 64
+198 sort bitvec 115
+199 concat 198 197 196
+200 slice 6 49 64 64
+201 sort bitvec 116
+202 concat 201 200 199
+203 slice 6 49 64 64
+204 sort bitvec 117
+205 concat 204 203 202
+206 slice 6 49 64 64
+207 sort bitvec 118
+208 concat 207 206 205
+209 slice 6 49 64 64
+210 sort bitvec 119
+211 concat 210 209 208
+212 slice 6 49 64 64
+213 sort bitvec 120
+214 concat 213 212 211
+215 slice 6 49 64 64
+216 sort bitvec 121
+217 concat 216 215 214
+218 slice 6 49 64 64
+219 sort bitvec 122
+220 concat 219 218 217
+221 slice 6 49 64 64
+222 sort bitvec 123
+223 concat 222 221 220
+224 slice 6 49 64 64
+225 sort bitvec 124
+226 concat 225 224 223
+227 slice 6 49 64 64
+228 sort bitvec 125
+229 concat 228 227 226
+230 slice 6 49 64 64
+231 sort bitvec 126
+232 concat 231 230 229
+233 slice 6 49 64 64
+234 sort bitvec 127
+235 concat 234 233 232
+236 slice 6 49 64 64
+237 concat 13 236 235
+238 uext 18 8 1
+239 eq 6 43 238
+240 ite 13 239 237 45
+241 uext 46 36 1
+242 uext 46 3 1
+243 add 46 241 242
+244 const 15 000000000000000000000000000000000000000000000000000000000000000
+245 concat 13 244 243
+246 redor 6 43
+247 not 6 246
+248 ite 13 247 245 240
+249 uext 13 2 64
+250 uext 13 3 64
+251 mul 13 249 250
+252 xor 13 248 251
+253 redor 6 252
+254 output 253 result ; cond_mul.v:89.78-89.84
+255 uext 1 2 0 ALU.a ; cond_mul.v:71.25-71.26
+256 uext 1 3 0 ALU.b ; cond_mul.v:71.41-71.42
+257 uext 4 5 0 ALU.control ; cond_mul.v:71.56-71.63
+258 uext 1 32 0 ALU.internal_a1 ; cond_mul.v:73.13-73.24
+259 uext 1 36 0 ALU.internal_a2 ; cond_mul.v:73.26-73.37
+260 uext 1 3 0 ALU.internal_b ; cond_mul.v:73.39-73.49
+261 uext 13 248 0 ALU.out ; cond_mul.v:71.80-71.83
+262 uext 1 2 0 alu_golden.a ; cond_mul.v:64.32-64.33
+263 uext 1 3 0 alu_golden.b ; cond_mul.v:64.48-64.49
+264 uext 13 251 0 alu_golden.out ; cond_mul.v:64.66-64.69
+265 uext 13 251 0 alu_golden_out ; cond_mul.v:92.14-92.28
+266 uext 13 248 0 alu_out ; cond_mul.v:91.14-91.21
+267 uext 13 252 0 miter_out ; cond_mul.v:93.14-93.23
 ; end of yosys output
