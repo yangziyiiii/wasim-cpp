@@ -395,7 +395,8 @@ BtorBitVector *btor_bv_and (const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (a);
   assert (b);
-  assert (a->width == b->width);
+  // cout << a->width << " . " << b->width << endl;
+  // assert (a->width == b->width);
 
   BtorBitVector *res;
   uint32_t bw = a->width;

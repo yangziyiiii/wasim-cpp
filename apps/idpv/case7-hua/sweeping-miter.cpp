@@ -116,11 +116,10 @@ void btor_bv_operation_1child(const smt::Op& op,
                               const BtorBitVector& btor_child_1, 
                               NodeData &nd) {    
     if(op.prim_op == PrimOp::Not) {
-        cout << "here into Not" << endl;
         auto current_val = btor_bv_not(&btor_child_1);
         nd.get_simulation_data().push_back(*current_val);
     }
-    if(op.prim_op == PrimOp::BVNot) {
+    else if(op.prim_op == PrimOp::BVNot) {
         auto current_val = btor_bv_not(&btor_child_1);
         nd.get_simulation_data().push_back(*current_val);
     }
@@ -156,6 +155,10 @@ void btor_bv_operation_2children(const smt::Op& op,
         auto current_val = btor_bv_and(&btor_child_1, &btor_child_2);
         nd.get_simulation_data().push_back(*current_val);
     }
+    else if(op.prim_op == PrimOp::And) {
+        auto current_val = btor_bv_and(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
     else if(op.prim_op == PrimOp::Concat) {
         auto current_val = btor_bv_concat(&btor_child_1, &btor_child_2);
         nd.get_simulation_data().push_back(*current_val);
@@ -166,6 +169,18 @@ void btor_bv_operation_2children(const smt::Op& op,
     }
     else if(op.prim_op == PrimOp::BVXor) {
         auto current_val = btor_bv_xor(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::Xor) {
+        auto current_val = btor_bv_xor(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::Or) {
+        auto current_val = btor_bv_or(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVOr) {
+        auto current_val = btor_bv_or(&btor_child_1, &btor_child_2);
         nd.get_simulation_data().push_back(*current_val);
     }
     else if(op.prim_op == PrimOp::BVMul) {
@@ -648,13 +663,7 @@ int main(int argc, char* argv[]) {
 
     cout << "Constraints: " << constraints.size() << endl;
     for(auto c : constraints) {
-        cout << c->to_string() << endl;
         solver->assert_formula(c);
-    }
-
-    cout << "Out: " << output_terms.size() << endl;
-    for(auto o : output_terms) {
-        cout << o->to_string() << endl;
     }
 
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
@@ -684,14 +693,12 @@ int main(int argc, char* argv[]) {
     int unsat_count = 0;
     int sat_count = 0;
 
-    Term root = solver->make_term(true);
     cout << "Prop: " << property.size() << endl;
-    for(auto p : property) {
-        // cout << p->to_string();
-        root = solver->make_term(And, root , p);
+    for(auto root : property) {
         post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
         root = substitution_map.at(root);
 
+        cout << endl;
         cout << "count: " << count << endl;
         cout << "unsat_count: " << unsat_count << endl;
         cout << "sat_count: " << sat_count << endl;
@@ -699,9 +706,9 @@ int main(int argc, char* argv[]) {
         print_time();
         std::cout << "Start checking sat" << std::endl;
 
-        solver->assert_formula(root);
-
-        auto res = solver->check_sat();
+        TermVec root_vec;
+        root_vec.push_back(root);
+        auto res = solver->check_sat_assuming(root_vec);
         print_time();
         if(res.is_unsat()){
             std::cout << "UNSAT" << std::endl;
