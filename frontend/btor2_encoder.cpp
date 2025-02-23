@@ -437,6 +437,7 @@ void BTOR2Encoder::parse(const std::string filename)
       }
     } else if (l_->tag == BTOR2_TAG_bad) {
       Term bad = bv_to_bool(termargs_[0]);
+      idvec_.push_back(l_->id);
       Term prop = solver_->make_term(Not, bad);
       propvec_.push_back(prop);
       terms_[l_->id] = prop;

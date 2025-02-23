@@ -478,11 +478,11 @@ void post_order(smt::Term& root,
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
 
-    print_time();
-    cout << "End simulation, Start post order traversal" << endl;
+    // print_time();
+    // cout << "End simulation, Start post order traversal" << endl;
 
     while(!node_stack.empty()) {
-        std::cout << "."; std::cout.flush();
+        // std::cout << "."; std::cout.flush();
         auto & [current,visited] = node_stack.top();
         if(substitution_map.find(current) != substitution_map.end()) {
             node_stack.pop();
@@ -591,7 +591,7 @@ void post_order(smt::Term& root,
                             terms_for_solving.push_back(t);
                     } // end of filtering terms in terms_to_check --> terms_for_solving
                     if (term_eq == nullptr) { // if no structural same term found
-                       std::cout << "c"  << terms_for_solving.size();
+                    //    std::cout << "c"  << terms_for_solving.size();
                        std::cout.flush();
                        for (const auto & t : terms_for_solving) {
                           auto result = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, cnode))}));
@@ -608,7 +608,7 @@ void post_order(smt::Term& root,
 
                 if (term_eq) {
                     substitution_map.emplace(current, term_eq);
-                    std::cout << "s"; std::cout.flush();
+                    // std::cout << "s"; std::cout.flush();
                 } else {
                     substitution_map.emplace(current, cnode);
                     hash_term_map[current_hash].push_back(cnode);
@@ -653,15 +653,15 @@ int main(int argc, char* argv[]) {
     TransitionSystem sts(solver);
     BTOR2Encoder btor_parser(btor2_file, sts, "a::");
 
-    cout << "Loading and parsing BTOR2 files..." << endl;
+    // cout << "Loading and parsing BTOR2 files..." << endl;
 
     const auto& input_terms = btor_parser.inputsvec(); // all input here
     const auto& output_terms = btor_parser.get_output_terms(); // all output here
     const auto& constraints = btor_parser.get_const_terms(); // all constraints here
     const auto& property = btor_parser.propvec(); // all properties here
-    const auto& states = btor_parser.statesvec();
+    const auto& idvec = btor_parser.idvec();
 
-    cout << "Constraints: " << constraints.size() << endl;
+    // cout << "Constraints: " << constraints.size() << endl;
     for(auto c : constraints) {
         solver->assert_formula(c);
     }
@@ -670,6 +670,7 @@ int main(int argc, char* argv[]) {
     std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
     std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
     std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
+
 
     //Array init
     initialize_arrays(sts, all_luts, substitution_map);
@@ -692,58 +693,39 @@ int main(int argc, char* argv[]) {
     int count = 0;
     int unsat_count = 0;
     int sat_count = 0;
+    int i = 0;
 
     cout << "Prop: " << property.size() << endl;
     for(auto root : property) {
+        cout << idvec[i] << " ";
+        // cout << root->to_string() << endl;
         post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
         root = substitution_map.at(root);
 
-        cout << endl;
-        cout << "count: " << count << endl;
-        cout << "unsat_count: " << unsat_count << endl;
-        cout << "sat_count: " << sat_count << endl;
+        // cout << endl;
+        // cout << "count: " << count << endl;
+        // cout << "unsat_count: " << unsat_count << endl;
+        // cout << "sat_count: " << sat_count << endl;
         
-        print_time();
-        std::cout << "Start checking sat" << std::endl;
+        // print_time();
+        // std::cout << "Start checking sat" << std::endl;
+        solver->push();
+        auto not_root = solver->make_term(Not, root);
+        solver->assert_formula(not_root);
+        auto res = solver->check_sat();
+        solver->pop();
+        // print_time();
 
-        TermVec root_vec;
-        root_vec.push_back(root);
-        auto res = solver->check_sat_assuming(root_vec);
-        print_time();
         if(res.is_unsat()){
             std::cout << "UNSAT" << std::endl;
         } else {
             std::cout << "SAT" << std::endl;
         }
+
+        i++;
     }
-
-    
-    //end of traversal
-    std::cout << std::endl;
-    
-
-    //Check UNSAT for the miter circuit
-    // root = substitution_map.at(root);
-
-    // cout << "count: " << count << endl;
-    // cout << "unsat_count: " << unsat_count << endl;
-    // cout << "sat_count: " << sat_count << endl;
-    
     // print_time();
     // std::cout << "Start checking sat" << std::endl;
-
-    // auto condition = output_terms.front();
-    // solver->assert_formula(condition);
-    
-    // solver->assert_formula(root);
-
-    // auto res = solver->check_sat();
-    // print_time();
-    // if(res.is_unsat()){
-    //     std::cout << "UNSAT" << std::endl;
-    // } else {
-    //     std::cout << "SAT" << std::endl;
-    // }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
     auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();

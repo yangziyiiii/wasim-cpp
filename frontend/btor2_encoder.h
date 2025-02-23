@@ -55,6 +55,7 @@ class BTOR2Encoder
   const smt::TermVec & fairvec() const { return fairvec_; };
   const smt::TermVec & inputsvec() const { return inputsvec_; }
   const smt::TermVec & statesvec() const { return statesvec_; }
+  const std::vector<int64_t> & idvec() const { return idvec_; }
 
 
  protected:
@@ -91,6 +92,7 @@ class BTOR2Encoder
   std::string symbol_;
 
   smt::TermVec propvec_;
+  std::vector<int64_t> idvec_;
   smt::TermVec justicevec_;
   smt::TermVec fairvec_;
 

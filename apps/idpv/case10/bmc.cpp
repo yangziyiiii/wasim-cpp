@@ -599,6 +599,17 @@ void post_order(smt::Term& root,
     } // end of traversal
 }
 
+bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver) {
+    solver->push();
+    for (const auto & a : asmpt) {
+      solver->assert_formula(a);
+    }
+    solver->assert_formula(solver->make_term(Not, p));
+    auto res = solver->check_sat();
+    solver->pop();
+    return res.is_unsat();
+  }
+
 int main(int argc, char* argv[]) {
     if (argc < 4) {
         std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH>" << " sim_num" << " unroll_num" <<std::endl;
@@ -638,12 +649,22 @@ int main(int argc, char* argv[]) {
     sim.init();
     sim.set_input({},{});
 
-    int unroll_iterations = std::stoi(argv[3]);
+    int unroll_iterations = 0;
+    try {
+        num_iterations = std::stoi(argv[3]);
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Error: Invalid number format for UNROLL_ITERATIONS" << std::endl;
+        return 1;
+    } catch (const std::out_of_range& e) {
+        std::cerr << "Error: UNROLL_ITERATIONS is out of range" << std::endl;
+        return 1;
+    }
+
     auto s1 = sim.get_curr_state();    
     std::vector<decltype(s1)> states;
     states.push_back(s1);
 
-    for(int i=1; i<4; i++) {
+    for(int i=1; i < unroll_iterations; i++) {
         sim.sim_one_step();
         s1 = sim.get_curr_state();
         states.push_back(s1);
@@ -688,17 +709,18 @@ int main(int argc, char* argv[]) {
     Term root = solver->make_term(true);
     for(auto p : property) {
         cout << p->to_string();
-        root = solver->make_term(And, root , p);
+        auto current_p = sim.interpret_state_expr_on_curr_frame(p, false);
+        root = solver->make_term(And, root , current_p);
+       
 
-        sim.interpret_state_expr_on_curr_frame(p, false);//TODO:
+        UnorderedTermSet out;
+        smt::get_free_symbols(root, out);
+        
+
 
         post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
         root = substitution_map.at(root);
-
-        UnorderedTermSet out;
-        smt::get_free_symbols(root, out);// get all 
         
-
         cout << "count: " << count << endl;
         cout << "unsat_count: " << unsat_count << endl;
         cout << "sat_count: " << sat_count << endl;
