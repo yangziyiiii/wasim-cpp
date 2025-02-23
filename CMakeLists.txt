@@ -331,8 +331,8 @@ endif()
 # add_executable(test_case2n "apps/idpv/case2/naive.cpp")
 # target_link_libraries(test_case2n wasim-lib)
 
-# add_executable(test_case2 "apps/idpv/case2/btor_sweeping_mul.cpp")
-# target_link_libraries(test_case2 wasim-lib)
+add_executable(test_case2 "apps/idpv/case2/btor_sweeping_mul.cpp")
+target_link_libraries(test_case2 wasim-lib)
 
 # add_executable(test_case3 "apps/idpv/case3/aes.cpp")
 # target_link_libraries(test_case3 wasim-lib)

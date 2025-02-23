@@ -79,7 +79,7 @@ if [ ! -d "$DEPS/smt-switch" ]; then
     if [ $WITH_BOOLECTOR = ON ]; then
         ./contrib/setup-btor.sh
     fi
-    # CONF_OPTS="$CONF_OPTS --cvc5-home=$(pwd)/deps/cvc5-Linux-static"
+    CONF_OPTS="$CONF_OPTS --cvc5-home=$(pwd)/deps/cvc5"
     
     # pass bison/flex directories from smt-switch perspective
     ./configure.sh --bitwuzla --cvc5 $CONF_OPTS --prefix=local --static --smtlib-reader --bison-dir=../bison/bison-install --flex-dir=../flex/flex-install
