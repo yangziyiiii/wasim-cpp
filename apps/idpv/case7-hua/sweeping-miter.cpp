@@ -137,6 +137,14 @@ void btor_bv_operation_1child(const smt::Op& op,
         auto current_val = btor_bv_uext(&btor_child_1, op.idx0);
         nd.get_simulation_data().push_back(*current_val);
     }
+    else if(op.prim_op == PrimOp::Sign_Extend) {
+        auto current_val = btor_bv_sext(&btor_child_1, op.idx0);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVNeg) {
+        auto current_val = btor_bv_neg(&btor_child_1);
+        nd.get_simulation_data().push_back(*current_val);
+    }
     else {
         cout << "Unsupported operation type 1 child: " << op.to_string() << endl;
         throw NotImplementedException("Unsupported operation type 1 child: " + op.to_string());
@@ -202,6 +210,62 @@ void btor_bv_operation_2children(const smt::Op& op,
     }
     else if(op.prim_op == PrimOp::BVSub) {
         auto current_val = btor_bv_sub(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVUlt) {
+        auto current_val = btor_bv_ult(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVUle) {
+        auto current_val = btor_bv_ulte(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVUgt) {
+        auto current_val = btor_bv_ugt(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVUge) {
+        auto current_val = btor_bv_ugte(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVSlt) {
+        auto current_val = btor_bv_slt(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVSle) {
+        auto current_val = btor_bv_slte(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVSgt) {
+        auto current_val = btor_bv_sgt(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVSge) {
+        auto current_val = btor_bv_sgte(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVNand) {
+        auto current_val = btor_bv_nand(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVNor) {
+        auto current_val = btor_bv_nor(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVXnor) {
+        auto current_val = btor_bv_xnor(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVUrem) {
+        auto current_val = btor_bv_urem(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVSdiv) {
+        auto current_val = btor_bv_sdiv(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVSrem) {
+        auto current_val = btor_bv_srem(&btor_child_1, &btor_child_2);
         nd.get_simulation_data().push_back(*current_val);
     }
     else {
@@ -703,9 +767,7 @@ int main(int argc, char* argv[]) {
         root = substitution_map.at(root);
 
         // cout << endl;
-        // cout << "count: " << count << endl;
-        // cout << "unsat_count: " << unsat_count << endl;
-        // cout << "sat_count: " << sat_count << endl;
+        
         
         // print_time();
         // std::cout << "Start checking sat" << std::endl;
@@ -721,6 +783,11 @@ int main(int argc, char* argv[]) {
         } else {
             std::cout << "SAT" << std::endl;
         }
+
+        cout << "count: " << count << endl;
+        cout << "unsat_count: " << unsat_count << endl;
+        cout << "sat_count: " << sat_count << endl;
+        cout << "-----------------" << endl;
 
         i++;
     }
