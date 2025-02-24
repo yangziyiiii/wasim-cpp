@@ -686,7 +686,7 @@ void post_order(smt::Term& root,
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH>  simulation_iteration_num" << std::endl;
         return 1;
     }
 
@@ -717,6 +717,8 @@ int main(int argc, char* argv[]) {
     TransitionSystem sts(solver);
     BTOR2Encoder btor_parser(btor2_file, sts, "a::");
 
+    std::cout << "============================" << std::endl;
+
     // cout << "Loading and parsing BTOR2 files..." << endl;
 
     const auto& input_terms = btor_parser.inputsvec(); // all input here
@@ -735,6 +737,7 @@ int main(int argc, char* argv[]) {
     std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
     std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
 
+     std::cout << "stage 1 : init array & simualtion ...";
 
     //Array init
     initialize_arrays(sts, all_luts, substitution_map);
@@ -742,6 +745,8 @@ int main(int argc, char* argv[]) {
 
     //simulation
     simulation(input_terms, num_iterations, sts, node_data_map);
+    std::cout << "done" <<std::endl;
+   
 
     for(auto i : input_terms){
         assert(node_data_map[i].get_simulation_data().size() == num_iterations);
@@ -759,15 +764,14 @@ int main(int argc, char* argv[]) {
     int sat_count = 0;
     int i = 0;
 
-    cout << "Prop: " << property.size() << endl;
+    std::cout << "stage 2 : begin sweeping ... " << std::endl;
+    std::cout << "============================" << std::endl;
+    // cout << "Prop: " << property.size() << endl;
     for(auto root : property) {
-        cout << idvec[i] << " ";
+        cout << "Property ID: " << idvec[i] << " ";
         // cout << root->to_string() << endl;
         post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
         root = substitution_map.at(root);
-
-        // cout << endl;
-        
         
         // print_time();
         // std::cout << "Start checking sat" << std::endl;
@@ -784,9 +788,10 @@ int main(int argc, char* argv[]) {
             std::cout << "SAT" << std::endl;
         }
 
-        cout << "count: " << count << endl;
-        cout << "unsat_count: " << unsat_count << endl;
-        cout << "sat_count: " << sat_count << endl;
+        // cout << "count: " << count << endl;
+        // cout << "unsat_count: " << unsat_count << endl;
+        // cout << "sat_count: " << sat_count << endl;
+        std::cout << "for this property, " << unsat_count << " UNSAT when merging, and " << sat_count << " SAT when merging" << std::endl;
         cout << "-----------------" << endl;
 
         i++;
