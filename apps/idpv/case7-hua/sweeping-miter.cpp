@@ -768,11 +768,13 @@ int main(int argc, char* argv[]) {
     std::cout << "============================" << std::endl;
     // cout << "Prop: " << property.size() << endl;
     for(auto root : property) {
-        cout << "Property ID: " << idvec[i] << " ";
+        
         // cout << root->to_string() << endl;
         post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
         root = substitution_map.at(root);
-        
+
+        std::cout << "Sweeping done, begin the last solving using bitwuzla for this preperty" << std::endl;
+        cout << "Property ID: " << idvec[i] << " ";
         // print_time();
         // std::cout << "Start checking sat" << std::endl;
         solver->push();
@@ -783,9 +785,9 @@ int main(int argc, char* argv[]) {
         // print_time();
 
         if(res.is_unsat()){
-            std::cout << "UNSAT" << std::endl;
+            std::cout << "Result : UNSAT" << std::endl;
         } else {
-            std::cout << "SAT" << std::endl;
+            std::cout << "Result : SAT" << std::endl;
         }
 
         // cout << "count: " << count << endl;
@@ -798,10 +800,12 @@ int main(int argc, char* argv[]) {
     }
     // print_time();
     // std::cout << "Start checking sat" << std::endl;
+    std::cout << "All property done" << std:: endl;
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
     auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();
     std::cout << "Total execution time: " << total_time / 1000.0 << " s" << std::endl;
+    std::cout << "============================" << std::endl;
 
     return 0;
 }
