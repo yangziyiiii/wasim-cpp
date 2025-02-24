@@ -2,22 +2,6 @@ cmake_minimum_required(VERSION 3.1)
 
 project(wasim)
 
-# Add static linking settings at the beginning
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-set(CMAKE_EXE_LINKER_FLAGS "-static")
-set(BUILD_SHARED_LIBS OFF)
-
-# Function to set static linking for executables
-function(set_static_linking target)
-    set_target_properties(${target} PROPERTIES LINK_SEARCH_START_STATIC ON)
-    set_target_properties(${target} PROPERTIES LINK_SEARCH_END_STATIC ON)
-    target_link_options(${target} PRIVATE -static)
-    target_link_libraries(${target} PUBLIC -static-libgcc -static-libstdc++)
-    target_link_libraries(${target} PUBLIC -Wl,--whole-archive /usr/lib/x86_64-linux-gnu/libgflags.a -Wl,--no-whole-archive)
-    target_link_libraries(${target} PUBLIC -Wl,--whole-archive /usr/lib/x86_64-linux-gnu/libgmp.a -Wl,--no-whole-archive)
-    target_link_libraries(${target} PUBLIC -Wl,--start-group -lpthread -ldl -lrt -Wl,--end-group)
-endfunction()
-
 set(WASIM_MAJOR 0)   # Major component of WASIM version
 set(WASIM_MINOR 1)   # Minor component of WASIM version
 set(WASIM_RELEASE 1) # Release component of WASIM version
@@ -214,13 +198,12 @@ if(UNWIND_LIB)
 endif()
 
 find_package(gflags REQUIRED)
-set(GFLAGS_USE_TARGET_NAMESPACE ON)
-target_link_libraries(wasim-lib PUBLIC "${PROJECT_SOURCE_DIR}/deps/glog/install/lib/libglog.a")
-target_link_libraries(wasim-lib PUBLIC -Wl,--whole-archive /usr/lib/x86_64-linux-gnu/libgflags.a -Wl,--no-whole-archive)
+target_link_libraries(wasim-lib PUBLIC gflags)
 
 target_link_libraries(wasim-lib PUBLIC "${SMT_SWITCH_DIR}/local/lib/libsmt-switch.a")
 target_link_libraries(wasim-lib PUBLIC "${PROJECT_SOURCE_DIR}/deps/btor2tools/build/lib/libbtor2parser.a")
 target_link_libraries(wasim-lib PUBLIC "${BITWUZLA_LDFLAGS}")
+target_link_libraries(wasim-lib PUBLIC "${PROJECT_SOURCE_DIR}/deps/glog/install/lib/libglog.a")
 
 # target_link_libraries(wasim-lib PUBLIC "${GMPXX_LIBRARIES}")
 # target_link_libraries(wasim-lib PUBLIC "${GMP_LIBRARIES}")
@@ -367,8 +350,7 @@ endif()
 # target_link_libraries(test_case2n wasim-lib)
 
 add_executable(test_case2 "apps/idpv/case2/btor_sweeping_mul.cpp")
-target_link_libraries(test_case2 PUBLIC wasim-lib)
-set_static_linking(test_case2)
+target_link_libraries(test_case2 wasim-lib)
 
 # add_executable(test_case3 "apps/idpv/case3/aes.cpp")
 # target_link_libraries(test_case3 wasim-lib)
@@ -383,8 +365,7 @@ set_static_linking(test_case2)
 # target_link_libraries(test_case5 wasim-lib)
 
 add_executable(test_case7 "apps/idpv/case7-hua/sweeping-miter.cpp")
-target_link_libraries(test_case7 PUBLIC wasim-lib)
-set_static_linking(test_case7)
+target_link_libraries(test_case7 wasim-lib)
 
 # add_executable(test_case8 "apps/idpv/case8/btor_sweeping.cpp")
 # target_link_libraries(test_case8 wasim-lib)
@@ -393,8 +374,7 @@ set_static_linking(test_case7)
 # target_link_libraries(test_case9 wasim-lib)
 
 add_executable(test_case10 "apps/idpv/case10/bmc.cpp")
-target_link_libraries(test_case10 PUBLIC wasim-lib)
-set_static_linking(test_case10)
+target_link_libraries(test_case10 wasim-lib)
 
 add_executable(test_case10n "apps/idpv/case10/naive.cpp")
 target_link_libraries(test_case10n wasim-lib)

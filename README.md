@@ -23,12 +23,12 @@
     sudo apt install build-essential cmake default-jre libgmp-dev libboost-all-dev libgflags-dev
 
 ### SETUP
-    ./deps.sh
+
     ./contrib/setup-glog.sh
     ./contrib/setup-bison.sh
     ./contrib/setup-btor2tools.sh
     ./contrib/setup-smt-switch.sh
-    ./configure.sh --static
+    ./configure.sh
     cd build
     make
     
