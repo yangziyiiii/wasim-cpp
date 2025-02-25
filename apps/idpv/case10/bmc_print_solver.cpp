@@ -57,7 +57,7 @@ private:
     size_t bit_width;
     std::vector<BtorBitVector> simulation_data; //TODO: memory usage
 public:
-    NodeData() : term(nullptr), bit_width(0), simulation_data() {} 
+    NodeData() : term(nullptr), bit_width(0) {} 
 
     NodeData(const Term & t) : term(t), bit_width(0) {}
 
@@ -276,19 +276,6 @@ void btor_bv_operation_2children(const smt::Op& op,
         auto current_val = btor_bv_srem(&btor_child_1, &btor_child_2);
         nd.get_simulation_data().push_back(*current_val);
     }
-    else if(op.prim_op == PrimOp::BVLshr) {
-        auto current_val = btor_bv_srl(&btor_child_1, &btor_child_2);
-        nd.get_simulation_data().push_back(*current_val);
-    }
-    else if(op.prim_op == PrimOp::BVAshr) {
-        auto current_val = btor_bv_sra(&btor_child_1, &btor_child_2);
-        nd.get_simulation_data().push_back(*current_val);
-    }
-    else if(op.prim_op == PrimOp::BVShl) {
-        auto current_val = btor_bv_sll(&btor_child_1, &btor_child_2);
-        nd.get_simulation_data().push_back(*current_val);
-    }
-    
     else {
         cout << "Unsupported operation type 2 children: " << op.to_string() << endl;
         throw NotImplementedException("Unsupported operation type 2 children: " + op.to_string());
@@ -585,7 +572,7 @@ void post_order(smt::Term& root,
     node_stack.push({root,false});
 
     // print_time();
-    cout << "End simulation, Start post order traversal" << endl;
+    // cout << "End simulation, Start post order traversal" << endl;
 
     while(!node_stack.empty()) {
         // std::cout << "."; std::cout.flush();
@@ -638,6 +625,9 @@ void post_order(smt::Term& root,
 
                 //leaf nodes don't need substitution
                 substitution_map.insert({current, current}); 
+
+                //update hash_term_map 
+                // assert(false); // for this example, we should not encounter this case                
             }
             else { // compute simulation data for current node
                 // std::cout << "Computing : " << current->to_string() << std::endl;
@@ -665,9 +655,8 @@ void post_order(smt::Term& root,
                 NodeData sim_data;
                 compute_simulation(children_substituted, num_iterations, op_type, node_data_map, all_luts, sim_data);
                 auto current_hash = sim_data.hash();
-                cout << "compute simulation done ... " << endl;
 
-                //TODO: why bmc only first bound
+                
                 Term  term_eq;
                 if (hash_term_map.find(current_hash) != hash_term_map.end()) {
                     const auto & sim_data_vec = sim_data.get_simulation_data();
@@ -702,7 +691,8 @@ void post_order(smt::Term& root,
                                 solver->push();
                                 auto aa = solver->make_term(Not, solver->make_term(Equal, t, cnode));
                                 solver->assert_formula(aa);
-
+                                
+                                //TODO:
                                 auto timestamp = std::chrono::high_resolution_clock::now();
                                 auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
 
@@ -748,7 +738,6 @@ void post_order(smt::Term& root,
                             } // end of check each term in terms_for_solving
                         } // end of structural_same_term_found
                 }
-                //FIXME
 
                 if (term_eq) {
                     substitution_map.emplace(current, term_eq);
@@ -770,6 +759,7 @@ bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver) {
     for (const auto & a : asmpt) {
       solver->assert_formula(a);
     }
+
     solver->assert_formula(solver->make_term(Not, p));
     // solver->dump_smt2("smt2.txt");
     auto res = solver->check_sat();
@@ -819,11 +809,21 @@ int main(int argc, char* argv[]) {
 
     // cout << "Loading and parsing BTOR2 files..." << endl;
 
+    std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
+    std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
+    std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
+    std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
+
     const auto& input_terms = btor_parser.inputsvec(); // all input here
     const auto& output_terms = btor_parser.get_output_terms(); // all output here
     const auto& constraints = btor_parser.get_const_terms(); // all constraints here
     const auto& property = btor_parser.propvec(); // all properties here
     const auto& idvec = btor_parser.idvec();
+
+    // // cout << "Constraints: " << constraints.size() << endl;
+    // for(auto c : constraints) {
+    //     solver->assert_formula(c);
+    // }
 
     SymbolicSimulator sim(sts, solver);
     const auto & propvec = sts.prop();
@@ -835,23 +835,23 @@ int main(int argc, char* argv[]) {
     sim.init();
 
     //Array init
-    // initialize_arrays(sts, all_luts, substitution_map);
+    initialize_arrays(sts, all_luts, substitution_map);
     //End of array init
 
     //simulation
-    // simulation(input_terms, num_iterations, sts, node_data_map);
+    simulation(input_terms, num_iterations, sts, node_data_map);
 
-    // for(auto i : input_terms){
-    //     assert(node_data_map[i].get_simulation_data().size() == num_iterations);
-    //     substitution_map.insert({i, i});
-    //     hash_term_map[node_data_map[i].hash()].push_back(i);
-    // }
+    for(auto i : input_terms){
+        assert(node_data_map[i].get_simulation_data().size() == num_iterations);
+        substitution_map.insert({i, i});
+        hash_term_map[node_data_map[i].hash()].push_back(i);
+    }
     //end of simulation
 
-    // auto root = sim.interpret_state_expr_on_curr_frame(prop, false);
-    // smt::UnorderedTermSet out;
-    // smt::get_free_symbols(root,out);
-    // simulation(out, num_iterations, sts, node_data_map);
+    auto root = sim.interpret_state_expr_on_curr_frame(prop, false);
+    smt::UnorderedTermSet out;
+    smt::get_free_symbols(root,out);
+    simulation(out, num_iterations, sts, node_data_map);
 
     if (! check_prop(
         sim.interpret_state_expr_on_curr_frame(prop, false),
@@ -862,33 +862,14 @@ int main(int argc, char* argv[]) {
     }
 
      //start post order traversal
-     
+     int count = 0;
+     int unsat_count = 0;
+     int sat_count = 0;
      int i = 0;
+ 
+
 
     for (unsigned i = 1; i<=bound; ++i) {
-
-        //init for each bound
-        std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
-        std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
-        std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
-        std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
-        auto root = sim.interpret_state_expr_on_curr_frame(prop, false);
-
-        initialize_arrays(sts, all_luts, substitution_map);
-        simulation(input_terms, num_iterations, sts, node_data_map);
-        for(auto i : input_terms){
-            assert(node_data_map[i].get_simulation_data().size() == num_iterations);
-            substitution_map.insert({i, i});
-            hash_term_map[node_data_map[i].hash()].push_back(i);
-        }
-        smt::UnorderedTermSet out;
-        smt::get_free_symbols(root,out);
-        simulation(out, num_iterations, sts, node_data_map);
-        int count = 0;
-        int unsat_count = 0;
-        int sat_count = 0;
-        //end of init
-
         sim.set_input({},{});
         sim.sim_one_step();
 
@@ -908,11 +889,16 @@ int main(int argc, char* argv[]) {
           cout << count << ", " << unsat_count << ", " << sat_count << endl;
           return 2;
         }
-
-        node_data_map.clear();
-        substitution_map.clear();
-        hash_term_map.clear();
     }
+
+
+
+        // cout << "count: " << count << endl;
+        // cout << "unsat_count: " << unsat_count << endl;
+        // cout << "sat_count: " << sat_count << endl;
+        // cout << "-----------------" << endl;
+    // print_time();
+    // std::cout << "Start checking sat" << std::endl;
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
     auto total_time = std::chrono::duration_cast<std::chrono::milliseconds>(program_end_time - program_start_time).count();
