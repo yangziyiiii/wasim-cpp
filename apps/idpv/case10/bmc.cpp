@@ -718,7 +718,7 @@ bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver) {
     return res.is_unsat();
 }
   
-  static Term and_vec(const TermVec & v, SmtSolver & solver) {
+static Term and_vec(const TermVec & v, SmtSolver & solver) {
     if (v.empty())
       return solver->make_term(true);
     if (v.size() == 1)

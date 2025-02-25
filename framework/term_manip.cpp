@@ -26,8 +26,8 @@ smt::Term free_make_symbol(const std::string & n,
       return symb;
     }
     catch (const std::exception & e) {  // maybe name conflict
-      // std::cout << "New symbol: " << n + std::to_string(cnt) << " failed." <<
-      // std::endl;
+      std::cout << "New symbol: " << n + std::to_string(cnt) << " failed." <<
+      std::endl;
     }
   } while (true);
 }
