@@ -712,11 +712,11 @@ bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver) {
       solver->assert_formula(a);
     }
     solver->assert_formula(solver->make_term(Not, p));
-    solver->dump_smt2("smt2.txt");
+    solver->dump_smt2("a.smt2"); //FIXME
     auto res = solver->check_sat();
     solver->pop();
     return res.is_unsat();
-  }
+}
   
   static Term and_vec(const TermVec & v, SmtSolver & solver) {
     if (v.empty())
@@ -728,7 +728,7 @@ bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver) {
     for (size_t idx = 1; idx < v.size() ; ++idx)
       ret = solver->make_term(smt::And, ret, v.at(idx));
     return ret;
-  }
+}
 
 
 int main(int argc, char* argv[]) {
