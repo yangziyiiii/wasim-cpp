@@ -22,7 +22,18 @@ smt::Term free_make_symbol(const std::string & n,
     name_cnt[n] = cnt;
     smt::Term symb;
     try {
-      symb = solver->make_symbol(n + std::to_string(cnt), symb_sort);
+      // symb = solver->make_symbol(n + std::to_string(cnt), symb_sort);
+      // return symb;
+      //TODO  这里需要 在 make symbol之前判断 n是否第一个字符和最后一个字符都是|，如果都是，应该把std::to_string(cnt) 加入到n里面（可能是insert）
+      std::string modified_name = n;
+      if (!modified_name.empty() && modified_name.front() == '|' && modified_name.back() == '|') {
+        modified_name.insert(modified_name.size() - 1, std::to_string(cnt));  // Insert count before the last '|'
+      } else {
+        modified_name += std::to_string(cnt);  // Otherwise, append count at the end
+      }
+      
+      symb = solver->make_symbol(modified_name, symb_sort);
+      
       return symb;
     }
     catch (const std::exception & e) {  // maybe name conflict

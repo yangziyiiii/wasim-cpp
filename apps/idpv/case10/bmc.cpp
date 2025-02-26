@@ -585,7 +585,7 @@ void post_order(smt::Term& root,
     node_stack.push({root,false});
 
     // print_time();
-    cout << "End simulation, Start post order traversal" << endl;
+    // cout << "End simulation, Start post order traversal" << endl;
 
     while(!node_stack.empty()) {
         // std::cout << "."; std::cout.flush();
@@ -665,14 +665,13 @@ void post_order(smt::Term& root,
                 NodeData sim_data;
                 compute_simulation(children_substituted, num_iterations, op_type, node_data_map, all_luts, sim_data);
                 auto current_hash = sim_data.hash();
-                cout << "compute simulation done ... " << endl;
+                // cout << "compute simulation done ... " << endl;
 
-                //TODO: why bmc only first bound
                 Term  term_eq;
                 if (hash_term_map.find(current_hash) != hash_term_map.end()) {
                     const auto & sim_data_vec = sim_data.get_simulation_data();
                     TermVec terms_for_solving;
-                    const auto & terms_to_check = hash_term_map.at(current_hash);
+                    const auto & terms_to_check = hash_term_map.at(current_hash); // vector, have the same hash
                     auto cnode_sort = cnode->get_sort();
                     for (const auto & t : terms_to_check) {
                         if (t == cnode) {
@@ -694,59 +693,54 @@ void post_order(smt::Term& root,
                         if (all_equal)
                             terms_for_solving.push_back(t);
                     } // end of filtering terms in terms_to_check --> terms_for_solving
+                    //FIXME
                     if (term_eq == nullptr) { // if no structural same term found
                         //    std::cout << "c"  << terms_for_solving.size();
-                            std::cout.flush();
-                            for (const auto & t : terms_for_solving) {
-    
-                                solver->push();
-                                auto aa = solver->make_term(Not, solver->make_term(Equal, t, cnode));
-                                solver->assert_formula(aa);
+                        std::cout.flush();
+                        for (const auto & t : terms_for_solving) {
+                            solver->push();
+                            auto aa = solver->make_term(Not, solver->make_term(Equal, t, cnode));
+                            solver->assert_formula(aa);
+                            auto timestamp = std::chrono::high_resolution_clock::now();
+                            auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
+                            fs::path directory = fs::current_path() / "generate";
+                            if (!fs::exists(directory)) {
+                                fs::create_directory(directory);
+                            }
+                            std::ostringstream file_name;
+                            file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
+                            
+                            std::ofstream smt2_file(file_name.str());
+                            if (smt2_file.is_open()) {
+                                solver->dump_smt2(file_name.str());
+                                smt2_file.close();
+                            } else {
+                                std::cerr << "Failed to open file: " << file_name.str() << std::endl;
+                            }
+                            
 
-                                auto timestamp = std::chrono::high_resolution_clock::now();
-                                auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
-
-                                fs::path directory = fs::current_path() / "generate";
-                                if (!fs::exists(directory)) {
-                                    fs::create_directory(directory);
-                                }
-
-                                std::ostringstream file_name;
-                                file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
-                                
-                                std::ofstream smt2_file(file_name.str());
+                            auto result = solver->check_sat();
+                            count ++;
+                            if (result.is_unsat()) {
+                                unsat_count ++;
+                                term_eq = t;
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
                                 if (smt2_file.is_open()) {
-                                    solver->dump_smt2(file_name.str());
+                                    smt2_file << "UNSAT" << std::endl;
                                     smt2_file.close();
-                                } else {
-                                    std::cerr << "Failed to open file: " << file_name.str() << std::endl;
                                 }
-                                
-    
-                                auto result = solver->check_sat();
-                                count ++;
-                                if (result.is_unsat()) {
-                                    unsat_count ++;
-                                    term_eq = t;
-                                    std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                    if (smt2_file.is_open()) {
-                                        smt2_file << "UNSAT" << std::endl;
-                                        smt2_file.close();
-                                    }
-                                    break;
-                                } else{
-                                    sat_count ++;
-                                    std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                    if (smt2_file.is_open()) {
-                                        smt2_file << "SAT" << std::endl;
-                                        smt2_file.close();
-                                    }
+                                break;
+                            } else{
+                                sat_count ++;
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "SAT" << std::endl;
+                                    smt2_file.close();
                                 }
-
-                                solver->pop();
-
-                            } // end of check each term in terms_for_solving
-                        } // end of structural_same_term_found
+                            }
+                            solver->pop();
+                        } // end of check each term in terms_for_solving
+                    } // end of structural_same_term_found
                 }
                 //FIXME
 
@@ -900,12 +894,12 @@ int main(int argc, char* argv[]) {
           sim.all_assumptions(),
           solver )) {
             print_time();
-          std::cout << "[bmc] bound " << i << " passed." << std::endl;
-          cout << count << ", " << unsat_count << ", " << sat_count << endl;
+            std::cout << "[bmc] bound " << i << " passed." << std::endl;
+            cout << "total: " << count << " ,unsat:  " << unsat_count << " ,sat: " << sat_count << endl;
         } else {
             print_time();
-          std::cout << "[bmc] failed at bound " << i << std::endl;
-          cout << count << ", " << unsat_count << ", " << sat_count << endl;
+            std::cout << "[bmc] failed at bound " << i << std::endl;
+            cout << "total: " << count << " ,unsat:  " << unsat_count << " ,sat: " << sat_count << endl;
           return 2;
         }
 
