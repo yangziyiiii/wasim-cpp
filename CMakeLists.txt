@@ -379,6 +379,12 @@ target_link_libraries(test_case10 wasim-lib)
 # add_executable(test_case10n "apps/idpv/case10/naive.cpp")
 # target_link_libraries(test_case10n wasim-lib)
 
+add_executable(test_case10_print "apps/idpv/case10/bmc_print_solver.cpp")
+target_link_libraries(test_case10_print wasim-lib)
+
+add_executable(test_case10_print "apps/idpv/case10/bmc_print_solver.cpp")
+target_link_libraries(test_case10_print wasim-lib)
+
 # add_executable(test_case4 "apps/idpv/case4/aes.cpp")
 # target_link_libraries(test_case4 wasim-lib)
 

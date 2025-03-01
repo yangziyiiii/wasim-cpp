@@ -9,6 +9,7 @@
 #include "smt-switch/substitution_walker.h"
 #include "smt-switch/utils.h"
 #include "smt-switch/printing_solver.h"
+#include "smt-switch/printing_solver.h"
 
 #include <iomanip>
 #include <chrono>
@@ -17,6 +18,13 @@
 #include <iostream>
 #include <algorithm>
 #include <random>
+
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+namespace fs = std::filesystem;
+static int file_counter = 0;
+
 
 #include <filesystem>
 #include <fstream>
@@ -766,6 +774,7 @@ bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver) {
     }
     solver->assert_formula(solver->make_term(Not, p));
     // solver->dump_smt2("smt2.txt");
+    // solver->dump_smt2("smt2.txt");
     auto res = solver->check_sat();
     solver->pop();
     return res.is_unsat();
@@ -797,6 +806,10 @@ int main(int argc, char* argv[]) {
     auto program_start_time = std::chrono::high_resolution_clock::now();
     last_time_point = program_start_time;
     SmtSolver solver = BitwuzlaSolverFactory::create(false);
+
+    // std::ofstream out_file("output.smt2");
+    // PrintingStyleEnum style = PrintingStyleEnum::DEFAULT_STYLE;
+    // SmtSolver solver = create_printing_solver(BitwuzlaSolverFactory::create(false), &out_file, style);
 
     // std::ofstream out_file("output.smt2");
     // PrintingStyleEnum style = PrintingStyleEnum::DEFAULT_STYLE;
