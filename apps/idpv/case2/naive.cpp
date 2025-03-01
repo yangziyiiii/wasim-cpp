@@ -47,13 +47,13 @@ int main() {
     // 2) Read BTOR2 file and build Transition System
     TransitionSystem sts1(solver);
     // Change this to your actual BTOR2 file path
-    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/mul_fix.btor2", sts1, "a::");
+    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/mul_fix.btor2", sts1);
 
     // 3) Get control bit a::control and output decision bit a::result
-    auto a_control = sts1.lookup("a::control");
-    auto result = sts1.lookup("a::result");
-    auto a_a = sts1.lookup("a::a");
-    auto a_b = sts1.lookup("a::b");
+    auto a_control = sts1.lookup("condition");
+    auto result = sts1.lookup("result");
+    auto a_a = sts1.lookup("a");
+    auto a_b = sts1.lookup("b");
 
     // 4) Construct expression: control == 4'b1000
     //    Create a 4-bit BV constant "1000" (binary)
@@ -61,6 +61,13 @@ int main() {
     Sort bv_sort = solver->make_sort(BV, 5);
     auto a_ctl_val = solver->make_term(aa, bv_sort, 2);  // 2nd prarater - bit-width，3rd- binary
     auto control_equals_1000 = solver->make_term(Equal, a_control, a_ctl_val);
+
+
+    auto internal_a2 = sts1.lookup("ALU.internal_a2");
+    auto control = sts1.lookup("ALU.control");
+
+    // cout << "internal_a2: " << sts1.lookup("ALU.internal_a2")->to_string() << endl;
+    // cout << "internal_a2: " << sts1.lookup("ALU.internal_a2")->to_string() << endl;
 
     // 5) Property to verify: when control==4'b1000, result should be 0
     //    Which means: (control==4'b1000) => (result == 0)
@@ -84,8 +91,10 @@ int main() {
         std::cout << "Property fails: when control == 4'b1000, result can be 1 (mismatch)." << std::endl;
         // Print a model for debugging
         std::cout << "Model example:" << std::endl;
-        std::cout << "  control = " << solver->get_value(a_a) << std::endl;
-        std::cout << "  result  = " << solver->get_value(a_b) << std::endl;
+        std::cout << "  a = " << solver->get_value(a_a) << std::endl;
+        std::cout << "  b = " << solver->get_value(a_b) << std::endl;
+        std::cout << " a2 = " << solver->get_value(internal_a2) << std::endl;
+        std::cout << " co = " << solver->get_value(control) << std::endl;
     }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
