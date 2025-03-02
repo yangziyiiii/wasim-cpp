@@ -26,12 +26,6 @@ namespace fs = std::filesystem;
 static int file_counter = 0;
 
 
-#include <filesystem>
-#include <fstream>
-#include <sstream>
-namespace fs = std::filesystem;
-static int file_counter = 0;
-
 
 #include "btor_sweeping.h"
 #include "smt-switch/utils.h"
@@ -411,7 +405,9 @@ void process_three_children_simulation(const smt::TermVec& children,
 
         assert(sim_data_1.size() == num_iterations);
         assert(sim_data_2.size() == num_iterations);
-        assert(sim_data_3.size() == num_iterations);
+
+        cout << "sim_data3 size: " <<  sim_data_3.size() << endl;
+        // assert(sim_data_3.size() == num_iterations);
 
         // Retrieve the bit-vector data for each child at the current iteration
         auto btor_child_1 = sim_data_1[i];
@@ -709,42 +705,42 @@ void post_order(smt::Term& root,
                             solver->push();
                             auto aa = solver->make_term(Not, solver->make_term(Equal, t, cnode));
                             solver->assert_formula(aa);
-                            // auto timestamp = std::chrono::high_resolution_clock::now();
-                            // auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
-                            // fs::path directory = fs::current_path() / "generate";
-                            // if (!fs::exists(directory)) {
-                            //     fs::create_directory(directory);
-                            // }
-                            // std::ostringstream file_name;
-                            // file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
+                            auto timestamp = std::chrono::high_resolution_clock::now();
+                            auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
+                            fs::path directory = fs::current_path() / "generate";
+                            if (!fs::exists(directory)) {
+                                fs::create_directory(directory);
+                            }
+                            std::ostringstream file_name;
+                            file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
                             
-                            // std::ofstream smt2_file(file_name.str());
-                            // if (smt2_file.is_open()) {
-                            //     solver->dump_smt2(file_name.str());
-                            //     smt2_file.close();
-                            // } else {
-                            //     std::cerr << "Failed to open file: " << file_name.str() << std::endl;
-                            // }
+                            std::ofstream smt2_file(file_name.str());
+                            if (smt2_file.is_open()) {
+                                solver->dump_smt2(file_name.str());
+                                smt2_file.close();
+                            } else {
+                                std::cerr << "Failed to open file: " << file_name.str() << std::endl;
+                            }
                             
 
                             auto result = solver->check_sat();
                             count ++;
                             if (result.is_unsat()) {
                                 unsat_count ++;
-                                // term_eq = t;
-                                // std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                // if (smt2_file.is_open()) {
-                                //     smt2_file << "UNSAT" << std::endl;
-                                //     smt2_file.close();
-                                // }
+                                term_eq = t;
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "UNSAT" << std::endl;
+                                    smt2_file.close();
+                                }
                                 break;
                             } else{
                                 sat_count ++;
-                                // std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                // if (smt2_file.is_open()) {
-                                //     smt2_file << "SAT" << std::endl;
-                                //     smt2_file.close();
-                                // }
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "SAT" << std::endl;
+                                    smt2_file.close();
+                                }
                             }
                             solver->pop();
                         } // end of check each term in terms_for_solving
@@ -773,8 +769,6 @@ bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver) {
       solver->assert_formula(a);
     }
     solver->assert_formula(solver->make_term(Not, p));
-    // solver->dump_smt2("smt2.txt");
-    // solver->dump_smt2("smt2.txt");
     auto res = solver->check_sat();
     solver->pop();
     return res.is_unsat();

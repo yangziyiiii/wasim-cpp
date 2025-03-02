@@ -50,7 +50,7 @@ int main() {
     BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/mul_fix.btor2", sts1);
 
     // 3) Get control bit a::control and output decision bit a::result
-    auto a_control = sts1.lookup("condition");
+    auto a_control = sts1.lookup("control");
     auto result = sts1.lookup("result");
     auto a_a = sts1.lookup("a");
     auto a_b = sts1.lookup("b");
@@ -95,6 +95,7 @@ int main() {
         std::cout << "  b = " << solver->get_value(a_b) << std::endl;
         std::cout << " a2 = " << solver->get_value(internal_a2) << std::endl;
         std::cout << " co = " << solver->get_value(control) << std::endl;
+        std::cout << " co = " << solver->get_value(a_control) << std::endl;
     }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();

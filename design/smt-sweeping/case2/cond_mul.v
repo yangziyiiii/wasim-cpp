@@ -70,7 +70,7 @@ endmodule
 
 module ALU(input [63:0] a, input [63:0] b, input [4:0] control, output [127:0] out);
 
-wire [63:0] internal_a1, internal_a2, internal_b;
+wire [63:0] internal_a1, internal_a2;
 
 assign internal_a1 = cond[1:0] == 2'b00	? a << 1 :
 			        (cond[1:0] == 2'b01)? {1'b0, a[62:0]} :
@@ -84,9 +84,6 @@ assign out = (cond[4:3] == 2'b00) ? internal_a2 + b :
 
 endmodule
 
-
-
-                
 // when control is 5'b10000, alu is same as alu_golden
 module alu_miter(input [63:0] a, input [63:0] b, input [4:0] control, output result, output condition);
 
