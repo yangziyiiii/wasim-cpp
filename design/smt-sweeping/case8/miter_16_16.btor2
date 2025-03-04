@@ -5243,7 +5243,7 @@
 5242 concat 5 5211 5241
 5243 xor 5 3113 5242
 5244 redor 4 5243
-5245 output 5244 mismatch ; miter.v:2700.10-2700.18
+5245 bad 5244 mismatch ; miter.v:2700.10-2700.18
 5246 uext 1 2 0 Mult_16_16_1.IN1 ; miter.v:816.16-816.19
 5247 uext 1 3 0 Mult_16_16_1.IN2 ; miter.v:817.16-817.19
 5248 uext 5 3113 0 Mult_16_16_1.Out ; miter.v:818.17-818.20

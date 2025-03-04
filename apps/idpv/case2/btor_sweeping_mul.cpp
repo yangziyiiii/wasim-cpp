@@ -119,7 +119,7 @@ void btor_bv_operation_1child(const smt::Op& op,
         auto current_val = btor_bv_not(&btor_child_1);
         nd.get_simulation_data().push_back(*current_val);
     }
-    if(op.prim_op == PrimOp::BVNot) {
+    else if(op.prim_op == PrimOp::BVNot) {
         auto current_val = btor_bv_not(&btor_child_1);
         nd.get_simulation_data().push_back(*current_val);
     }
@@ -445,16 +445,17 @@ void simulation(const TermVec & input_terms,
     }
 }
 
-void post_order(smt::Term& root,
+void post_order(const smt::Term& root,
                 std::unordered_map<Term, NodeData>& node_data_map,
                 std::unordered_map<uint32_t, TermVec>& hash_term_map,
                 std::unordered_map<Term, Term>& substitution_map,
-                std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
+                const std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
                 int& count,
                 int& unsat_count,
                 int& sat_count,
                 SmtSolver& solver,
-                int& num_iterations
+                int& num_iterations,
+                TransitionSystem & sts
 ){
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
@@ -512,7 +513,7 @@ void post_order(smt::Term& root,
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
 
                 //leaf nodes don't need substitution
-                substitution_map.insert({current, current}); 
+                substitution_map.insert({current, current});
 
                 //update hash_term_map 
                 // assert(false); // for this example, we should not encounter this case                
@@ -522,6 +523,14 @@ void post_order(smt::Term& root,
                 TermVec children(current->begin(), current->end()); // find children
                 auto child_size = children.size();
                 // cout << "children size: " << child_size << endl;
+
+                //DEBUG
+                    // if(current = sts.lookup("ALU.internal_a2")){
+                    //     cout << "here2" << endl;
+                    //     cout << node_data_map[current].get_simulation_data().size() << endl;
+                    //     cout << node_data_map[current].hash() << endl;
+                    //     // assert(substitution_map.find(current) != substitution_map.end());
+                    // }
 
                 // 1. substitute children
                 bool substitution_happened = false;
@@ -549,7 +558,7 @@ void post_order(smt::Term& root,
                     TermVec terms_for_solving;
                     const auto & terms_to_check = hash_term_map.at(current_hash);
                     auto cnode_sort = cnode->get_sort();
-                    for (const auto & t : terms_to_check) {
+                    for (const auto & t : terms_to_check) { // the same hash
                         if (t == cnode) {
                             // structural_same_term_found
                             term_eq = t;
@@ -569,7 +578,7 @@ void post_order(smt::Term& root,
                         if (all_equal)
                             terms_for_solving.push_back(t);
                     } // end of filtering terms in terms_to_check --> terms_for_solving
-                    if (term_eq == nullptr) { // if no structural same term found
+                    if (term_eq == nullptr) { // if no same term found
                        std::cout << "c"  << terms_for_solving.size();
                        std::cout.flush();
                        for (const auto & t : terms_for_solving) {
@@ -583,10 +592,14 @@ void post_order(smt::Term& root,
                                 sat_count ++;
                        } // end of check each term in terms_for_solving
                     } // end of structural_same_term_found
+                } else{
+                    hash_term_map[current_hash] = TermVec({current});
+                    // cout << "no current hash, " << current->to_string() << current_hash << endl;
                 }
 
                 if (term_eq) {
                     substitution_map.emplace(current, term_eq);
+                    // cout << "current: " << current->to_string() <<" ,termeq: " <<  term_eq->to_string() << endl;
                     std::cout << "s"; std::cout.flush();
                 } else {
                     substitution_map.emplace(current, cnode);
@@ -630,18 +643,36 @@ int main(int argc, char* argv[]) {
 
     // Loading and parsing BTOR2 files
     TransitionSystem sts(solver);
-    BTOR2Encoder btor_parser(btor2_file, sts, "a::");
+    BTOR2Encoder btor_parser(btor2_file, sts);
 
     cout << "Loading and parsing BTOR2 files..." << endl;
 
     const auto& input_terms = btor_parser.inputsvec(); // all input here
-    const auto& output_terms = btor_parser.get_output_terms(); // all output here
+    // const auto& output_terms = btor_parser.get_output_terms(); // all output here
     const auto& constraints = btor_parser.get_const_terms(); // all constraints here
-    const auto& property = btor_parser.propvec(); // all properties here
-    const auto& states = btor_parser.statesvec();
+    // const auto& property = btor_parser.propvec(); // all properties here
+    // const auto& states = btor_parser.statesvec();
 
-    Term root = output_terms.back();
+    
+    cout << "property: " << sts.prop().size() << endl;
+    Term root = sts.prop().front();
     cout << "root: " << root->to_string() << std::endl;
+
+    // Term cond = output_terms.front();
+    // cout << "cond: " << cond->to_string() << std::endl;
+    // solver->assert_formula(cond);
+
+    // auto a_control = sts.lookup("control");
+    // std::string aa = "10000";
+    // Sort bv_sort = solver->make_sort(BV, 5);
+    // auto a_ctl_val = solver->make_term(aa, bv_sort, 2);  // 2nd prarater - bit-width，3rd- binary
+    // auto control_equals_1000 = solver->make_term(Equal, a_control, a_ctl_val);
+    // cout << "cond: " << control_equals_1000->to_string() << std::endl;
+    // solver->assert_formula(control_equals_1000);
+
+
+    cout << constraints.front() <<  endl;
+    solver->assert_formula(constraints.front());
 
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
     std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
@@ -651,6 +682,13 @@ int main(int argc, char* argv[]) {
     //Array init
     initialize_arrays(sts, all_luts, substitution_map);
     //End of array init
+
+
+    auto a = sts.lookup("a");
+    auto a2 = sts.lookup("ALU.internal_a2");
+    // solver->assert_formula(solver->make_term(Equal,a,a2));
+    // cout << a->to_string() << endl;
+    // cout << a2->to_string() << endl;
 
     //simulation
     simulation(input_terms, num_iterations, sts, node_data_map);
@@ -669,11 +707,26 @@ int main(int argc, char* argv[]) {
     int count = 0;
     int unsat_count = 0;
     int sat_count = 0;
+    cout << "hash a : " << node_data_map[a].hash() << endl;
 
-    post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
+    post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations,sts);
     //end of traversal
     std::cout << std::endl;
     
+    
+    cout << "hash a2: " << node_data_map[a2].hash() << endl;
+    // cout << a2->get_op() << a2->get_sort() << endl;
+    // cout << "width: " << node_data_map[a2].get_bit_width()<< endl;
+
+    // for(int i = 0 ; i < num_iterations; i++){
+    //     // char *str_a = mpz_get_str(NULL, 2, node_data_map[a].get_simulation_data()[i].val);
+    //     char *str_a2 = mpz_get_str(NULL, 2, node_data_map[a2].get_simulation_data()[i].val);
+
+    //     // cout << "data: " << str_a << endl;
+    //     cout << "data: " << str_a2 << endl;
+    // }
+        
+
 
     //Check UNSAT for the miter circuit
     root = substitution_map.at(root);
@@ -684,12 +737,8 @@ int main(int argc, char* argv[]) {
     
     print_time();
     std::cout << "Start checking sat" << std::endl;
-
-    auto condition = output_terms.front();
-    cout << "condition: " << condition->to_string() << std::endl;
-    solver->assert_formula(condition);
     
-    solver->assert_formula(root);
+    solver->assert_formula(solver->make_term(Not,root));
 
     auto res = solver->check_sat();
     print_time();
@@ -697,6 +746,14 @@ int main(int argc, char* argv[]) {
         std::cout << "UNSAT" << std::endl;
     } else {
         std::cout << "SAT" << std::endl;
+        cout << "a: " << solver->get_value(sts.lookup("a")) << endl;
+        cout << "a: " << solver->get_value(sts.lookup("ALU.internal_a2")) << endl;
+        cout << "a: " << solver->get_value(sts.lookup("alu_golden.a")) << endl;
+        cout << "b: " << solver->get_value(sts.lookup("b")) << endl;
+        cout << "b: " << solver->get_value(sts.lookup("alu_golden.b")) << endl;
+        cout << "o: " << solver->get_value(sts.lookup("alu_golden.out")) << endl;
+        cout << "o: " << solver->get_value(sts.lookup("ALU.out")) << endl;
+        cout << "c: " << solver->get_value(sts.lookup("ALU.cond")) << endl;
     }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();

@@ -268,6 +268,22 @@ void btor_bv_operation_2children(const smt::Op& op,
         auto current_val = btor_bv_srem(&btor_child_1, &btor_child_2);
         nd.get_simulation_data().push_back(*current_val);
     }
+    else if(op.prim_op == PrimOp::BVLshr) {
+        auto current_val = btor_bv_srl(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVAshr) {
+        auto current_val = btor_bv_sra(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::BVShl) {
+        auto current_val = btor_bv_sll(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
+    else if(op.prim_op == PrimOp::Implies) {
+        auto current_val = btor_bv_implies(&btor_child_1, &btor_child_2);
+        nd.get_simulation_data().push_back(*current_val);
+    }
     else {
         cout << "Unsupported operation type 2 children: " << op.to_string() << endl;
         throw NotImplementedException("Unsupported operation type 2 children: " + op.to_string());
@@ -537,16 +553,73 @@ void post_order(smt::Term& root,
                 int& unsat_count,
                 int& sat_count,
                 SmtSolver& solver,
-                int& num_iterations
-){
+                int& num_iterations,
+                int timeout_ms = 1000) // Add timeout parameter, default is 1 second
+{
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
 
-    // print_time();
-    // cout << "End simulation, Start post order traversal" << endl;
+    // Variables for progress tracking
+    int total_nodes = 0;
+    int processed_nodes = 0;
+    enum SweepingStep { NONE, SUBST_CHECK, NEW_NODE, SIM_COMP, EQUIV_SEARCH, MAP_UPDATE };
+    SweepingStep current_step = NONE;
+    std::string step_names[] = {
+        "IDLE",
+        "SUBST CHECK",
+        "NEW NODE",
+        "SIM COMP",
+        "EQUIV SEARCH",
+        "MAP UPDATE"
+    };
+
+    // First pass to count total nodes (optional but gives more accurate progress)
+    {
+        std::stack<Term> count_stack;
+        std::unordered_set<Term> visited;
+        count_stack.push(root);
+        
+        while (!count_stack.empty()) {
+            Term current = count_stack.top();
+            count_stack.pop();
+            
+            if (visited.find(current) != visited.end())
+                continue;
+                
+            visited.insert(current);
+            total_nodes++;
+            
+            for (Term child : current) {
+                if (child->get_sort()->get_sort_kind() == BV || child->get_sort()->get_sort_kind() == BOOL) {
+                    count_stack.push(child);
+                }
+            }
+        }
+    }
+    
+    std::cout << "Begin sweeping with " << total_nodes << " nodes..." << std::endl;
+    // std::cout << "============================" << std::endl;
+
+    // Function to update and display progress
+    auto update_progress = [&](SweepingStep step) {
+        current_step = step;
+        const int bar_width = 50;
+        float progress = (float)processed_nodes / total_nodes;
+        
+        std::cout << "\r[";
+        int pos = bar_width * progress;
+        for (int i = 0; i < bar_width; ++i) {
+            if (i < pos) std::cout << "=";
+            else if (i == pos) std::cout << ">";
+            else std::cout << " ";
+        }
+        std::cout << "] " << int(progress * 100.0) << "% | "
+                  << "Step: " << step_names[step] << " | "
+                  << processed_nodes << "/" << total_nodes << " nodes"
+                  << std::flush;
+    };
 
     while(!node_stack.empty()) {
-        // std::cout << "."; std::cout.flush();
         auto & [current,visited] = node_stack.top();
         if(substitution_map.find(current) != substitution_map.end()) {
             node_stack.pop();
@@ -562,53 +635,42 @@ void post_order(smt::Term& root,
             }
             visited = true;
         } else {
-            // std::cout << "-----op: " << current->get_op().to_string() << "-----" << std::endl;
-            // cout << "----current: " << current->to_string() << "----" << endl;
-
             TermVec children(current->begin(), current->end());
 
-
             if(current->is_value()) { // constant
-                // std::cout << "Constant: " << current->to_string().substr(2) << std::endl;
                 auto current_str = current->to_string().substr(2);
                 auto current_bv = btor_bv_char_to_bv(current_str.data());
-                // cout << "current_bv width: " << current_bv->width <<", val:" << current_bv->val << endl;
+                
+                update_progress(SIM_COMP);
                 for (int i = 0; i < num_iterations; ++i) {
                     node_data_map[current].get_simulation_data().push_back(*current_bv);
                 }
-                // btor_bv_free(current_bv);
 
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
-                // if you can find a term that is equivalent to this constant
-                // case 1 : that term is also a constant, then they should be the same term (Boolector will merge them)
-                // case 2 : that term is not a constant, you should not merge either
-                // so constant don't need substitution
+                
+                update_progress(MAP_UPDATE);
                 substitution_map.insert({current, current}); 
                 hash_term_map[node_data_map[current].hash()].push_back(current);
+                
+                processed_nodes++;
             } 
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
-                std::cout << "leaf nodes: " << current->to_string() << std::endl;
-
+                update_progress(MAP_UPDATE);
+                
                 assert(TermVec(current->begin(), current->end()).empty());// no children
                 assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
                 assert(node_data_map.find(current) != node_data_map.end()); // data should be computed
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
 
-                //leaf nodes don't need substitution
                 substitution_map.insert({current, current}); 
-
-                //update hash_term_map 
-                // assert(false); // for this example, we should not encounter this case                
+                
+                processed_nodes++;
             }
             else { // compute simulation data for current node
-                // std::cout << "Computing : " << current->to_string() << std::endl;
-                // std::cout << "Computing : " << current->get_op() << std::endl;
-                
                 TermVec children(current->begin(), current->end()); // find children
                 auto child_size = children.size();
-                // cout << "children size: " << child_size << endl;
 
-                // 1. substitute children
+                update_progress(SUBST_CHECK);
                 bool substitution_happened = false;
                 TermVec children_substituted;
                 children_substitution(children, children_substituted, substitution_map);
@@ -620,15 +682,17 @@ void post_order(smt::Term& root,
                     }
                 
                 auto op_type = current->get_op();
+                
+                update_progress(NEW_NODE);
                 Term cnode = substitution_happened ? solver->make_term(op_type, children_substituted) : current;
 
-                // 2. compute simulation
+                update_progress(SIM_COMP);
                 NodeData sim_data;
                 compute_simulation(children_substituted, num_iterations, op_type, node_data_map, all_luts, sim_data);
                 auto current_hash = sim_data.hash();
 
-                
-                Term  term_eq;
+                update_progress(EQUIV_SEARCH);
+                Term term_eq;
                 if (hash_term_map.find(current_hash) != hash_term_map.end()) {
                     const auto & sim_data_vec = sim_data.get_simulation_data();
                     TermVec terms_for_solving;
@@ -655,38 +719,108 @@ void post_order(smt::Term& root,
                             terms_for_solving.push_back(t);
                     } // end of filtering terms in terms_to_check --> terms_for_solving
                     if (term_eq == nullptr) { // if no structural same term found
-                    //    std::cout << "c"  << terms_for_solving.size();
-                       std::cout.flush();
                        for (const auto & t : terms_for_solving) {
+                          
+                          // Record start time
+                          auto start_time = std::chrono::high_resolution_clock::now();
+                          
+                          // Execute solver
                           auto result = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, cnode))}));
-                          count ++;
+                          
+                          // Calculate solving time
+                          auto end_time = std::chrono::high_resolution_clock::now();
+                          auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                          
+                          count++;
+                          
+                          // Check if timeout occurred
+                          if (elapsed >= timeout_ms) {
+                              // Timeout, skip current merge
+                              std::cout << "t"; // Output 't' to indicate timeout
+                              std::cout.flush();
+                              continue;
+                          }
+                          
                           if (result.is_unsat()) {
-                            unsat_count ++;
+                            unsat_count++;
                             term_eq = t;
                             break;
-                          } else
-                            sat_count ++;
+                          } else {
+                            sat_count++;
+                          }
                        } // end of check each term in terms_for_solving
                     } // end of structural_same_term_found
                 }
 
+                update_progress(MAP_UPDATE);
                 if (term_eq) {
                     substitution_map.emplace(current, term_eq);
-                    // std::cout << "s"; std::cout.flush();
                 } else {
                     substitution_map.emplace(current, cnode);
                     hash_term_map[current_hash].push_back(cnode);
                     node_data_map[cnode] = sim_data;
                 }
+                
+                processed_nodes++;
             } // end if it has children
             node_stack.pop();            
         } // end of if visited
     } // end of traversal
+    
+    // End of processing - Print summary statistics
+    std::cout << std::endl;
+    // std::cout << "============================" << std::endl;
+    std::cout << "Sweeping Summary Statistics:" << std::endl;
+    std::cout << "============================" << std::endl;
+    
+    // Count total terms and find top 5 hash values by frequency
+    int total_terms = 0;
+    std::vector<std::pair<uint32_t, size_t>> hash_frequencies;
+    
+    for (const auto& [hash_value, terms] : hash_term_map) {
+        hash_frequencies.push_back({hash_value, terms.size()});
+        total_terms += terms.size();
+    }
+    
+    // Sort by frequency (highest first)
+    std::sort(hash_frequencies.begin(), hash_frequencies.end(), 
+              [](const auto& a, const auto& b) { return a.second > b.second; });
+    
+    std::cout << "Total unique hash values: " << hash_term_map.size() << std::endl;
+    std::cout << "Total terms processed: " << total_terms << std::endl;
+    std::cout << "Shared hash value ratio: " << (float)(total_terms - hash_term_map.size()) / total_terms * 100.0 << "%" << std::endl;
+    
+    // Display top 5 hash values with highest term counts
+    std::cout << std::endl;
+    std::cout << "Top 5 Hash Values by Term Frequency:" << std::endl;
+    std::cout << "-----------------------------------" << std::endl;
+    std::cout << std::setw(12) << "Hash Value" << " | " 
+              << std::setw(10) << "Term Count" << " | " 
+              << std::setw(10) << "% of Total" << std::endl;
+    std::cout << "-----------------------------------" << std::endl;
+    
+    int to_display = std::min(5, static_cast<int>(hash_frequencies.size()));
+    for (int i = 0; i < to_display; i++) {
+        const auto& [hash_value, count] = hash_frequencies[i];
+        float percentage = (float)count / total_terms * 100.0;
+        
+        std::cout << std::setw(12) << hash_value << " | " 
+                  << std::setw(10) << count << " | " 
+                  << std::setw(9) << std::fixed << std::setprecision(2) << percentage << "%" << std::endl;
+    }
+    
+    std::cout << "============================" << std::endl;
+    std::cout << "Sweeping done, begin the last solving using bitwuzla for this property" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH>  simulation_iteration_num" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH> <SIMULATION_ITERATIONS> [SOLVER_TIMEOUT_MS] [PROPERTY_CHECK_TIMEOUT_MS] [DUMP_SMT]" << std::endl;
+        std::cerr << "  BTOR2_FILE_PATH: Path to the BTOR2 file" << std::endl;
+        std::cerr << "  SIMULATION_ITERATIONS: Number of simulation iterations" << std::endl;
+        std::cerr << "  SOLVER_TIMEOUT_MS: Optional timeout for solver in milliseconds (default: 500000)" << std::endl;
+        std::cerr << "  PROPERTY_CHECK_TIMEOUT_MS: Optional timeout for property checking in milliseconds (default: 5000000)" << std::endl;
+        std::cerr << "  DUMP_SMT: Optional flag to enable/disable SMT dumping (0=disable, 1=enable, default: 1)" << std::endl;
         return 1;
     }
 
@@ -708,10 +842,16 @@ int main(int argc, char* argv[]) {
 
     SmtSolver solver = BitwuzlaSolverFactory::create(false);
 
+    // Add timeout parameter, default is 5 seconds
+    int solver_timeout_ms = 5000000;
+    int property_check_timeout_ms = 100000;
+    bool dump_smt = false; // Default is to dump SMT
+
     solver->set_logic("QF_UFBV");
     solver->set_opt("incremental", "true");
     solver->set_opt("produce-models", "true");
     solver->set_opt("produce-unsat-assumptions", "true");
+    solver->set_opt("time-limit", std::to_string(property_check_timeout_ms / 1000.0));
 
     // Loading and parsing BTOR2 files
     TransitionSystem sts(solver);
@@ -763,6 +903,44 @@ int main(int argc, char* argv[]) {
     int unsat_count = 0;
     int sat_count = 0;
     int i = 0;
+    
+    // Check if there's a third command line argument for solver timeout setting
+    if (argc >= 4) {
+        try {
+            solver_timeout_ms = std::stoi(argv[3]);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Warning: Invalid solver timeout value, using default (5000ms)" << std::endl;
+        } catch (const std::out_of_range& e) {
+            std::cerr << "Warning: Solver timeout value out of range, using default (5000ms)" << std::endl;
+        }
+    }
+    
+    // Check if there's a fourth command line argument for property check timeout setting
+    if (argc >= 5) {
+        try {
+            property_check_timeout_ms = std::stoi(argv[4]);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Warning: Invalid property check timeout value, using default (5000ms)" << std::endl;
+        } catch (const std::out_of_range& e) {
+            std::cerr << "Warning: Property check timeout value out of range, using default (5000ms)" << std::endl;
+        }
+    }
+    
+    // Check if there's a fifth command line argument for SMT dumping option
+    if (argc >= 6) {
+        try {
+            int dump_smt_int = std::stoi(argv[5]);
+            dump_smt = (dump_smt_int != 0);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Warning: Invalid DUMP_SMT value, using default (enabled)" << std::endl;
+        } catch (const std::out_of_range& e) {
+            std::cerr << "Warning: DUMP_SMT value out of range, using default (enabled)" << std::endl;
+        }
+    }
+    
+    std::cout << "Using solver timeout: " << solver_timeout_ms << "ms (" << (solver_timeout_ms / 1000.0) << "s)" << std::endl;
+    std::cout << "Using property check timeout: " << property_check_timeout_ms << "ms (" << (property_check_timeout_ms / 1000.0) << "s)" << std::endl;
+    std::cout << "SMT dumping: " << (dump_smt ? "enabled" : "disabled") << std::endl;
 
     std::cout << "stage 2 : begin sweeping ... " << std::endl;
     std::cout << "============================" << std::endl;
@@ -770,24 +948,55 @@ int main(int argc, char* argv[]) {
     for(auto root : property) {
         
         // cout << root->to_string() << endl;
-        post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
+        post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, solver_timeout_ms);
         root = substitution_map.at(root);
 
-        std::cout << "Sweeping done, begin the last solving using bitwuzla for this preperty" << std::endl;
+        // std::cout << "Sweeping done, begin the last solving using bitwuzla for this preperty" << std::endl;
         cout << "Property ID: " << idvec[i] << " ";
         // print_time();
         // std::cout << "Start checking sat" << std::endl;
         solver->push();
         auto not_root = solver->make_term(Not, root);
         solver->assert_formula(not_root);
+        
+        // if (dump_smt) {
+        //     // Create a new solver instance for dumping SMT files
+        //     SmtSolver dump_solver = BitwuzlaSolverFactory::create(false);
+        //     dump_solver->set_logic("QF_UFBV");
+            
+        //     // Use TermTranslator to transfer terms to the new solver
+        //     smt::TermTranslator translator(dump_solver);
+        //     auto translated_not_root = translator.transfer_term(not_root);
+        //     dump_solver->assert_formula(translated_not_root);
+            
+        //     // Dump SMT files using the new solver instance
+        //     // dump_solver->dump_smt2("property_" + std::to_string(idvec[i]) + ".smt2");
+        //     std::string safe_path = btor2_file;
+        //     std::replace(safe_path.begin(), safe_path.end(), '/', '_');
+        //     std::replace(safe_path.begin(), safe_path.end(), '\\', '_');
+        //     dump_solver->dump_smt2("property_" + std::to_string(idvec[i]) + "_" + safe_path + ".smt2");
+        //     std::cout << "SMT file dumped for property " << idvec[i] << std::endl;
+        // }
+        
+        // Set the property check timeout
+        
+        std::cout << "Property check timeout set to: " << property_check_timeout_ms << "ms (" << (property_check_timeout_ms / 1000.0) << "s)" << std::endl;
+        
+        // Continue with the original solver for checking satisfiability
+        auto start_time = std::chrono::high_resolution_clock::now();
         auto res = solver->check_sat();
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        
         solver->pop();
         // print_time();
 
         if(res.is_unsat()){
-            std::cout << "Result : UNSAT" << std::endl;
+            std::cout << "Result : UNSAT (took " << duration << "ms)" << std::endl;
+        } else if(res.is_sat()) {
+            std::cout << "Result : SAT (took " << duration << "ms)" << std::endl;
         } else {
-            std::cout << "Result : SAT" << std::endl;
+            std::cout << "Result : UNKNOWN - likely timed out after " << duration << "ms" << std::endl;
         }
 
         // cout << "count: " << count << endl;

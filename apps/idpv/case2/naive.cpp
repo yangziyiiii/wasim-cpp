@@ -47,7 +47,7 @@ int main() {
     // 2) Read BTOR2 file and build Transition System
     TransitionSystem sts1(solver);
     // Change this to your actual BTOR2 file path
-    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/mul_fix.btor2", sts1);
+    BTOR2Encoder btor_parser1("../design/smt-sweeping/case2/mul_fix_16.btor2", sts1);
 
     // 3) Get control bit a::control and output decision bit a::result
     auto a_control = sts1.lookup("control");
@@ -64,7 +64,7 @@ int main() {
 
 
     auto internal_a2 = sts1.lookup("ALU.internal_a2");
-    auto control = sts1.lookup("ALU.control");
+    auto control = sts1.lookup("ALU.cond");
 
     // cout << "internal_a2: " << sts1.lookup("ALU.internal_a2")->to_string() << endl;
     // cout << "internal_a2: " << sts1.lookup("ALU.internal_a2")->to_string() << endl;
@@ -81,7 +81,6 @@ int main() {
     auto neg_property = solver->make_term(Not, implication);
     solver->assert_formula(neg_property);
 
-    // 7) Solve and output results
     auto res = solver->check_sat();
     if (res.is_unsat()) {
         std::cout << "UNSAT: No counterexample exists." << std::endl;
