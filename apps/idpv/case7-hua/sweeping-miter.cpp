@@ -638,13 +638,13 @@ void post_order(smt::Term& root,
             TermVec children(current->begin(), current->end());
 
             if(current->is_value()) { // constant
-                auto current_str = current->to_string().substr(2);
-                auto current_bv = btor_bv_char_to_bv(current_str.data());
+                // auto current_str = current->to_string().substr(2);
+                // auto current_bv = btor_bv_char_to_bv(current_str.data());
                 
                 update_progress(SIM_COMP);
-                for (int i = 0; i < num_iterations; ++i) {
-                    node_data_map[current].get_simulation_data().push_back(*current_bv);
-                }
+                // for (int i = 0; i < num_iterations; ++i) {
+                //     node_data_map[current].get_simulation_data().push_back(*current_bv);
+                // }
 
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
                 
@@ -813,6 +813,45 @@ void post_order(smt::Term& root,
     std::cout << "Sweeping done, begin the last solving using bitwuzla for this property" << std::endl;
 }
 
+void pre_collect_constants(const std::vector<Term>& traversal_roots,
+                            std::unordered_map<Term, NodeData>& node_data_map,
+                            std::unordered_map<uint32_t, TermVec>& hash_term_map,
+                            std::unordered_map<Term, Term>& substitution_map,
+                            const int & num_iterations)
+{
+    std::stack<Term> stack;
+    std::unordered_set<Term> visited;
+    for (const auto &root : traversal_roots) {
+        stack.push(root);
+    }
+    while (!stack.empty()) {
+        Term current = stack.top();
+        stack.pop();
+        if (visited.find(current) != visited.end())
+        continue;
+        visited.insert(current);
+
+        if (substitution_map.find(current) != substitution_map.end())
+        continue;
+
+        if (current->is_value()) {
+            std::string current_str = current->to_string().substr(2);
+            auto current_bv = btor_bv_char_to_bv(current_str.data());
+            if(node_data_map[current].get_simulation_data().empty()){
+                for (int i = 0; i < num_iterations; ++i) {
+                    node_data_map[current].get_simulation_data().push_back(*current_bv);
+                }
+            }
+            substitution_map.insert({current, current});
+            hash_term_map[node_data_map[current].hash()].push_back(current);
+        }
+
+        for (auto child : current) {
+            stack.push(child);
+        }
+    }
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " <BTOR2_FILE_PATH> <SIMULATION_ITERATIONS> [SOLVER_TIMEOUT_MS] [PROPERTY_CHECK_TIMEOUT_MS] [DUMP_SMT]" << std::endl;
@@ -851,7 +890,7 @@ int main(int argc, char* argv[]) {
     solver->set_opt("incremental", "true");
     solver->set_opt("produce-models", "true");
     solver->set_opt("produce-unsat-assumptions", "true");
-    solver->set_opt("time-limit", std::to_string(property_check_timeout_ms / 1000.0));
+    solver->set_opt("time-limit", std::to_string(property_check_timeout_ms / 1000.0));  // set time limit
 
     // Loading and parsing BTOR2 files
     TransitionSystem sts(solver);
@@ -944,11 +983,45 @@ int main(int argc, char* argv[]) {
 
     std::cout << "stage 2 : begin sweeping ... " << std::endl;
     std::cout << "============================" << std::endl;
+
+    //Add constraint into root
+    std::vector<Term> traversal_roots; 
+    traversal_roots.push_back(sts.init());
+    for(auto constraint_pair : sts.constraints()) {
+        traversal_roots.push_back(constraint_pair.first);
+    }
+    // for(auto it : input_terms) {
+    //     traversal_roots.push_back(it);
+    // }
+
     // cout << "Prop: " << property.size() << endl;
     for(auto root : property) {
         
+        traversal_roots.push_back(root);
+        pre_collect_constants(traversal_roots, node_data_map, hash_term_map, substitution_map, num_iterations);
+        std::set<Term> unique_roots(traversal_roots.begin(), traversal_roots.end());
+        std::vector<Term> final_roots(unique_roots.begin(), unique_roots.end());
+
+        // for(auto t : final_roots) {
+        //     std::cout << "***: " << t->to_string() << std::endl;
+        //     std::cout << "sort: "<< t->get_sort() << std::endl;
+        // }
+
+        // cout << final_roots.size() << endl;
+        // if(final_roots.empty()){
+        //     std::cerr << "Error: final_roots is empty!" << std::endl;
+        //     exit(1);
+        // }
+        // else if(final_roots.size() == 1){
+        //     Term combined_term = final_roots[0];
+        // } else {
+        //     Term combined_term = solver->make_term(And, final_roots);
+        // }
+        Term combined_term = solver->make_term(And, final_roots);
+
+
         // cout << root->to_string() << endl;
-        post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, solver_timeout_ms);
+        post_order(combined_term, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, solver_timeout_ms);
         root = substitution_map.at(root);
 
         // std::cout << "Sweeping done, begin the last solving using bitwuzla for this preperty" << std::endl;
@@ -959,24 +1032,24 @@ int main(int argc, char* argv[]) {
         auto not_root = solver->make_term(Not, root);
         solver->assert_formula(not_root);
         
-        // if (dump_smt) {
-        //     // Create a new solver instance for dumping SMT files
-        //     SmtSolver dump_solver = BitwuzlaSolverFactory::create(false);
-        //     dump_solver->set_logic("QF_UFBV");
+        if (dump_smt) {
+            // Create a new solver instance for dumping SMT files
+            SmtSolver dump_solver = BitwuzlaSolverFactory::create(false);
+            dump_solver->set_logic("QF_UFBV");
             
-        //     // Use TermTranslator to transfer terms to the new solver
-        //     smt::TermTranslator translator(dump_solver);
-        //     auto translated_not_root = translator.transfer_term(not_root);
-        //     dump_solver->assert_formula(translated_not_root);
+            // Use TermTranslator to transfer terms to the new solver
+            smt::TermTranslator translator(dump_solver);
+            auto translated_not_root = translator.transfer_term(not_root);
+            dump_solver->assert_formula(translated_not_root);
             
-        //     // Dump SMT files using the new solver instance
-        //     // dump_solver->dump_smt2("property_" + std::to_string(idvec[i]) + ".smt2");
-        //     std::string safe_path = btor2_file;
-        //     std::replace(safe_path.begin(), safe_path.end(), '/', '_');
-        //     std::replace(safe_path.begin(), safe_path.end(), '\\', '_');
-        //     dump_solver->dump_smt2("property_" + std::to_string(idvec[i]) + "_" + safe_path + ".smt2");
-        //     std::cout << "SMT file dumped for property " << idvec[i] << std::endl;
-        // }
+            // Dump SMT files using the new solver instance
+            // dump_solver->dump_smt2("property_" + std::to_string(idvec[i]) + ".smt2");
+            std::string safe_path = btor2_file;
+            std::replace(safe_path.begin(), safe_path.end(), '/', '_');
+            std::replace(safe_path.begin(), safe_path.end(), '\\', '_');
+            dump_solver->dump_smt2("property_" + std::to_string(idvec[i]) + "_" + safe_path + ".smt2");
+            std::cout << "SMT file dumped for property " << idvec[i] << std::endl;
+        }
         
         // Set the property check timeout
         

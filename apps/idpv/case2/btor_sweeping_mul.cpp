@@ -332,6 +332,10 @@ void compute_simulation(
         cout << "Unsupported number of children: " << children.size() << endl;
         throw NotImplementedException("Unsupported number of children: " + std::to_string(children.size()));
     }
+
+    
+    // if(nd.get_simulation_data().empty())
+    //     std::cout << "simulation data is empty" << std::endl;
 }
 
 void children_substitution(const smt::TermVec& children, smt::TermVec& out, const std::unordered_map<Term, Term>& substitution_map) {
@@ -481,7 +485,7 @@ void post_order(const smt::Term& root,
             visited = true;
         } else {
             // std::cout << "-----op: " << current->get_op().to_string() << "-----" << std::endl;
-            // cout << "----current: " << current->to_string() << "----" << endl;
+            cout << "----current: " << current->to_string() << "----" << endl;
 
             TermVec children(current->begin(), current->end());
 
@@ -495,7 +499,7 @@ void post_order(const smt::Term& root,
                     node_data_map[current].get_simulation_data().push_back(*current_bv);
                 }
                 // btor_bv_free(current_bv);
-
+                std::cout << "hash: "<< node_data_map[current].hash() << std::endl;
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
                 // if you can find a term that is equivalent to this constant
                 // case 1 : that term is also a constant, then they should be the same term (Boolector will merge them)
@@ -506,7 +510,7 @@ void post_order(const smt::Term& root,
             } 
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
                 std::cout << "leaf nodes: " << current->to_string() << std::endl;
-
+                std::cout << "hash: "<< node_data_map[current].hash() << std::endl;
                 assert(TermVec(current->begin(), current->end()).empty());// no children
                 assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
                 assert(node_data_map.find(current) != node_data_map.end()); // data should be computed
@@ -550,6 +554,8 @@ void post_order(const smt::Term& root,
                 NodeData sim_data;
                 compute_simulation(children_substituted, num_iterations, op_type, node_data_map, all_luts, sim_data);
                 auto current_hash = sim_data.hash();
+                // std::cout << "term: " << current->to_string() << std::endl;
+                std::cout << "hash: "<< current_hash << std::endl;
 
                 
                 Term  term_eq;
@@ -611,6 +617,49 @@ void post_order(const smt::Term& root,
         } // end of if visited
     } // end of traversal
 }
+
+void pre_collect_constants(const std::vector<Term>& traversal_roots,
+    std::unordered_map<Term, NodeData>& node_data_map,
+    std::unordered_map<uint32_t, TermVec>& hash_term_map,
+    std::unordered_map<Term, Term>& substitution_map,
+    int num_iterations)
+{
+    std::stack<Term> stack;
+    std::unordered_set<Term> visited;
+    // 将所有起点压入栈中
+    for (const auto &root : traversal_roots)
+    {
+        stack.push(root);
+    }
+    while (!stack.empty())
+    {
+        Term current = stack.top();
+        stack.pop();
+        if (visited.find(current) != visited.end())
+        continue;
+        visited.insert(current);
+
+        // 如果当前节点是常量，则生成其模拟数据并记录替换映射
+        if (current->is_value())
+        {
+            std::string current_str = current->to_string().substr(2); // 去掉前缀"#b"
+            auto current_bv = btor_bv_char_to_bv(current_str.data());
+            for (int i = 0; i < num_iterations; ++i)
+            {
+                node_data_map[current].get_simulation_data().push_back(*current_bv);
+            }
+            substitution_map.insert({current, current});
+            hash_term_map[node_data_map[current].hash()].push_back(current);
+        }
+
+        // 将所有子节点入栈
+        for (auto child : current)
+        {
+            stack.push(child);
+        }
+    }
+}
+
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
@@ -679,6 +728,11 @@ int main(int argc, char* argv[]) {
     std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
     std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
 
+    //start post order traversal
+    int count = 0;
+    int unsat_count = 0;
+    int sat_count = 0;
+
     //Array init
     initialize_arrays(sts, all_luts, substitution_map);
     //End of array init
@@ -688,7 +742,7 @@ int main(int argc, char* argv[]) {
     auto a2 = sts.lookup("ALU.internal_a2");
     // solver->assert_formula(solver->make_term(Equal,a,a2));
     // cout << a->to_string() << endl;
-    // cout << a2->to_string() << endl;
+    cout << "a2: " << a2->to_string() << endl;
 
     //simulation
     simulation(input_terms, num_iterations, sts, node_data_map);
@@ -702,19 +756,36 @@ int main(int argc, char* argv[]) {
 
     solver->assert_formula(sts.init());
     for (const auto & c : sts.constraints()) solver->assert_formula(c.first);
-    
-    //start post order traversal
-    int count = 0;
-    int unsat_count = 0;
-    int sat_count = 0;
-    cout << "hash a : " << node_data_map[a].hash() << endl;
 
-    post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations,sts);
+    std::vector<Term> traversal_roots;
+    traversal_roots.push_back(root);
+    traversal_roots.push_back(sts.init());
+    for (const auto & constraint_pair : sts.constraints())
+    {
+        traversal_roots.push_back(constraint_pair.first);
+    }
+    std::set<Term> unique_roots(traversal_roots.begin(), traversal_roots.end());
+    std::vector<Term> final_roots(unique_roots.begin(), unique_roots.end());
+    pre_collect_constants(final_roots, node_data_map, hash_term_map, substitution_map, num_iterations);
+
+    cout << "root size: " << final_roots.size() << endl;
+
+    for (const auto &t : final_roots)
+    {
+         post_order(t, node_data_map, hash_term_map, substitution_map,
+                    all_luts, count, unsat_count, sat_count, solver, num_iterations, sts);
+    }
+    
+
+
+    // post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations,sts);
     //end of traversal
-    std::cout << std::endl;
+    // std::cout << std::endl;
     
     
-    cout << "hash a2: " << node_data_map[a2].hash() << endl;
+    // cout << "hash a2: " << node_data_map[a2].hash() << endl;
+    // cout << "size a2: " << node_data_map[a2].get_simulation_data().size() << endl;
+    // cout << "hash a2: " << node_data_map[a2].get_term()->to_string() << endl;
     // cout << a2->get_op() << a2->get_sort() << endl;
     // cout << "width: " << node_data_map[a2].get_bit_width()<< endl;
 
