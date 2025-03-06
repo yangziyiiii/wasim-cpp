@@ -358,6 +358,10 @@ target_link_libraries(test_case7 wasim-lib)
 add_executable(test_case10 "apps/idpv/case10/bmc.cpp")
 target_link_libraries(test_case10 wasim-lib)
 
+add_executable(unroll "apps/idpv/case10/unroll.cpp")
+target_link_libraries(unroll wasim-lib)
+
+
 # add_executable(test_case10n "apps/idpv/case10/naive.cpp")
 # target_link_libraries(test_case10n wasim-lib)
 

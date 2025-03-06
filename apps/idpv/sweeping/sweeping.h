@@ -1,6 +1,3 @@
-
-
-
 #include "assert.h"
 #include "config/testpath.h"
 #include "framework/symsim.h"

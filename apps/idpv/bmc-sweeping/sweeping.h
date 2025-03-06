@@ -732,35 +732,67 @@ void post_order(smt::Term& root,
                             terms_for_solving.push_back(t);
                     } // end of filtering terms in terms_to_check --> terms_for_solving
                     if (term_eq == nullptr) { // if no structural same term found
-                       for (const auto & t : terms_for_solving) {
+                        for (const auto & t : terms_for_solving) {
                           
-                          // Record start time
-                          auto start_time = std::chrono::high_resolution_clock::now();
-                          
-                          // Execute solver
-                          auto result = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, cnode))}));
-                          
-                          // Calculate solving time
-                          auto end_time = std::chrono::high_resolution_clock::now();
-                          auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-                          
-                          count++;
-                          
-                          // Check if timeout occurred
-                          if (elapsed >= timeout_ms) {
-                              // Timeout, skip current merge
-                              std::cout << "t"; // Output 't' to indicate timeout
-                              std::cout.flush();
-                              continue;
-                          }
-                          
-                          if (result.is_unsat()) {
-                            unsat_count++;
-                            term_eq = t;
-                            break;
-                          } else {
-                            sat_count++;
-                          }
+                            solver->push();
+                            auto aa = solver->make_term(Not, solver->make_term(Equal, t, cnode));
+                            solver->assert_formula(aa);
+                            auto timestamp = std::chrono::high_resolution_clock::now();
+                            auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
+                            fs::path directory = fs::current_path() / "generate";
+                            if (!fs::exists(directory)) {
+                                fs::create_directory(directory);
+                            }
+                            std::ostringstream file_name;
+                            file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
+                            
+                            std::ofstream smt2_file(file_name.str());
+                            if (smt2_file.is_open()) {
+                                solver->dump_smt2(file_name.str());
+                                smt2_file.close();
+                            } else {
+                                std::cerr << "Failed to open file: " << file_name.str() << std::endl;
+                            }
+
+                            // Record start time
+                            auto start_time = std::chrono::high_resolution_clock::now();
+                            
+                            // Execute solver
+                            auto result = solver->check_sat();
+                            
+                            // Calculate solving time
+                            auto end_time = std::chrono::high_resolution_clock::now();
+                            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                            
+                            count++;
+                            
+                            // Check if timeout occurred
+                            if (elapsed >= timeout_ms) {
+                                // Timeout, skip current merge
+                                std::cout << "t"; // Output 't' to indicate timeout
+                                std::cout.flush();
+                                continue;
+                            }
+                            
+                            if (result.is_unsat()) {
+                                unsat_count ++;
+                                term_eq = t;
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "UNSAT" << std::endl;
+                                    smt2_file.close();
+                                }
+                                solver->pop();
+                                break;
+                            } else{
+                                sat_count ++;
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "SAT" << std::endl;
+                                    smt2_file.close();
+                                }
+                            }
+                            solver->pop();
                        } // end of check each term in terms_for_solving
                     } // end of structural_same_term_found
                 }
