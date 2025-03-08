@@ -17,8 +17,17 @@
 #include <algorithm>
 #include <random>
 #include "smt-switch/utils.h"
+#include <atomic>
 
 #include "simulation.h"
+
+
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+namespace fs = std::filesystem;
+static int file_counter = 0;
+
 
 using namespace smt;
 using namespace std;
@@ -525,9 +534,77 @@ void initialize_arrays(TransitionSystem& sts,
     }
 }
 
+void initialize_arrays(
+    TransitionSystem & sts1,
+    TransitionSystem & sts2,
+    std::unordered_map<Term, std::unordered_map<std::string, std::string>> & all_luts,
+    std::unordered_map<Term, Term> & substitution_map)
+{
+  for (const auto & var_val_pair : sts1.init_constants()) {
+    if (var_val_pair.first->get_sort()->get_sort_kind() != ARRAY) continue;
+    Term var = var_val_pair.first;
+    Term val = var_val_pair.second;
+    assert(all_luts.find(var) == all_luts.end());
+    create_lut(val, all_luts[var]);
+    std::cout << "[array create] " << var->to_string() << " of size "
+              << all_luts[var].size() << std::endl;
+  }
+
+  for (const auto & var_val_pair : sts2.init_constants()) {
+    if (var_val_pair.first->get_sort()->get_sort_kind() != ARRAY) continue;
+    Term var = var_val_pair.first;
+    Term val = var_val_pair.second;
+    assert(all_luts.find(var) == all_luts.end());
+    create_lut(val, all_luts[var]);
+    std::cout << "[array create] " << var->to_string() << " of size "
+              << all_luts[var].size() << std::endl;
+  }
+
+  // Array comparison
+  for (auto pos = all_luts.begin(); pos != all_luts.end(); ++pos) {
+    const auto & array_var_i = pos->first;
+    auto array_size_i = pos->second.size();
+    const auto & idx_val_i = pos->second;
+    bool another_array_found = false;
+    for (auto pos_j = all_luts.begin(); pos_j != pos; ++pos_j) {
+      auto array_size_j = pos_j->second.size();
+      if (array_size_j != array_size_i) continue;
+      const auto & idx_val_j = pos_j->second;
+      bool all_equal = true;
+      for (const auto & idx_val_pair : idx_val_i) {
+        auto elem_pos = idx_val_j.find(idx_val_pair.first);
+        if (elem_pos == idx_val_j.end()) {
+          // no such index
+          all_equal = false;
+          break;
+        }
+        if (elem_pos->second != idx_val_pair.second) {
+          all_equal = false;
+          break;
+        }
+      }
+      if (!all_equal) continue;
+      // if equal
+      const auto & array_var_j = pos_j->first;
+      // std::cout << "[sub array] " << array_var_i ->to_string() << " --> " <<
+      // array_var_j->to_string() << std::endl;
+      substitution_map.insert({ array_var_i, array_var_j });
+      another_array_found = true;
+      // if you find one then it is okay, no need to find the rest
+      break;
+      // in case multiple pairs exists
+      // 0 , 1, 2   . then 2-->0  1-->0
+    }
+    if (!another_array_found) {
+      // std::cout << "[array not sub] " << array_var_i ->to_string() <<
+      // std::endl;
+      substitution_map.insert({ array_var_i, array_var_i });
+    }
+  }
+}
+
 void simulation(const TermVec & input_terms,
                 const int &num_iterations,
-                TransitionSystem& sts,
                 std::unordered_map<Term, NodeData>& node_data_map
 ){
     GmpRandStateGuard rand_guard;
@@ -544,6 +621,26 @@ void simulation(const TermVec & input_terms,
         }
     }
 }
+
+void simulation(const UnorderedTermSet & input_terms,
+    const int &num_iterations,
+    std::unordered_map<Term, NodeData>& node_data_map
+){
+    GmpRandStateGuard rand_guard;
+    for(int i=0; i<num_iterations; i++){
+        for(auto it : input_terms){
+            auto width = it->get_sort()->get_width();
+            mpz_t input_mpz;
+            rand_guard.random_input(input_mpz,width);
+            unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
+            mpz_clear(input_mpz);
+
+            auto bv_input = btor_bv_const(input_str.get(), width);
+            node_data_map[it].get_simulation_data().push_back(*bv_input);
+        }
+    }
+}
+
 
 void post_order(smt::Term& root,
                 std::unordered_map<Term, NodeData>& node_data_map,
@@ -622,6 +719,7 @@ void post_order(smt::Term& root,
 
     while(!node_stack.empty()) {
         auto & [current,visited] = node_stack.top();
+        // cout << "current: " << current ->to_string() << endl;
         if(substitution_map.find(current) != substitution_map.end()) {
             node_stack.pop();
             continue;
@@ -639,13 +737,13 @@ void post_order(smt::Term& root,
             TermVec children(current->begin(), current->end());
 
             if(current->is_value()) { // constant
-                // auto current_str = current->to_string().substr(2);
-                // auto current_bv = btor_bv_char_to_bv(current_str.data());
+                auto current_str = current->to_string().substr(2);
+                auto current_bv = btor_bv_char_to_bv(current_str.data());
                 
                 update_progress(SIM_COMP);
-                // for (int i = 0; i < num_iterations; ++i) {
-                //     node_data_map[current].get_simulation_data().push_back(*current_bv);
-                // }
+                for (int i = 0; i < num_iterations; ++i) {
+                    node_data_map[current].get_simulation_data().push_back(*current_bv);
+                }
 
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
                 
@@ -657,6 +755,7 @@ void post_order(smt::Term& root,
             } 
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
                 update_progress(MAP_UPDATE);
+               
                 
                 assert(TermVec(current->begin(), current->end()).empty());// no children
                 assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
@@ -720,35 +819,67 @@ void post_order(smt::Term& root,
                             terms_for_solving.push_back(t);
                     } // end of filtering terms in terms_to_check --> terms_for_solving
                     if (term_eq == nullptr) { // if no structural same term found
-                       for (const auto & t : terms_for_solving) {
+                        for (const auto & t : terms_for_solving) {
                           
-                          // Record start time
-                          auto start_time = std::chrono::high_resolution_clock::now();
-                          
-                          // Execute solver
-                          auto result = solver->check_sat_assuming(TermVec({solver->make_term(Not, solver->make_term(Equal, t, cnode))}));
-                          
-                          // Calculate solving time
-                          auto end_time = std::chrono::high_resolution_clock::now();
-                          auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-                          
-                          count++;
-                          
-                          // Check if timeout occurred
-                          if (elapsed >= timeout_ms) {
-                              // Timeout, skip current merge
-                              std::cout << "t"; // Output 't' to indicate timeout
-                              std::cout.flush();
-                              continue;
-                          }
-                          
-                          if (result.is_unsat()) {
-                            unsat_count++;
-                            term_eq = t;
-                            break;
-                          } else {
-                            sat_count++;
-                          }
+                            solver->push();
+                            auto aa = solver->make_term(Not, solver->make_term(Equal, t, cnode));
+                            solver->assert_formula(aa);
+                            auto timestamp = std::chrono::high_resolution_clock::now();
+                            auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
+                            fs::path directory = fs::current_path() / "generate";
+                            if (!fs::exists(directory)) {
+                                fs::create_directory(directory);
+                            }
+                            std::ostringstream file_name;
+                            file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
+                            
+                            std::ofstream smt2_file(file_name.str());
+                            if (smt2_file.is_open()) {
+                                solver->dump_smt2(file_name.str());
+                                smt2_file.close();
+                            } else {
+                                std::cerr << "Failed to open file: " << file_name.str() << std::endl;
+                            }
+
+                            // Record start time
+                            auto start_time = std::chrono::high_resolution_clock::now();
+                            
+                            // Execute solver
+                            auto result = solver->check_sat();
+                            
+                            // Calculate solving time
+                            auto end_time = std::chrono::high_resolution_clock::now();
+                            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                            
+                            count++;
+                            
+                            // Check if timeout occurred
+                            if (elapsed >= timeout_ms) {
+                                // Timeout, skip current merge
+                                std::cout << "t"; // Output 't' to indicate timeout
+                                std::cout.flush();
+                                continue;
+                            }
+                            
+                            if (result.is_unsat()) {
+                                unsat_count ++;
+                                term_eq = t;
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "UNSAT" << std::endl;
+                                    smt2_file.close();
+                                }
+                                solver->pop();
+                                break;
+                            } else{
+                                sat_count ++;
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "SAT" << std::endl;
+                                    smt2_file.close();
+                                }
+                            }
+                            solver->pop();
                        } // end of check each term in terms_for_solving
                     } // end of structural_same_term_found
                 }
@@ -814,6 +945,7 @@ void post_order(smt::Term& root,
     std::cout << "Sweeping done, begin the last solving using bitwuzla for this property" << std::endl;
 }
 
+
 void pre_collect_constants(const std::vector<Term>& traversal_roots,
                             std::unordered_map<Term, NodeData>& node_data_map,
                             std::unordered_map<uint32_t, TermVec>& hash_term_map,
@@ -851,4 +983,27 @@ void pre_collect_constants(const std::vector<Term>& traversal_roots,
             stack.push(child);
         }
     }
+}
+
+bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver)
+{
+  solver->push();
+  for (const auto & a : asmpt) {
+    solver->assert_formula(a);
+  }
+  solver->assert_formula(solver->make_term(Not, p));
+  auto res = solver->check_sat();
+  solver->pop();
+  return res.is_unsat();
+}
+
+static Term and_vec(const TermVec & v, SmtSolver & solver)
+{
+  if (v.empty()) return solver->make_term(true);
+  if (v.size() == 1) return v.at(0);
+
+  auto ret = v.at(0);
+  for (size_t idx = 1; idx < v.size(); ++idx)
+    ret = solver->make_term(smt::And, ret, v.at(idx));
+  return ret;
 }

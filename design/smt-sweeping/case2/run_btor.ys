@@ -1,8 +1,9 @@
-read_verilog -formal cond_mul.v
-prep -top alu_miter
+read_verilog -sv mul_from_tem_mulgen.sv
+prep -top Merged_WT_SB4_KS_32x32_noX_spec
 flatten
 # memory -nomap
 hierarchy -check
+proc
 # setundef -undriven -init -expose
 # sim -w alu_miter
-write_btor mul_fix_16.btor2
+write_btor mul_32_32_miter.btor2

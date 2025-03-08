@@ -1,49 +1,4 @@
-#include "./sweeping.h"
-
-void simulation(const UnorderedTermSet & input_terms,
-    const int &num_iterations,
-    TransitionSystem& sts,
-    std::unordered_map<Term, NodeData>& node_data_map
-){
-    GmpRandStateGuard rand_guard;
-    for(int i=0; i<num_iterations; i++){
-        for(auto it : input_terms){
-            auto width = it->get_sort()->get_width();
-            mpz_t input_mpz;
-            rand_guard.random_input(input_mpz,width);
-            unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
-            mpz_clear(input_mpz);
-
-            auto bv_input = btor_bv_const(input_str.get(), width);
-            node_data_map[it].get_simulation_data().push_back(*bv_input);
-        }
-    }
-}
-
-
-bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver) {
-    solver->push();
-    for (const auto & a : asmpt) {
-      solver->assert_formula(a);
-    }
-    solver->assert_formula(solver->make_term(Not, p));
-    auto res = solver->check_sat();
-    solver->pop();
-    return res.is_unsat();
-}
-  
-static Term and_vec(const TermVec & v, SmtSolver & solver) {
-    if (v.empty())
-      return solver->make_term(true);
-    if (v.size() == 1)
-      return v.at(0);
-  
-    auto ret = v.at(0);
-    for (size_t idx = 1; idx < v.size() ; ++idx)
-      ret = solver->make_term(smt::And, ret, v.at(idx));
-    return ret;
-}
-
+#include "../sweeping/sweeping.h"
 
 int main(int argc, char* argv[]) {
     if (argc < 4) {
@@ -103,7 +58,7 @@ int main(int argc, char* argv[]) {
         auto root = sim.interpret_state_expr_on_curr_frame(prop, false);
 
         initialize_arrays(sts, all_luts, substitution_map);
-        simulation(input_terms, num_iterations, sts, node_data_map);
+        simulation(input_terms, num_iterations, node_data_map);
         for(auto i : input_terms){
             assert(node_data_map[i].get_simulation_data().size() == num_iterations);
             substitution_map.insert({i, i});
@@ -111,7 +66,7 @@ int main(int argc, char* argv[]) {
         }
         smt::UnorderedTermSet out;
         smt::get_free_symbols(root,out);
-        simulation(out, num_iterations, sts, node_data_map);
+        simulation(out, num_iterations, node_data_map);
         int count = 0;
         int unsat_count = 0;
         int sat_count = 0;

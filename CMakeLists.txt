@@ -343,14 +343,17 @@ endif()
 # add_executable(test_structure "apps/idpv/btor_restructure.cpp")
 # target_link_libraries(test_structure wasim-lib)
 
-# add_executable(test_case1 "apps/idpv/case1/btor_sweeping.cpp")
-# target_link_libraries(test_case1 wasim-lib)
+add_executable(test_case1 "apps/idpv/case1/btor_sweeping.cpp")
+target_link_libraries(test_case1 wasim-lib)
 
 add_executable(bmc "apps/idpv/bmc-sweeping/bmc.cpp")
 target_link_libraries(bmc wasim-lib)
 
 add_executable(sweeping "apps/idpv/sweeping/sweeping-miter.cpp")
 target_link_libraries(sweeping wasim-lib)
+
+add_executable(sequence "apps/idpv/sequence/sequence.cpp")
+target_link_libraries(sequence wasim-lib)
 
 add_executable(test_case7 "apps/idpv/case7-hua/sweeping-miter.cpp")
 target_link_libraries(test_case7 wasim-lib)

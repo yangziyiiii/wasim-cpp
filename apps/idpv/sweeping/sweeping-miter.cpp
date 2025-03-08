@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
     SmtSolver solver = BitwuzlaSolverFactory::create(false);
 
     // Add timeout parameter, default is 5 seconds
-    int solver_timeout_ms = 5000000;
+    int solver_timeout_ms = 500000;
     int property_check_timeout_ms = 100000;
     bool dump_smt = false; // Default is to dump SMT
 
@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
     //End of array init
 
     //simulation
-    simulation(input_terms, num_iterations, sts, node_data_map);
+    simulation(input_terms, num_iterations, node_data_map);
     std::cout << "done" <<std::endl;
    
 
@@ -152,21 +152,6 @@ int main(int argc, char* argv[]) {
         std::set<Term> unique_roots(traversal_roots.begin(), traversal_roots.end());
         std::vector<Term> final_roots(unique_roots.begin(), unique_roots.end());
 
-        // for(auto t : final_roots) {
-        //     std::cout << "***: " << t->to_string() << std::endl;
-        //     std::cout << "sort: "<< t->get_sort() << std::endl;
-        // }
-
-        // cout << final_roots.size() << endl;
-        // if(final_roots.empty()){
-        //     std::cerr << "Error: final_roots is empty!" << std::endl;
-        //     exit(1);
-        // }
-        // else if(final_roots.size() == 1){
-        //     Term combined_term = final_roots[0];
-        // } else {
-        //     Term combined_term = solver->make_term(And, final_roots);
-        // }
         Term combined_term = solver->make_term(And, final_roots);
 
 
