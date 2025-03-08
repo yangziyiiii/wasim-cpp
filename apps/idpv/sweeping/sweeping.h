@@ -331,7 +331,9 @@ void process_single_child_simulation(const Term & child,  // HZ: const Term &
     // check if substitution happened
 
     const auto & sim_data = node_data_map.at(child).get_simulation_data();
-    assert(sim_data.size() == num_iterations);
+    if(sim_data.size() != num_iterations) {
+        cerr << "sim data size: " << sim_data.size() << endl;
+    }
 
     for(size_t i = 0; i < num_iterations; i++) {
         const auto & bv_child = sim_data[i];
@@ -755,11 +757,19 @@ void post_order(smt::Term& root,
             } 
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
                 update_progress(MAP_UPDATE);
-               
-                
+
                 assert(TermVec(current->begin(), current->end()).empty());// no children
                 assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
-                assert(node_data_map.find(current) != node_data_map.end()); // data should be computed
+
+
+                if(node_data_map.find(current) == node_data_map.end()) {
+                    cout << "current: " << current->to_string() << endl;
+                    simulation(TermVec({current}),num_iterations,node_data_map);
+                } // data should be computed)
+                
+                // if(node_data_map[current].get_simulation_data().size() == num_iterations) {
+                //     cout << "sim data has " << node_data_map[current].get_simulation_data().size() << " size" << endl;
+                // }
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
 
                 substitution_map.insert({current, current}); 
@@ -834,12 +844,12 @@ void post_order(smt::Term& root,
                             file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
                             
                             std::ofstream smt2_file(file_name.str());
-                            if (smt2_file.is_open()) {
-                                solver->dump_smt2(file_name.str());
-                                smt2_file.close();
-                            } else {
-                                std::cerr << "Failed to open file: " << file_name.str() << std::endl;
-                            }
+                            // if (smt2_file.is_open()) {
+                            //     solver->dump_smt2(file_name.str());
+                            //     smt2_file.close();
+                            // } else {
+                            //     std::cerr << "Failed to open file: " << file_name.str() << std::endl;
+                            // }
 
                             // Record start time
                             auto start_time = std::chrono::high_resolution_clock::now();
@@ -864,20 +874,20 @@ void post_order(smt::Term& root,
                             if (result.is_unsat()) {
                                 unsat_count ++;
                                 term_eq = t;
-                                std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                if (smt2_file.is_open()) {
-                                    smt2_file << "UNSAT" << std::endl;
-                                    smt2_file.close();
-                                }
+                                // std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                // if (smt2_file.is_open()) {
+                                //     smt2_file << "UNSAT" << std::endl;
+                                //     smt2_file.close();
+                                // }
                                 solver->pop();
                                 break;
                             } else{
                                 sat_count ++;
-                                std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                if (smt2_file.is_open()) {
-                                    smt2_file << "SAT" << std::endl;
-                                    smt2_file.close();
-                                }
+                                // std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                // if (smt2_file.is_open()) {
+                                //     smt2_file << "SAT" << std::endl;
+                                //     smt2_file.close();
+                                // }
                             }
                             solver->pop();
                        } // end of check each term in terms_for_solving

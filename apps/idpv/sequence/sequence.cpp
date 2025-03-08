@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
 
     // Add timeout parameter, default is 5 seconds
     int solver_timeout_ms = 500000;
-    int property_check_timeout_ms = 100000;
+    int property_check_timeout_ms = 1000000;
     bool dump_smt = false; // Default is to dump SMT
 
     solver->set_logic("QF_UFBV");
