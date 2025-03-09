@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
         sim.set_input({},{});
         sim.sim_one_step();
 
-        post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations);
+        post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, bound);
         root = substitution_map.at(root);
 
         if (check_prop(

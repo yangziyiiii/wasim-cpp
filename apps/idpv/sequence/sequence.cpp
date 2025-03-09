@@ -50,12 +50,18 @@ int main(int argc, char* argv[]) {
 
     auto datain = sts1.lookup("a::datain");
     auto a_key = sts1.lookup("a::key");
+    auto root_a = sts1.lookup("a::finalout");
 
     TransitionSystem sts2(solver);
     BTOR2Encoder btor_parser2(btor2_file_2, sts2, "b::");
 
+    // auto b_key = sts2.lookup("b::key");
+    // auto state = sts2.lookup("b::state");
+    // auto root_b = sts2.lookup("b::out");
+
     auto b_key = sts2.lookup("b::key");
-    auto state = sts2.lookup("b::state");
+    auto state = sts2.lookup("b::plain_text");
+    auto root_b = sts2.lookup("b::cipher_text");
 
     SymbolicSimulator sim(sts2, solver);
 
@@ -73,7 +79,7 @@ int main(int argc, char* argv[]) {
     // auto prop = and_vec(propvec, solver);
     sim.init();
 
-    // if (!check_prop(sim.interpret_state_expr_on_curr_frame(prop, false),
+    // if (!check_prop(sim.interpret_state_expr_on_curr_frame(aes_out, false),
     //                 sim.all_assumptions(),
     //                 solver)) {
     //   std::cout << "[bmc] failed at init!" << std::endl;
@@ -82,20 +88,21 @@ int main(int argc, char* argv[]) {
 
 
 
-    auto aes_out = sts2.lookup("b::out");
+    
 
     for (unsigned i = 1; i <= bound; ++i) {
       sim.set_input({}, {});
       sim.sim_one_step();
       smt::UnorderedTermSet out;
-      smt::get_free_symbols(aes_out, out);
+      auto bb = sim.interpret_state_expr_on_curr_frame(root_b, false);
+      smt::get_free_symbols(root_b, out);
       simulation(out, num_iterations, node_data_map);
     }
 
-    aes_out = sim.interpret_state_expr_on_curr_frame(aes_out, false);
-    auto root_a = sts1.lookup("a::finalout");
+    
+    
 
-    auto root = solver->make_term(Equal, root_a, aes_out);
+    auto root = solver->make_term(Equal, root_a, root_b);
 
     std::cout << "============================" << std::endl;
 
@@ -115,8 +122,6 @@ int main(int argc, char* argv[]) {
     //Array init
     initialize_arrays(sts1, sts2, all_luts, substitution_map);
     //End of array init
-
-    // auto datain = sts1.lookup("a::datain"); //FIXME
 
 
     TermVec input_terms;
@@ -184,10 +189,10 @@ int main(int argc, char* argv[]) {
 
     //Add constraint into root
 
-    pre_collect_constants(TermVec({root}), node_data_map, hash_term_map, substitution_map, num_iterations);
+    // pre_collect_constants(TermVec({root}), node_data_map, hash_term_map, substitution_map, num_iterations);
     // cout << root->to_string() << endl;
-    post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver,num_iterations, solver_timeout_ms);
-    root = substitution_map.at(root);
+    // post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver,num_iterations, solver_timeout_ms);
+    // root = substitution_map.at(root);
     // print_time();
     std::cout << "Start checking sat" << std::endl;
     auto not_root = solver->make_term(Not, root);

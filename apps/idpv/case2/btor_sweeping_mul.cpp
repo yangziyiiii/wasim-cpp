@@ -485,7 +485,7 @@ void post_order(const smt::Term& root,
             visited = true;
         } else {
             // std::cout << "-----op: " << current->get_op().to_string() << "-----" << std::endl;
-            cout << "----current: " << current->to_string() << "----" << endl;
+            // cout << "----current: " << current->to_string() << "----" << endl;
 
             TermVec children(current->begin(), current->end());
 
@@ -499,7 +499,7 @@ void post_order(const smt::Term& root,
                     node_data_map[current].get_simulation_data().push_back(*current_bv);
                 }
                 // btor_bv_free(current_bv);
-                std::cout << "hash: "<< node_data_map[current].hash() << std::endl;
+                // std::cout << "hash: "<< node_data_map[current].hash() << std::endl;
                 assert(node_data_map[current].get_simulation_data().size() == num_iterations);
                 // if you can find a term that is equivalent to this constant
                 // case 1 : that term is also a constant, then they should be the same term (Boolector will merge them)
@@ -605,7 +605,7 @@ void post_order(const smt::Term& root,
 
                 if (term_eq) {
                     substitution_map.emplace(current, term_eq);
-                    // cout << "current: " << current->to_string() <<" ,termeq: " <<  term_eq->to_string() << endl;
+                    cout << "current: " << current->to_string() <<" ,termeq: " <<  term_eq->to_string() << endl;
                     std::cout << "s"; std::cout.flush();
                 } else {
                     substitution_map.emplace(current, cnode);
@@ -707,21 +707,7 @@ int main(int argc, char* argv[]) {
     Term root = sts.prop().front();
     cout << "root: " << root->to_string() << std::endl;
 
-    // Term cond = output_terms.front();
-    // cout << "cond: " << cond->to_string() << std::endl;
-    // solver->assert_formula(cond);
-
-    // auto a_control = sts.lookup("control");
-    // std::string aa = "10000";
-    // Sort bv_sort = solver->make_sort(BV, 5);
-    // auto a_ctl_val = solver->make_term(aa, bv_sort, 2);  // 2nd prarater - bit-width，3rd- binary
-    // auto control_equals_1000 = solver->make_term(Equal, a_control, a_ctl_val);
-    // cout << "cond: " << control_equals_1000->to_string() << std::endl;
-    // solver->assert_formula(control_equals_1000);
-
-
-    cout << constraints.front() <<  endl;
-    solver->assert_formula(constraints.front());
+    cout << sts.constraints().size() << endl;
 
     std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
     std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
@@ -740,9 +726,9 @@ int main(int argc, char* argv[]) {
 
     auto a = sts.lookup("a");
     auto a2 = sts.lookup("ALU.internal_a2");
-    // solver->assert_formula(solver->make_term(Equal,a,a2));
+    solver->assert_formula(solver->make_term(Equal,a,a2));
     // cout << a->to_string() << endl;
-    cout << "a2: " << a2->to_string() << endl;
+    // cout << "a2: " << a2->to_string() << endl;
 
     //simulation
     simulation(input_terms, num_iterations, sts, node_data_map);
@@ -766,6 +752,9 @@ int main(int argc, char* argv[]) {
     }
     std::set<Term> unique_roots(traversal_roots.begin(), traversal_roots.end());
     std::vector<Term> final_roots(unique_roots.begin(), unique_roots.end());
+
+
+    
     pre_collect_constants(final_roots, node_data_map, hash_term_map, substitution_map, num_iterations);
 
     cout << "root size: " << final_roots.size() << endl;

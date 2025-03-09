@@ -654,6 +654,7 @@ void post_order(smt::Term& root,
                 int& sat_count,
                 SmtSolver& solver,
                 int& num_iterations,
+                unsigned int& bound,
                 int timeout_ms = 1000) // Add timeout parameter, default is 1 second
 {
     std::stack<std::pair<Term,bool>> node_stack;
@@ -806,6 +807,9 @@ void post_order(smt::Term& root,
                 if (hash_term_map.find(current_hash) != hash_term_map.end()) {
                     const auto & sim_data_vec = sim_data.get_simulation_data();
                     TermVec terms_for_solving;
+                    if(terms_for_solving.size() > 20) {
+                        break;
+                    }
                     const auto & terms_to_check = hash_term_map.at(current_hash);
                     auto cnode_sort = cnode->get_sort();
                     for (const auto & t : terms_to_check) {
@@ -873,6 +877,11 @@ void post_order(smt::Term& root,
                             
                             if (result.is_unsat()) {
                                 unsat_count ++;
+                                if(unsat_count =15 / (1 + 0.8 * log(bound)) ) {
+                                    term_eq = t;
+                                    solver->pop();
+                                    break;
+                                }
                                 term_eq = t;
                                 // std::ofstream smt2_file(file_name.str(), std::ios::app);
                                 // if (smt2_file.is_open()) {
