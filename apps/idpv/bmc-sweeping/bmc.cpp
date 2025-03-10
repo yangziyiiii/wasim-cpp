@@ -57,39 +57,46 @@ int main(int argc, char* argv[]) {
         std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
         auto root = sim.interpret_state_expr_on_curr_frame(prop, false);
 
-        initialize_arrays(sts, all_luts, substitution_map);
-        simulation(input_terms, num_iterations, node_data_map);
-        for(auto i : input_terms){
-            assert(node_data_map[i].get_simulation_data().size() == num_iterations);
-            substitution_map.insert({i, i});
-            hash_term_map[node_data_map[i].hash()].push_back(i);
-        }
-        smt::UnorderedTermSet out;
-        smt::get_free_symbols(root,out);
-        simulation(out, num_iterations, node_data_map);
-        int count = 0;
-        int unsat_count = 0;
-        int sat_count = 0;
-        //end of init
-
         sim.set_input({},{});
         sim.sim_one_step();
 
-        post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, bound);
-        root = substitution_map.at(root);
+        if(i==12) {
+            initialize_arrays(sts, all_luts, substitution_map);
+            simulation(input_terms, num_iterations, node_data_map);
+            for(auto i : input_terms){
+                assert(node_data_map[i].get_simulation_data().size() == num_iterations);
+                substitution_map.insert({i, i});
+                hash_term_map[node_data_map[i].hash()].push_back(i);
+            }
+            smt::UnorderedTermSet out;
+            smt::get_free_symbols(root,out);
+            simulation(out, num_iterations, node_data_map);
+            int count = 0;
+            int unsat_count = 0;
+            int sat_count = 0;
+            //end of init
 
-        if (check_prop(
-          root,
-          sim.all_assumptions(),
-          solver )) {
+       
+
+       
+            post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, i);
+            root = substitution_map.at(root);
             print_time();
-            std::cout << "[bmc] bound " << i << " passed." << std::endl;
-            cout << "total: " << count << " ,unsat:  " << unsat_count << " ,sat: " << sat_count << endl;
-        } else {
-            print_time();
-            std::cout << "[bmc] failed at bound " << i << std::endl;
-            cout << "total: " << count << " ,unsat:  " << unsat_count << " ,sat: " << sat_count << endl;
-          return 2;
+            std::cout<<std::endl;
+
+            if (check_prop(
+            root,
+            sim.all_assumptions(),
+            solver )) {
+                print_time();
+                std::cout << "[bmc] bound " << i << " passed." << std::endl;
+                cout << "total: " << count << " ,unsat:  " << unsat_count << " ,sat: " << sat_count << endl;
+            } else {
+                print_time();
+                std::cout << "[bmc] failed at bound " << i << std::endl;
+                cout << "total: " << count << " ,unsat:  " << unsat_count << " ,sat: " << sat_count << endl;
+            return 2;
+            }
         }
 
         node_data_map.clear();

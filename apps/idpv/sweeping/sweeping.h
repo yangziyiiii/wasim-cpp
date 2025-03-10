@@ -877,7 +877,7 @@ void post_order(smt::Term& root,
                             
                             if (result.is_unsat()) {
                                 unsat_count ++;
-                                if(unsat_count =15 / (1 + 0.8 * log(bound)) ) {
+                                if(unsat_count = 20 ) {
                                     term_eq = t;
                                     solver->pop();
                                     break;
@@ -891,6 +891,9 @@ void post_order(smt::Term& root,
                                 solver->pop();
                                 break;
                             } else{
+                                if(sat_count = 1000){
+                                    break;
+                                }
                                 sat_count ++;
                                 // std::ofstream smt2_file(file_name.str(), std::ios::app);
                                 // if (smt2_file.is_open()) {
