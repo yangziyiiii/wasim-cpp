@@ -430,24 +430,34 @@ void initialize_arrays(TransitionSystem& sts,
 }
 
 void simulation(const TermVec & input_terms,
-                const int &num_iterations,
-                TransitionSystem& sts,
-                std::unordered_map<Term, NodeData>& node_data_map
-){
+    const int &num_iterations,
+    TransitionSystem& sts,
+    std::unordered_map<Term, NodeData>& node_data_map)
+{
     GmpRandStateGuard rand_guard;
-    for(int i=0; i<num_iterations; i++){
-        for(auto it : input_terms){
+    for (int i = 0; i < num_iterations; i++) {
+        for (auto it : input_terms) {
             auto width = it->get_sort()->get_width();
-            mpz_t input_mpz;
-            rand_guard.random_input(input_mpz,width);
-            unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
-            mpz_clear(input_mpz);
-
-            auto bv_input = btor_bv_const(input_str.get(), width);
+            std::string input_string;
+            // 如果当前 term 的名称为 "control"，则使用固定输入 "10000"
+            if (it->to_string() == "control") {
+                input_string = "10000";
+            } else {
+                // 否则，随机生成输入
+                mpz_t input_mpz;
+                mpz_init(input_mpz);
+                rand_guard.random_input(input_mpz, width);
+                unique_ptr<char, void(*)(void*)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
+                input_string = input_str.get();
+                mpz_clear(input_mpz);
+            }
+            // 根据输入字符串和宽度构造位向量
+            auto bv_input = btor_bv_const(input_string.c_str(), width);
             node_data_map[it].get_simulation_data().push_back(*bv_input);
-        }
+        }   
     }
 }
+
 
 void post_order(const smt::Term& root,
                 std::unordered_map<Term, NodeData>& node_data_map,
@@ -484,14 +494,14 @@ void post_order(const smt::Term& root,
             }
             visited = true;
         } else {
-            // std::cout << "-----op: " << current->get_op().to_string() << "-----" << std::endl;
-            // cout << "----current: " << current->to_string() << "----" << endl;
+            std::cout << "-----op: " << current->get_op().to_string() << "-----" << std::endl;
+            cout << "----current: " << current->to_string() << "----" << endl;
 
             TermVec children(current->begin(), current->end());
 
 
             if(current->is_value()) { // constant
-                // std::cout << "Constant: " << current->to_string().substr(2) << std::endl;
+                std::cout << "Constant: " << current->to_string().substr(2) << std::endl;
                 auto current_str = current->to_string().substr(2);
                 auto current_bv = btor_bv_char_to_bv(current_str.data());
                 // cout << "current_bv width: " << current_bv->width <<", val:" << current_bv->val << endl;
@@ -510,7 +520,7 @@ void post_order(const smt::Term& root,
             } 
             else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
                 std::cout << "leaf nodes: " << current->to_string() << std::endl;
-                std::cout << "hash: "<< node_data_map[current].hash() << std::endl;
+                // std::cout << "hash: "<< node_data_map[current].hash() << std::endl;
                 assert(TermVec(current->begin(), current->end()).empty());// no children
                 assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
                 assert(node_data_map.find(current) != node_data_map.end()); // data should be computed
@@ -523,10 +533,10 @@ void post_order(const smt::Term& root,
                 // assert(false); // for this example, we should not encounter this case                
             }
             else { // compute simulation data for current node
-                // std::cout << "Computing : " << current->to_string() << std::endl;
+                std::cout << "Computing : " << current->to_string() << std::endl;
                 TermVec children(current->begin(), current->end()); // find children
                 auto child_size = children.size();
-                // cout << "children size: " << child_size << endl;
+                cout << "children size: " << child_size << endl;
 
                 //DEBUG
                     // if(current = sts.lookup("ALU.internal_a2")){
@@ -549,21 +559,25 @@ void post_order(const smt::Term& root,
                 
                 auto op_type = current->get_op();
                 Term cnode = substitution_happened ? solver->make_term(op_type, children_substituted) : current;
+                cout << "end 1" << endl;
 
                 // 2. compute simulation
                 NodeData sim_data;
                 compute_simulation(children_substituted, num_iterations, op_type, node_data_map, all_luts, sim_data);
                 auto current_hash = sim_data.hash();
                 // std::cout << "term: " << current->to_string() << std::endl;
-                std::cout << "hash: "<< current_hash << std::endl;
+                // std::cout << "hash: "<< current_hash << std::endl;
+
+                cout << "end 2" << endl;
 
                 
-                Term  term_eq;
+                Term  term_eq = nullptr;
                 if (hash_term_map.find(current_hash) != hash_term_map.end()) {
                     const auto & sim_data_vec = sim_data.get_simulation_data();
                     TermVec terms_for_solving;
                     const auto & terms_to_check = hash_term_map.at(current_hash);
                     auto cnode_sort = cnode->get_sort();
+                    cout << "terms_to_check size: " << terms_to_check.size() << endl;
                     for (const auto & t : terms_to_check) { // the same hash
                         if (t == cnode) {
                             // structural_same_term_found
@@ -572,6 +586,13 @@ void post_order(const smt::Term& root,
                         }
                         if ( t->get_sort() != cnode_sort )
                             continue; // not equal
+                        cout << "end 2.1.1" << endl;
+                        
+                        if (node_data_map.find(t) == node_data_map.end()) {
+                            std::cerr << "Warning: simulation data for term not found: " << t->to_string() << std::endl;
+                            continue;
+                        }
+
                         const auto & existing_sim_data = node_data_map.at(t).get_simulation_data();
                         bool all_equal = true;
                         for (unsigned rnd = 0; rnd < num_iterations; ++rnd) {
@@ -584,6 +605,7 @@ void post_order(const smt::Term& root,
                         if (all_equal)
                             terms_for_solving.push_back(t);
                     } // end of filtering terms in terms_to_check --> terms_for_solving
+                    cout << "end 2.1" << endl;
                     if (term_eq == nullptr) { // if no same term found
                        std::cout << "c"  << terms_for_solving.size();
                        std::cout.flush();
@@ -597,15 +619,17 @@ void post_order(const smt::Term& root,
                           } else
                                 sat_count ++;
                        } // end of check each term in terms_for_solving
+                       cout << "end 2.2" << endl;
                     } // end of structural_same_term_found
                 } else{
                     hash_term_map[current_hash] = TermVec({current});
-                    // cout << "no current hash, " << current->to_string() << current_hash << endl;
+                    cout << "no current hash, " << current->to_string() << current_hash << endl;
                 }
 
+                cout << "end 3" << endl;
                 if (term_eq) {
                     substitution_map.emplace(current, term_eq);
-                    cout << "current: " << current->to_string() <<" ,termeq: " <<  term_eq->to_string() << endl;
+                    // cout << "current: " << current->to_string() <<" ,termeq: " <<  term_eq->to_string() << endl;
                     std::cout << "s"; std::cout.flush();
                 } else {
                     substitution_map.emplace(current, cnode);
@@ -726,9 +750,6 @@ int main(int argc, char* argv[]) {
 
     auto a = sts.lookup("a");
     auto a2 = sts.lookup("ALU.internal_a2");
-    solver->assert_formula(solver->make_term(Equal,a,a2));
-    // cout << a->to_string() << endl;
-    // cout << "a2: " << a2->to_string() << endl;
 
     //simulation
     simulation(input_terms, num_iterations, sts, node_data_map);

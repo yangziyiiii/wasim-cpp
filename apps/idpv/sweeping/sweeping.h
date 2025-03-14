@@ -18,6 +18,7 @@
 #include <random>
 #include "smt-switch/utils.h"
 #include <atomic>
+#include <getopt.h>
 
 #include "simulation.h"
 
@@ -27,11 +28,89 @@
 #include <sstream>
 namespace fs = std::filesystem;
 static int file_counter = 0;
-
-
 using namespace smt;
 using namespace std;
 using namespace wasim;
+
+
+struct Config {
+    std::string btor2_file;
+    int simulation_iterations = 0;
+    int solver_timeout_ms = 3600000;
+    int property_check_timeout_ms = 3600000;
+    bool dump_smt = false;
+    bool debug = false;
+    int bound = 0;
+};
+
+void print_usage(const char* prog_name) {
+    std::cerr << "Usage: " << prog_name << " <BTOR2_FILE_PATH> <SIMULATION_ITERATIONS> [--bound] [--solver_timeout] [--prop_timeout] [--dump_smt] [--debug]" << std::endl;
+    std::cerr << "  --file, -f            : Path to the BTOR2 file (required)" << std::endl;
+    std::cerr << "  --iteration, -i       : Number of simulation iterations (required)" << std::endl;
+    std::cerr << "  --solver_timeout, -s  : Solver timeout in milliseconds (default: 500000ms)" << std::endl;
+    std::cerr << "  --prop_timeout, -p    : Property check timeout in milliseconds (default: 100000ms)" << std::endl;
+    std::cerr << "  --bound, -b           : Bound for BMC (default: 0)" << std::endl;
+    std::cerr << "  --dump_smt            : Enable/disable SMT dump (default: disable)" << std::endl;
+    std::cerr << "  --debug               : Enable/disable debug information (default: disable)" << std::endl;
+    std::cerr << "  --help, -h            : Show this help message" << std::endl;
+}
+
+bool parse_arguments(int argc, char* argv[], Config& config) {
+    const struct option long_opts[] = {
+        {"file", required_argument, nullptr, 'f'},
+        {"iteration", required_argument, nullptr, 'i'},
+        {"solver_timeout", required_argument, nullptr, 's'},
+        {"prop_timeout", required_argument, nullptr, 'p'},
+        {"bound", required_argument, nullptr, 'b'},
+        {"dump_smt", no_argument, nullptr, 1},
+        {"debug", no_argument, nullptr, 2},
+        {"help", no_argument, nullptr, 'h'},
+        {nullptr, 0, nullptr, 0}
+    };
+
+    int opt;
+    int long_index = 0;
+    while ((opt = getopt_long(argc, argv, "f:i:s:p:b:h", long_opts, &long_index)) != -1) {
+        switch (opt) {
+            case 'f':
+                config.btor2_file = optarg;
+                break;
+            case 'i':
+                config.simulation_iterations = std::atoi(optarg);
+                break;
+            case 's':
+                config.solver_timeout_ms = std::atoi(optarg);
+                break;
+            case 'p':
+                config.property_check_timeout_ms = std::atoi(optarg);
+                break;
+            case 'b':
+                config.bound = std::atoi(optarg);
+                break;
+            case 1:
+                config.dump_smt = true;
+                break;
+            case 2:
+                config.debug = true;
+                break;
+            case 'h':
+                print_usage(argv[0]);
+                exit(EXIT_SUCCESS);
+            default:
+                print_usage(argv[0]);
+                return false;
+        }
+    }
+
+    // Validate required arguments
+    if (config.btor2_file.empty() || config.simulation_iterations <= 0) {
+        std::cerr << "[ERROR] Missing required arguments: --file and --iteration are mandatory.\n";
+        print_usage(argv[0]);
+        return false;
+    }
+
+    return true;
+}
 
 
 
@@ -75,11 +154,6 @@ public:
     const std::vector<BtorBitVector>& get_simulation_data() const {
         return simulation_data;
     }
-
-    // void add_data(const BtorBitVector & data) {
-    //     std::cout << "Before moving data, val: " << data.val << std::endl;
-    //     simulation_data.push_back(data);
-    // }
 
     size_t hash() const {
         return hash(simulation_data);
@@ -317,38 +391,38 @@ void btor_bv_operation_3children(const smt::Op& op,
 
 
 //one child simulation
-void process_single_child_simulation(const Term & child,  // HZ: const Term &
-                              size_t num_iterations, 
-                              const smt::Op& op_type,
-                              const std::unordered_map<Term, NodeData> & node_data_map,
-                              NodeData & out) {
-
-    // cout << "--child: " << child->to_string() << endl;
-    // cout << "***child type:" << child->get_sort()->get_width() << endl;
-    // cout << "***child type:" << child->get_op().to_string() << endl;
-
+void process_single_child_simulation(const Term & child,
+                                     int & num_iterations,
+                                     const smt::Op& op_type,
+                                     const std::unordered_map<Term, NodeData> & node_data_map,
+                                     NodeData & out,
+                                     bool debug = false) {
     assert(child->get_sort()->get_sort_kind() != ARRAY);
-    // check if substitution happened
 
     const auto & sim_data = node_data_map.at(child).get_simulation_data();
-    if(sim_data.size() != num_iterations) {
-        cerr << "sim data size: " << sim_data.size() << endl;
+
+    if (debug && sim_data.size() != (size_t)num_iterations) {
+        std::ostringstream oss;
+        oss << "[Simulation Error] sim_data.size() = " << sim_data.size()
+            << ", expected num_iterations = " << num_iterations;
+        throw std::runtime_error(oss.str());
     }
 
-    for(size_t i = 0; i < num_iterations; i++) {
+    for(size_t i = 0; i < (size_t)num_iterations; i++) {
         const auto & bv_child = sim_data[i];
         btor_bv_operation_1child(op_type, bv_child, out);
     }
-    assert(out.get_simulation_data().size() == num_iterations);
-}
 
+    assert(out.get_simulation_data().size() == (size_t)num_iterations);
+}
 //two children simulation
-void process_two_children_simulation(const smt::TermVec & children, // const ... &
-                                     size_t num_iterations, 
+void process_two_children_simulation(const smt::TermVec & children,
+                                     int & num_iterations, 
                                      const smt::Op& op_type, 
                                      const std::unordered_map<Term, NodeData>& node_data_map,
                                      const std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
-                                     NodeData& nd /* OUTPUT */
+                                     NodeData& nd, /* OUTPUT */
+                                     bool debug = false
                                      ) { 
 
      if (op_type.prim_op == PrimOp::Select) {  // Array operation (Select)
@@ -359,7 +433,13 @@ void process_two_children_simulation(const smt::TermVec & children, // const ...
         assert(all_luts.find(array_var) != all_luts.end());
 
         const auto& sim_data_index = node_data_map.at(index_term).get_simulation_data();
-        assert(sim_data_index.size() == num_iterations);
+
+        if (debug && sim_data_index.size() != static_cast<size_t>(num_iterations)) {
+            std::ostringstream oss;
+            oss << "[Simulation Error] sim_data_index.size() = " << sim_data_index.size()
+                << ", expected num_iterations = " << num_iterations;
+            throw std::runtime_error(oss.str());
+        }
 
         for (size_t i = 0; i < num_iterations; ++i) {
             // Resolve the simulation data for the index child (if substitution happened, we use resolved node)
@@ -370,6 +450,7 @@ void process_two_children_simulation(const smt::TermVec & children, // const ...
             auto val = btor_bv_char_to_bv(val_str.data());
             nd.get_simulation_data().push_back(*val);
         }
+
     }else { // for other bit-vector operations
         const auto& child_1 = children[0];
         const auto& child_2 = children[1];
@@ -378,8 +459,23 @@ void process_two_children_simulation(const smt::TermVec & children, // const ...
         const auto& sim_data_1 = node_data_map.at(child_1).get_simulation_data();
         const auto& sim_data_2 = node_data_map.at(child_2).get_simulation_data();
         
-        assert(sim_data_1.size() == num_iterations);
-        assert(sim_data_2.size() == num_iterations);
+        //debug
+        if (debug) {
+            if (sim_data_1.size() != static_cast<size_t>(num_iterations)) {
+                std::ostringstream oss;
+                oss << "[Simulation Error] sim_data_1 size mismatch detected!\n"
+                    << "  - sim_data_1.size(): " << sim_data_1.size() << "\n"
+                    << "  - expected num_iterations: " << num_iterations;
+                throw std::runtime_error(oss.str());
+            }
+            if (sim_data_2.size() != static_cast<size_t>(num_iterations)) {
+                std::ostringstream oss;
+                oss << "[Simulation Error] sim_data_2 size mismatch detected!\n"
+                    << "  - sim_data_2.size(): " << sim_data_2.size() << "\n"
+                    << "  - expected num_iterations: " << num_iterations;
+                throw std::runtime_error(oss.str());
+            }
+        }
 
         // Perform the operation on the simulation data
         for (size_t i = 0; i < num_iterations; ++i) {
@@ -394,28 +490,49 @@ void process_two_children_simulation(const smt::TermVec & children, // const ...
 
 // three children simulation
 void process_three_children_simulation(const smt::TermVec& children, 
-                                       size_t num_iterations, 
+                                       int & num_iterations, 
                                        const smt::Op& op_type, 
                                        const std::unordered_map<Term, NodeData>& node_data_map,
                                        const std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
-                                       NodeData& nd) {
+                                       NodeData& nd,
+                                       bool debug = false) {
 
     // Now, handle the simulation data and apply the operator
+    // Resolve the simulation data for each child (if substitution happened, we use resolved node)
+    const auto& sim_data_1 = node_data_map.at(children[0]).get_simulation_data();
+    const auto& sim_data_2 = node_data_map.at(children[1]).get_simulation_data();
+    const auto& sim_data_3 = node_data_map.at(children[2]).get_simulation_data();
+
+    //debug
+    if (debug) {
+        if (sim_data_1.size() != static_cast<size_t>(num_iterations)) {
+            std::ostringstream oss;
+            oss << "[Simulation Error] sim_data_1 size mismatch detected!\n"
+                << "  - sim_data_1.size(): " << sim_data_1.size() << "\n"
+                << "  - expected num_iterations: " << num_iterations;
+            throw std::runtime_error(oss.str());
+        }
+        if (sim_data_2.size() != static_cast<size_t>(num_iterations)) {
+            std::ostringstream oss;
+            oss << "[Simulation Error] sim_data_2 size mismatch detected!\n"
+                << "  - sim_data_2.size(): " << sim_data_2.size() << "\n"
+                << "  - expected num_iterations: " << num_iterations;
+            throw std::runtime_error(oss.str());
+        }
+        if (sim_data_3.size() != static_cast<size_t>(num_iterations)) {
+            std::ostringstream oss;
+            oss << "[Simulation Error] sim_data_3 size mismatch detected!\n"
+                << "  - sim_data_3.size(): " << sim_data_3.size() << "\n"
+                << "  - expected num_iterations: " << num_iterations;
+            throw std::runtime_error(oss.str());
+        }
+    }
+
     for (size_t i = 0; i < num_iterations; i++) {
-        // Resolve the simulation data for each child (if substitution happened, we use resolved node)
-        const auto& sim_data_1 = node_data_map.at(children[0]).get_simulation_data();
-        const auto& sim_data_2 = node_data_map.at(children[1]).get_simulation_data();
-        const auto& sim_data_3 = node_data_map.at(children[2]).get_simulation_data();
-
-        assert(sim_data_1.size() == num_iterations);
-        assert(sim_data_2.size() == num_iterations);
-        assert(sim_data_3.size() == num_iterations);
-
         // Retrieve the bit-vector data for each child at the current iteration
         auto btor_child_1 = sim_data_1[i];
         auto btor_child_2 = sim_data_2[i];
         auto btor_child_3 = sim_data_3[i];
-
         // Apply the operator
         btor_bv_operation_3children(op_type, btor_child_1, btor_child_2, btor_child_3, nd);
     }
@@ -427,27 +544,25 @@ void process_three_children_simulation(const smt::TermVec& children,
 // main simulation function
 void compute_simulation(
                       const smt::TermVec & children, 
-                      size_t num_iterations, 
+                      int& num_iterations, 
                       const smt::Op& op_type, 
                       const std::unordered_map<Term, NodeData>& node_data_map,
                       const std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts, 
                       NodeData& nd // output
                       ) {
     if (children.size() == 1) {
-        process_single_child_simulation(children[0],  num_iterations, op_type, node_data_map, nd);
+        process_single_child_simulation(children[0], num_iterations, op_type, node_data_map, nd);
     } else if (children.size() == 2) {
         process_two_children_simulation(children, num_iterations, op_type, node_data_map, all_luts, nd);
     } else if(children.size() == 3) {
         process_three_children_simulation(children, num_iterations, op_type, node_data_map, all_luts, nd);
     } else {
-        cout << "Unsupported number of children: " << children.size() << endl;
-        throw NotImplementedException("Unsupported number of children: " + std::to_string(children.size()));
+        throw std::runtime_error("[Simulation Error] Unsupported number of children: " + std::to_string(children.size()));
     }
 }
 
 void children_substitution(const smt::TermVec& children, smt::TermVec& out, const std::unordered_map<Term, Term>& substitution_map) {
 	for (const auto & c : children) {
-        // cout <<"c: "<< c->to_string() << endl;
         auto pos = substitution_map.find(c);
         assert(pos != substitution_map.end());
         out.push_back(pos->second);
@@ -479,18 +594,23 @@ class GmpRandStateGuard
     // operator gmp_randstate_t &() { return state; }
 };
 
-void initialize_arrays(TransitionSystem& sts,
+void initialize_arrays(const std::vector<TransitionSystem*>& systems,
                        std::unordered_map<Term, std::unordered_map<std::string, std::string>>& all_luts,
-                       std::unordered_map<Term, Term>& substitution_map
+                       std::unordered_map<Term, Term>& substitution_map,
+                       bool & debug
 ) {
-    for (const auto & var_val_pair : sts.init_constants()) {
-        if(var_val_pair.first->get_sort()->get_sort_kind() != ARRAY)
-            continue;
-        Term var = var_val_pair.first;
-        Term val = var_val_pair.second;
-        assert(all_luts.find(var) == all_luts.end());
-        create_lut(val, all_luts[var]);
-        std::cout << "[array create] " << var->to_string() << " of size " << all_luts[var].size() << std::endl;
+    for (auto* sts : systems) {
+        for (const auto& var_val_pair : sts->init_constants()) {
+            if (var_val_pair.first->get_sort()->get_sort_kind() != ARRAY) continue;
+            Term var = var_val_pair.first;
+            Term val = var_val_pair.second;
+            if (all_luts.find(var) == all_luts.end()) {
+                create_lut(val, all_luts[var]);
+                if(debug) {
+                    std::cout << "[array create] " << var->to_string() << " of size " << all_luts[var].size() << std::endl;
+                }
+            }
+        }
     }
 
     // Array comparison
@@ -536,433 +656,340 @@ void initialize_arrays(TransitionSystem& sts,
     }
 }
 
-void initialize_arrays(
-    TransitionSystem & sts1,
-    TransitionSystem & sts2,
-    std::unordered_map<Term, std::unordered_map<std::string, std::string>> & all_luts,
-    std::unordered_map<Term, Term> & substitution_map)
+template <typename TermIterable>
+void simulation(const TermIterable & input_terms,
+                int num_iterations,
+                std::unordered_map<Term, NodeData> & node_data_map,
+                SmtSolver & solver,
+                const smt::TermVec & constraints = {})
 {
-  for (const auto & var_val_pair : sts1.init_constants()) {
-    if (var_val_pair.first->get_sort()->get_sort_kind() != ARRAY) continue;
-    Term var = var_val_pair.first;
-    Term val = var_val_pair.second;
-    assert(all_luts.find(var) == all_luts.end());
-    create_lut(val, all_luts[var]);
-    std::cout << "[array create] " << var->to_string() << " of size "
-              << all_luts[var].size() << std::endl;
-  }
-
-  for (const auto & var_val_pair : sts2.init_constants()) {
-    if (var_val_pair.first->get_sort()->get_sort_kind() != ARRAY) continue;
-    Term var = var_val_pair.first;
-    Term val = var_val_pair.second;
-    assert(all_luts.find(var) == all_luts.end());
-    create_lut(val, all_luts[var]);
-    std::cout << "[array create] " << var->to_string() << " of size "
-              << all_luts[var].size() << std::endl;
-  }
-
-  // Array comparison
-  for (auto pos = all_luts.begin(); pos != all_luts.end(); ++pos) {
-    const auto & array_var_i = pos->first;
-    auto array_size_i = pos->second.size();
-    const auto & idx_val_i = pos->second;
-    bool another_array_found = false;
-    for (auto pos_j = all_luts.begin(); pos_j != pos; ++pos_j) {
-      auto array_size_j = pos_j->second.size();
-      if (array_size_j != array_size_i) continue;
-      const auto & idx_val_j = pos_j->second;
-      bool all_equal = true;
-      for (const auto & idx_val_pair : idx_val_i) {
-        auto elem_pos = idx_val_j.find(idx_val_pair.first);
-        if (elem_pos == idx_val_j.end()) {
-          // no such index
-          all_equal = false;
-          break;
-        }
-        if (elem_pos->second != idx_val_pair.second) {
-          all_equal = false;
-          break;
-        }
-      }
-      if (!all_equal) continue;
-      // if equal
-      const auto & array_var_j = pos_j->first;
-      // std::cout << "[sub array] " << array_var_i ->to_string() << " --> " <<
-      // array_var_j->to_string() << std::endl;
-      substitution_map.insert({ array_var_i, array_var_j });
-      another_array_found = true;
-      // if you find one then it is okay, no need to find the rest
-      break;
-      // in case multiple pairs exists
-      // 0 , 1, 2   . then 2-->0  1-->0
-    }
-    if (!another_array_found) {
-      // std::cout << "[array not sub] " << array_var_i ->to_string() <<
-      // std::endl;
-      substitution_map.insert({ array_var_i, array_var_i });
-    }
-  }
-}
-
-void simulation(const TermVec & input_terms,
-                const int &num_iterations,
-                std::unordered_map<Term, NodeData>& node_data_map
-){
     GmpRandStateGuard rand_guard;
-    for(int i=0; i<num_iterations; i++){
-        for(auto it : input_terms){
-            auto width = it->get_sort()->get_width();
-            mpz_t input_mpz;
-            rand_guard.random_input(input_mpz,width);
-            unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
-            mpz_clear(input_mpz);
 
-            auto bv_input = btor_bv_const(input_str.get(), width);
-            node_data_map[it].get_simulation_data().push_back(*bv_input);
+    Term merged_constraint;
+    if (!constraints.empty()) {
+        if (constraints.size() == 1) {
+            merged_constraint = constraints[0];
+        } else {
+            merged_constraint = solver->make_term(And, constraints);
         }
+        solver->assert_formula(merged_constraint);
     }
-}
 
-void simulation(const UnorderedTermSet & input_terms,
-    const int &num_iterations,
-    std::unordered_map<Term, NodeData>& node_data_map
-){
-    GmpRandStateGuard rand_guard;
-    for(int i=0; i<num_iterations; i++){
-        for(auto it : input_terms){
-            auto width = it->get_sort()->get_width();
+    int valid_iterations = 0;
+
+    while (valid_iterations < num_iterations) {
+        solver->push();
+        std::unordered_map<Term, BtorBitVector> bit_values;
+
+        for(const auto & term : input_terms) {
+            auto width = term->get_sort()->get_width();
             mpz_t input_mpz;
-            rand_guard.random_input(input_mpz,width);
-            unique_ptr<char, void (*)(void *)> input_str(mpz_get_str(NULL, 2, input_mpz), free);
+            rand_guard.random_input(input_mpz, term->get_sort()->get_width());
+            std::unique_ptr<char, void (*)(void *)> input_str(
+                mpz_get_str(nullptr, 2, input_mpz), free);
             mpz_clear(input_mpz);
-
+            
             auto bv_input = btor_bv_const(input_str.get(), width);
-            node_data_map[it].get_simulation_data().push_back(*bv_input);
-        }
-    }
-}
-
-
-void post_order(smt::Term& root,
-                std::unordered_map<Term, NodeData>& node_data_map,
-                std::unordered_map<uint32_t, TermVec>& hash_term_map,
-                std::unordered_map<Term, Term>& substitution_map,
-                std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts,
-                int& count,
-                int& unsat_count,
-                int& sat_count,
-                SmtSolver& solver,
-                int& num_iterations,
-                unsigned int& bound,
-                int timeout_ms = 1000) // Add timeout parameter, default is 1 second
-{
-    std::stack<std::pair<Term,bool>> node_stack;
-    node_stack.push({root,false});
-
-    // Variables for progress tracking
-    int total_nodes = 0;
-    int processed_nodes = 0;
-    enum SweepingStep { NONE, SUBST_CHECK, NEW_NODE, SIM_COMP, EQUIV_SEARCH, MAP_UPDATE };
-    SweepingStep current_step = NONE;
-    std::string step_names[] = {
-        "IDLE",
-        "SUBST CHECK",
-        "NEW NODE",
-        "SIM COMP",
-        "EQUIV SEARCH",
-        "MAP UPDATE"
-    };
-
-    // First pass to count total nodes (optional but gives more accurate progress)
-    {
-        std::stack<Term> count_stack;
-        std::unordered_set<Term> visited;
-        count_stack.push(root);
+            node_data_map[term].get_simulation_data().push_back(*bv_input);
+            //FIXME
+            // bit_values[term] = *bv_input;
+            // auto eq_term = solver->make_term(input_str.get(), solver->make_sort(BV, width), 2);
+            // auto tmp = solver->make_term(Equal, term, eq_term);
+            // solver->assert_formula(solver->make_term(Not, tmp));
         
-        while (!count_stack.empty()) {
-            Term current = count_stack.top();
-            count_stack.pop();
+            // if (!constraints.empty()) {
+            //     Result r = solver->check_sat();
+            //     if (!r.is_unsat()) {
+            //         continue;
+            //     }
+            // }
+        }
+
+        // for(const auto [term,val] : bit_values) {
+        //     node_data_map[term].get_simulation_data().push_back(val);
+        // }
+        
+
+        ++valid_iterations;
+        solver->pop();
+    }
+}
+
+
+
+
+// template <typename TermIterable>
+// void simulation(const TermIterable & input_terms,
+//                 int num_iterations,
+//                 std::unordered_map<Term, NodeData> & node_data_map,
+//                 SmtSolver & solver,
+//                 const smt::TermVec & constraints = {})
+// {
+//     GmpRandStateGuard rand_guard;
+
+//     for (int i = 0; i < num_iterations; ++i) { 
+//         for (const auto & term : input_terms) {
+//             const auto width = term->get_sort()->get_width();
+
+//             mpz_t input_mpz;
+//             rand_guard.random_input(input_mpz, width);
+
+//             // Wrap result into RAII safe pointer
+//             std::unique_ptr<char, void (*)(void *)> input_str(
+//                 mpz_get_str(nullptr, 2, input_mpz), free);
+//             mpz_clear(input_mpz);
             
-            if (visited.find(current) != visited.end())
-                continue;
-                
-            visited.insert(current);
-            total_nodes++;
+//             //check if random input satisfy constraint
             
-            for (Term child : current) {
-                if (child->get_sort()->get_sort_kind() == BV || child->get_sort()->get_sort_kind() == BOOL) {
-                    count_stack.push(child);
-                }
+
+//             auto bv_input = btor_bv_const(input_str.get(), width);
+//             node_data_map[term].get_simulation_data().push_back(*bv_input);
+//         }
+//     }
+// }
+
+void count_total_nodes(const smt::Term& root, int& total_nodes) {
+    std::stack<Term> count_stack;
+    std::unordered_set<Term> visited;
+    count_stack.push(root);
+    while (!count_stack.empty()) {
+        Term current = count_stack.top();
+        count_stack.pop();
+        if (visited.count(current)) continue;
+        visited.insert(current);
+        total_nodes++;
+        for (auto child : current) {
+            if (child->get_sort()->get_sort_kind() == BV || child->get_sort()->get_sort_kind() == BOOL) {
+                count_stack.push(child);
             }
         }
     }
+}
+
+void simulate_constant_node(const smt::Term& current, 
+                            int & num_iterations, 
+                            std::unordered_map<Term, NodeData>& node_data_map) {
+    std::string current_str = current->to_string().substr(2);
+    auto current_bv = btor_bv_char_to_bv(current_str.data());
+    for (int i = 0; i < num_iterations; ++i) {
+        node_data_map[current].get_simulation_data().push_back(*current_bv);
+    }
+    assert(node_data_map[current].get_simulation_data().size() == num_iterations);
+}
+
+void simulate_leaf_node(const smt::Term& current, 
+                        int & num_iterations, 
+                        std::unordered_map<Term, NodeData>& node_data_map,
+                        SmtSolver & solver) {
+    if (node_data_map.find(current) == node_data_map.end()) {
+        simulation(TermVec{current}, num_iterations, node_data_map, solver);
+    }
+    assert(node_data_map[current].get_simulation_data().size() == num_iterations);
+}
+
+
+
+struct TryFindResult {
+    bool found;
+    Term term_eq;
+    TermVec terms_for_solving;
+};
+
+TryFindResult try_find_equiv_term(const Term & cnode,
+                                  const uint32_t & current_hash,
+                                  const NodeData & sim_data,
+                                  int & num_iterations,
+                                  const std::unordered_map<uint32_t, TermVec> & hash_term_map,
+                                  const std::unordered_map<Term, NodeData> & node_data_map,
+                                  const std::unordered_map<Term, Term> & substitution_map,
+                                  bool & debug) {
+    TryFindResult result {false, nullptr, {}};
+
+    if (hash_term_map.find(current_hash) == hash_term_map.end()) return result;
+    const auto & terms_to_check = hash_term_map.at(current_hash);
+    const auto & sim_data_vec = sim_data.get_simulation_data();
+    size_t size = terms_to_check.size();
     
-    std::cout << "Begin sweeping with " << total_nodes << " nodes..." << std::endl;
-    // std::cout << "============================" << std::endl;
 
-    // Function to update and display progress
-    auto update_progress = [&](SweepingStep step) {
-        current_step = step;
-        const int bar_width = 50;
-        float progress = (float)processed_nodes / total_nodes;
-        
-        std::cout << "\r[";
-        int pos = bar_width * progress;
-        for (int i = 0; i < bar_width; ++i) {
-            if (i < pos) std::cout << "=";
-            else if (i == pos) std::cout << ">";
-            else std::cout << " ";
+    //partial vector to minimize the number of terms to check
+    smt::TermVec filtered_terms;
+    std::mt19937 rng(std::random_device{}());
+
+    if (size <= 4) {
+        filtered_terms = terms_to_check;
+    }
+    else if (size <= 10) {
+        if (size >= 6) {
+            filtered_terms.insert(filtered_terms.end(), terms_to_check.begin(), terms_to_check.begin() + 3);
+            filtered_terms.insert(filtered_terms.end(), terms_to_check.end() - 3, terms_to_check.end());
+        } else {
+            size_t first = std::min(size_t(2), size);
+            size_t last = std::min(size_t(2), size - first);
+            filtered_terms.insert(filtered_terms.end(), terms_to_check.begin(), terms_to_check.begin() + first);
+            filtered_terms.insert(filtered_terms.end(), terms_to_check.end() - last, terms_to_check.end());
         }
-        std::cout << "] " << int(progress * 100.0) << "% | "
-                  << "Step: " << step_names[step] << " | "
-                  << processed_nodes << "/" << total_nodes << " nodes"
-                  << std::flush;
-    };
+    }
+    else {
+        size_t prefix_count = 0, suffix_count = 0, max_middle_sample = 0, cap = 20;
 
-    while(!node_stack.empty()) {
-        auto & [current,visited] = node_stack.top();
-        // cout << "current: " << current ->to_string() << endl;
-        if(substitution_map.find(current) != substitution_map.end()) {
-            node_stack.pop();
+        if (size <= 30) {
+            prefix_count = std::min(size_t(4), size);
+            suffix_count = std::min(size_t(4), size - prefix_count);
+            max_middle_sample = std::min(size - prefix_count - suffix_count, size_t(4));
+            cap = 12;
+        } else if (size <= 50) {
+            prefix_count = std::min(size_t(5), size);
+            suffix_count = std::min(size_t(5), size - prefix_count);
+            max_middle_sample = std::min(size - prefix_count - suffix_count, size_t(5));
+            cap = 15;
+        } else if (size <= 100) {
+            prefix_count = std::min(size_t(5), size);
+            suffix_count = std::min(size_t(5), size - prefix_count);
+            max_middle_sample = std::min(size_t(8), size - prefix_count - suffix_count);
+            cap = 18;
+        } else {
+            prefix_count = std::min(size_t(5), size);
+            suffix_count = std::min(size_t(5), size - prefix_count);
+            max_middle_sample = std::min(size_t(10), size - prefix_count - suffix_count);
+            cap = 20;
+        }
+
+        smt::TermVec prefix, suffix, middle_sample;
+
+        prefix.insert(prefix.end(), terms_to_check.begin(), terms_to_check.begin() + prefix_count);
+        suffix.insert(suffix.end(), terms_to_check.end() - suffix_count, terms_to_check.end());
+
+        auto middle_start = terms_to_check.begin() + prefix_count;
+        auto middle_end   = terms_to_check.end() - suffix_count;
+        smt::TermVec middle(middle_start, middle_end);
+
+        std::sample(middle.begin(), middle.end(),
+                    std::back_inserter(middle_sample),
+                    max_middle_sample, rng);
+
+        filtered_terms.reserve(prefix.size() + middle_sample.size() + suffix.size());
+        filtered_terms.insert(filtered_terms.end(), prefix.begin(), prefix.end());
+        filtered_terms.insert(filtered_terms.end(), middle_sample.begin(), middle_sample.end());
+        filtered_terms.insert(filtered_terms.end(), suffix.begin(), suffix.end());
+
+        if (filtered_terms.size() > cap) {
+            filtered_terms.resize(cap);
+        }
+    }
+
+    for (const auto & t : filtered_terms) {
+        if (t == cnode) {
+            result.found = true;
+            result.term_eq = t;
+            return result;
+        }
+        
+        if (t->get_sort() != cnode->get_sort()) {
+            // if (debug) {
+            //     std::ostringstream oss;
+            //     oss << "[Type Mismatch] Skipping term due to incompatible sort.\n"
+            //         << "  - Term t: " << t << "\n"
+            //         << "  - Sort t : " << t->get_sort()->to_string() << "\n"
+            //         << "  - Sort cnode: " << cnode->get_sort()->to_string();
+            //     std::cerr << oss.str() << std::endl;
+            // }
             continue;
         }
 
-        if(!visited) {
-            // push all children onto stack
-            for(Term child : current) {
-                if(child->get_sort()->get_sort_kind() == BV || child->get_sort()->get_sort_kind() == BOOL) {
-                    node_stack.push({child,false});
-                }
+        if (node_data_map.find(t) == node_data_map.end()) {
+            std::ostringstream oss;
+            oss << "[Missing Data] Simulation data not found in node_data_map for term:\n"
+                << "  - Term: " << t;
+            std::cerr << oss.str() << std::endl;
+            continue;
+        }
+        
+        const auto & existing_sim_data = node_data_map.at(t).get_simulation_data();
+        bool match = true;
+        for (int i = 0; i < num_iterations; ++i) {
+            if (btor_bv_compare(&existing_sim_data[i], &sim_data_vec[i]) != 0) {
+                match = false;
+                break;
             }
-            visited = true;
+        }
+        if (match) {
+            result.terms_for_solving.push_back(t);
+        }
+    }
+
+    return result;
+}
+
+void update_all_nodes_for_sat_case(std::unordered_map<Term, NodeData> & node_data_map,
+                                   int & num_iterations, 
+                                   const TermVec & input_terms,
+                                   std::unordered_map<Term, Term> & substitution_map,
+                                   SmtSolver & solver) {
+    num_iterations++;
+    for (auto& [term, node_data] : node_data_map) {
+        auto& sim_vec = node_data.get_simulation_data();
+        if (sim_vec.size() >= static_cast<size_t>(num_iterations)) continue;
+        if (term->is_value()) {
+            auto val_str = term->to_string().substr(2);
+            auto bv_val = btor_bv_char_to_bv(val_str.data());
+            sim_vec.push_back(*bv_val);
+        } else if (term->is_symbolic_const() && term->get_op().is_null()) {
+            auto val = solver->get_value(term);
+            auto bv_val = btor_bv_char_to_bv(val->to_string().substr(2).data());
+            sim_vec.push_back(*bv_val);
         } else {
-            TermVec children(current->begin(), current->end());
-
-            if(current->is_value()) { // constant
-                auto current_str = current->to_string().substr(2);
-                auto current_bv = btor_bv_char_to_bv(current_str.data());
-                
-                update_progress(SIM_COMP);
-                for (int i = 0; i < num_iterations; ++i) {
-                    node_data_map[current].get_simulation_data().push_back(*current_bv);
-                }
-
-                assert(node_data_map[current].get_simulation_data().size() == num_iterations);
-                
-                update_progress(MAP_UPDATE);
-                substitution_map.insert({current, current}); 
-                hash_term_map[node_data_map[current].hash()].push_back(current);
-                
-                processed_nodes++;
-            } 
-            else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
-                update_progress(MAP_UPDATE);
-
-                assert(TermVec(current->begin(), current->end()).empty());// no children
-                assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
-
-
-                if(node_data_map.find(current) == node_data_map.end()) {
-                    cout << "current: " << current->to_string() << endl;
-                    simulation(TermVec({current}),num_iterations,node_data_map);
-                } // data should be computed)
-                
-                // if(node_data_map[current].get_simulation_data().size() == num_iterations) {
-                //     cout << "sim data has " << node_data_map[current].get_simulation_data().size() << " size" << endl;
-                // }
-                assert(node_data_map[current].get_simulation_data().size() == num_iterations);
-
-                substitution_map.insert({current, current}); 
-                
-                processed_nodes++;
+            TermVec child_terms(term->begin(), term->end());
+            TermVec substituted_children;
+            children_substitution(child_terms, substituted_children, substitution_map);
+            NodeData new_sim_data;
+            int one = 1;
+            compute_simulation(substituted_children, one, term->get_op(), node_data_map, {}, new_sim_data); //FIXME one
+            auto& new_vec = new_sim_data.get_simulation_data();
+            if (!new_vec.empty()) {
+                sim_vec.push_back(new_vec[0]);
             }
-            else { // compute simulation data for current node
-                TermVec children(current->begin(), current->end()); // find children
-                auto child_size = children.size();
+        }
+    }
+}
 
-                update_progress(SUBST_CHECK);
-                bool substitution_happened = false;
-                TermVec children_substituted;
-                children_substitution(children, children_substituted, substitution_map);
-                assert(children_substituted.size() == child_size);
-                for (size_t i = 0; i < child_size; ++ i)
-                    if (children_substituted.at(i) != children.at(i)) {
-                        substitution_happened = true;
-                        break;
-                    }
-                
-                auto op_type = current->get_op();
-                
-                update_progress(NEW_NODE);
-                Term cnode = substitution_happened ? solver->make_term(op_type, children_substituted) : current;
-
-                update_progress(SIM_COMP);
-                NodeData sim_data;
-                compute_simulation(children_substituted, num_iterations, op_type, node_data_map, all_luts, sim_data);
-                auto current_hash = sim_data.hash();
-
-                update_progress(EQUIV_SEARCH);
-                Term term_eq;
-                if (hash_term_map.find(current_hash) != hash_term_map.end()) {
-                    const auto & sim_data_vec = sim_data.get_simulation_data();
-                    TermVec terms_for_solving;
-                    if(terms_for_solving.size() > 20) {
-                        break;
-                    }
-                    const auto & terms_to_check = hash_term_map.at(current_hash);
-                    auto cnode_sort = cnode->get_sort();
-                    for (const auto & t : terms_to_check) {
-                        if (t == cnode) {
-                            // structural_same_term_found
-                            term_eq = t;
-                            break; // no need to do the rest
-                        }
-                        if ( t->get_sort() != cnode_sort )
-                            continue; // not equal
-                        const auto & existing_sim_data = node_data_map.at(t).get_simulation_data();
-                        bool all_equal = true;
-                        for (unsigned rnd = 0; rnd < num_iterations; ++rnd) {
-                            if(btor_bv_compare(&existing_sim_data[rnd], &sim_data_vec[rnd]) != 0) {
-                                // not equal
-                                all_equal = false;
-                                break;
-                            }
-                        }
-                        if (all_equal)
-                            terms_for_solving.push_back(t);
-                    } // end of filtering terms in terms_to_check --> terms_for_solving
-                    if (term_eq == nullptr) { // if no structural same term found
-                        for (const auto & t : terms_for_solving) {
-                          
-                            solver->push();
-                            auto aa = solver->make_term(Not, solver->make_term(Equal, t, cnode));
-                            solver->assert_formula(aa);
-                            auto timestamp = std::chrono::high_resolution_clock::now();
-                            auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
-                            fs::path directory = fs::current_path() / "generate";
-                            if (!fs::exists(directory)) {
-                                fs::create_directory(directory);
-                            }
-                            std::ostringstream file_name;
-                            file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
-                            
-                            std::ofstream smt2_file(file_name.str());
-                            // if (smt2_file.is_open()) {
-                            //     solver->dump_smt2(file_name.str());
-                            //     smt2_file.close();
-                            // } else {
-                            //     std::cerr << "Failed to open file: " << file_name.str() << std::endl;
-                            // }
-
-                            // Record start time
-                            auto start_time = std::chrono::high_resolution_clock::now();
-                            
-                            // Execute solver
-                            auto result = solver->check_sat();
-                            
-                            // Calculate solving time
-                            auto end_time = std::chrono::high_resolution_clock::now();
-                            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-                            
-                            count++;
-                            
-                            // Check if timeout occurred
-                            if (elapsed >= timeout_ms) {
-                                // Timeout, skip current merge
-                                std::cout << "t"; // Output 't' to indicate timeout
-                                std::cout.flush();
-                                continue;
-                            }
-                            
-                            if (result.is_unsat()) {
-                                unsat_count ++;
-                                if(unsat_count = 20 ) {
-                                    term_eq = t;
-                                    solver->pop();
-                                    break;
-                                }
-                                term_eq = t;
-                                // std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                // if (smt2_file.is_open()) {
-                                //     smt2_file << "UNSAT" << std::endl;
-                                //     smt2_file.close();
-                                // }
-                                solver->pop();
-                                break;
-                            } else{
-                                if(sat_count = 1000){
-                                    break;
-                                }
-                                sat_count ++;
-                                // std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                // if (smt2_file.is_open()) {
-                                //     smt2_file << "SAT" << std::endl;
-                                //     smt2_file.close();
-                                // }
-                            }
-                            solver->pop();
-                       } // end of check each term in terms_for_solving
-                    } // end of structural_same_term_found
-                }
-
-                update_progress(MAP_UPDATE);
-                if (term_eq) {
-                    substitution_map.emplace(current, term_eq);
-                } else {
-                    substitution_map.emplace(current, cnode);
-                    hash_term_map[current_hash].push_back(cnode);
-                    node_data_map[cnode] = sim_data;
-                }
-                
-                processed_nodes++;
-            } // end if it has children
-            node_stack.pop();            
-        } // end of if visited
-    } // end of traversal
-    
-    // End of processing - Print summary statistics
-    std::cout << std::endl;
-    // std::cout << "============================" << std::endl;
+void print_hash(const std::unordered_map<uint32_t, smt::TermVec>& hash_term_map) {
     std::cout << "Sweeping Summary Statistics:" << std::endl;
     std::cout << "============================" << std::endl;
-    
-    // Count total terms and find top 5 hash values by frequency
+
     int total_terms = 0;
     std::vector<std::pair<uint32_t, size_t>> hash_frequencies;
-    
+
     for (const auto& [hash_value, terms] : hash_term_map) {
-        hash_frequencies.push_back({hash_value, terms.size()});
+        hash_frequencies.emplace_back(hash_value, terms.size());
         total_terms += terms.size();
     }
-    
-    // Sort by frequency (highest first)
-    std::sort(hash_frequencies.begin(), hash_frequencies.end(), 
+
+    std::sort(hash_frequencies.begin(), hash_frequencies.end(),
               [](const auto& a, const auto& b) { return a.second > b.second; });
-    
+
     std::cout << "Total unique hash values: " << hash_term_map.size() << std::endl;
     std::cout << "Total terms processed: " << total_terms << std::endl;
-    std::cout << "Shared hash value ratio: " << (float)(total_terms - hash_term_map.size()) / total_terms * 100.0 << "%" << std::endl;
-    
-    // Display top 5 hash values with highest term counts
+    std::cout << "Shared hash value ratio: "
+              << std::fixed << std::setprecision(2)
+              << ((float)(total_terms - hash_term_map.size()) / total_terms * 100.0) << "%" << std::endl;
+
     std::cout << std::endl;
     std::cout << "Top 5 Hash Values by Term Frequency:" << std::endl;
     std::cout << "-----------------------------------" << std::endl;
-    std::cout << std::setw(12) << "Hash Value" << " | " 
-              << std::setw(10) << "Term Count" << " | " 
+    std::cout << std::setw(12) << "Hash Value" << " | "
+              << std::setw(10) << "Term Count" << " | "
               << std::setw(10) << "% of Total" << std::endl;
     std::cout << "-----------------------------------" << std::endl;
-    
+
     int to_display = std::min(5, static_cast<int>(hash_frequencies.size()));
-    for (int i = 0; i < to_display; i++) {
+    for (int i = 0; i < to_display; ++i) {
         const auto& [hash_value, count] = hash_frequencies[i];
         float percentage = (float)count / total_terms * 100.0;
-        
-        std::cout << std::setw(12) << hash_value << " | " 
-                  << std::setw(10) << count << " | " 
+        std::cout << std::setw(12) << hash_value << " | "
+                  << std::setw(10) << count << " | "
                   << std::setw(9) << std::fixed << std::setprecision(2) << percentage << "%" << std::endl;
     }
-    
+
     std::cout << "============================" << std::endl;
     std::cout << "Sweeping done, begin the last solving using bitwuzla for this property" << std::endl;
 }
@@ -1009,23 +1036,251 @@ void pre_collect_constants(const std::vector<Term>& traversal_roots,
 
 bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver)
 {
-  solver->push();
-  for (const auto & a : asmpt) {
-    solver->assert_formula(a);
-  }
-  solver->assert_formula(solver->make_term(Not, p));
-  auto res = solver->check_sat();
-  solver->pop();
-  return res.is_unsat();
+    solver->push();
+    for (const auto & a : asmpt) {
+        solver->assert_formula(a);
+    }
+    solver->assert_formula(solver->make_term(Not, p));
+    auto res = solver->check_sat();
+    solver->pop();
+    return res.is_unsat();
 }
+
 
 static Term and_vec(const TermVec & v, SmtSolver & solver)
 {
-  if (v.empty()) return solver->make_term(true);
-  if (v.size() == 1) return v.at(0);
+    if (v.empty()) return solver->make_term(true);
+    if (v.size() == 1) return v.at(0);
 
-  auto ret = v.at(0);
-  for (size_t idx = 1; idx < v.size(); ++idx)
-    ret = solver->make_term(smt::And, ret, v.at(idx));
-  return ret;
+    auto ret = v.at(0);
+    for (size_t idx = 1; idx < v.size(); ++idx)
+        ret = solver->make_term(smt::And, ret, v.at(idx));
+    return ret;
+}
+
+
+bool all_substituted(const TermVec& children, 
+                    const std::unordered_map<Term, Term>& subst_map) {
+    for (const auto & c : children) {
+        if (subst_map.find(c) == subst_map.end())
+            return false;
+    }
+    return true;
+}
+
+void post_order(smt::Term& root,
+                std::unordered_map<Term, NodeData>& node_data_map,
+                std::unordered_map<uint32_t, TermVec>& hash_term_map,
+                std::unordered_map<Term, Term>& substitution_map,
+                const std::unordered_map<Term, std::unordered_map<std::string, std::string>> & all_luts,
+                int& count,
+                int& unsat_count,
+                int& sat_count,
+                SmtSolver& solver,
+                int& num_iterations,
+                bool & dump_enable,
+                const TermVec & input_terms,
+                int & timeout_ms,
+                bool & debug)
+{
+    std::stack<std::pair<Term,bool>> node_stack;
+    node_stack.push({root,false});
+
+    // Variables for progress tracking
+    int total_nodes = 0;
+    int processed_nodes = 0;
+    enum SweepingStep { NONE, SUBST_CHECK, LEAF_NODE, CONST_NODE, SIM_NODE, MAP_UPDATE, FIND_CHILD, EQUIV_CHECK, RESULT_SAT  };
+    SweepingStep current_step = NONE;
+    std::string step_names[] = {
+        "IDLE",
+        "SUBST CHECK",
+        "LEAF NODE",
+        "CONST NODE",
+        "SIM NODE",
+        "MAP UPDATE",
+        "FIND CHILD",
+        "EQUIV CHECK",
+        "RESULT SAT"
+    };
+
+    // First pass to count total nodes (optional but gives more accurate progress)
+    count_total_nodes(root, total_nodes); //FIXME this causes more time
+    std::cout << "Begin sweeping with " << total_nodes << " nodes..." << std::endl;
+
+    // Function to update and display progress
+    auto update_progress = [&](SweepingStep step) {
+        current_step = step;
+        const int bar_width = 50;
+        float progress = (float)processed_nodes / total_nodes;
+        
+        std::cout << "\r[";
+        int pos = bar_width * progress;
+        for (int i = 0; i < bar_width; ++i) {
+            if (i < pos) std::cout << "=";
+            else if (i == pos) std::cout << ">";
+            else std::cout << " ";
+        }
+        std::cout << "] " << int(progress * 100.0) << "% | "
+                  << "Step: " << step_names[step] << " | "
+                  << processed_nodes << "/" << total_nodes << " nodes"
+                  << std::flush;
+    };
+
+    while(!node_stack.empty()) {
+        auto & [current,visited] = node_stack.top();
+        // cout << "current: " << current ->to_string() << endl;
+        if(substitution_map.find(current) != substitution_map.end()) {
+            node_stack.pop();
+            continue;
+        }
+
+        if(!visited) {
+            // push all children onto stack
+            for(Term child : current) {
+                if(child->get_sort()->get_sort_kind() == BV || child->get_sort()->get_sort_kind() == BOOL) {
+                    node_stack.push({child,false});
+                }
+            }
+            visited = true;
+        } else {
+            TermVec children(current->begin(), current->end());
+
+            if(current->is_value()) { // constant
+                update_progress(CONST_NODE);
+                simulate_constant_node(current, num_iterations, node_data_map);
+                substitution_map.insert({current, current});
+                hash_term_map[node_data_map[current].hash()].push_back(current);
+                processed_nodes++;
+            } 
+
+            else if(current->is_symbolic_const() && current->get_op().is_null()) { // leaf nodes
+                update_progress(LEAF_NODE);
+                assert(TermVec(current->begin(), current->end()).empty());// no children
+                assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
+                simulate_leaf_node(current, num_iterations, node_data_map, solver);
+                substitution_map.insert({current, current}); 
+                processed_nodes++;
+            }
+            
+            else { // compute simulation data for current node
+                TermVec children(current->begin(), current->end()); // find children
+                auto child_size = children.size();
+
+                update_progress(FIND_CHILD);
+                bool substitution_happened = false;
+                TermVec children_substituted;
+                children_substitution(children, children_substituted, substitution_map);
+                assert(children_substituted.size() == child_size);
+                for (size_t i = 0; i < child_size; ++ i)
+                    if (children_substituted.at(i) != children.at(i)) {
+                        substitution_happened = true;
+                        break;
+                    }
+                
+                auto op_type = current->get_op();
+                Term cnode = substitution_happened ? solver->make_term(op_type, children_substituted) : current;
+
+                NodeData sim_data;
+                Term term_eq = nullptr; 
+                compute_simulation(children_substituted, num_iterations, op_type, node_data_map, all_luts, sim_data);
+                auto current_hash = sim_data.hash();
+
+                update_progress(EQUIV_CHECK);
+                TryFindResult result = try_find_equiv_term(cnode, 
+                                                                 current_hash, 
+                                                                 sim_data, 
+                                                                 num_iterations, 
+                                                                 hash_term_map, 
+                                                                 node_data_map, 
+                                                                 substitution_map, 
+                                                                 debug);
+
+                if(result.found && result.term_eq)
+                    substitution_map.insert({current, result.term_eq});
+                else {
+                    for(const auto & t : result.terms_for_solving) {
+                        if (unsat_count >= 40 && sat_count >= 100) break; //FIXME
+                        solver->push();
+                        try {
+                            auto eq = solver->make_term(Equal, t, cnode);
+                            solver->assert_formula(solver->make_term(Not, eq));
+                        } catch (const std::exception& e) {
+                            std::cerr << "[Equal-Term-Error] " << e.what() << "\n";
+                            solver->pop();
+                            continue;
+                        }
+                        std::ostringstream file_name;
+                        
+                        if (dump_enable) {
+                            auto timestamp = std::chrono::high_resolution_clock::now();
+                            auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
+                            fs::path directory = fs::current_path() / "generate";
+                            if (!fs::exists(directory)) fs::create_directory(directory);
+                            file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
+                            std::ofstream smt2_file(file_name.str());
+                            if (smt2_file.is_open()) {
+                                solver->dump_smt2(file_name.str());
+                                smt2_file.close();
+                            }
+                        }
+                        
+                        auto start_time = std::chrono::high_resolution_clock::now();
+                        auto solver_result = solver->check_sat(); //FIXME time consuming
+                        auto end_time = std::chrono::high_resolution_clock::now();
+                        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                        count++;
+
+                        if (elapsed >= timeout_ms) {
+                            std::cout << "t"; std::cout.flush();
+                            solver->pop();
+                            continue;
+                        }
+
+                        if (solver_result.is_unsat()) {
+                            unsat_count++;
+                            term_eq = t;
+                            if (dump_enable) {
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "UNSAT" << std::endl;
+                                    smt2_file.close();
+                                }
+                            }
+                            solver->pop();
+                            break;
+                        } else {
+                            update_progress(RESULT_SAT);
+                            sat_count++;
+                            if (dump_enable) {
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "SAT" << std::endl;
+                                    smt2_file.close();
+                                }
+                            }
+                            //FIXME
+                            // update_all_nodes_for_sat_case(node_data_map, num_iterations, input_terms, substitution_map, solver);
+                        }
+                        solver->pop();
+                    }
+                }
+
+                
+                if (term_eq && term_eq != nullptr) {
+                    substitution_map.insert({current, term_eq});
+                } else {
+                    substitution_map.insert({current, cnode});
+                    hash_term_map[current_hash].push_back(cnode);
+                    node_data_map[cnode] = sim_data;
+                }
+                update_progress(MAP_UPDATE);
+                processed_nodes++;
+            } // end if it has children
+            node_stack.pop();            
+        } // end of if visited
+    } // end of traversal
+    
+    // End of processing - Print summary statistics
+    std::cout << std::endl;
+    print_hash(hash_term_map);
 }

@@ -5,4 +5,4 @@ memory -nordff
 setundef -undriven -init -expose
 techmap
 abc -fast -g AND
-write_aiger mul_fix_16_input.aig
+write_aiger mul_fix_64_input.aig

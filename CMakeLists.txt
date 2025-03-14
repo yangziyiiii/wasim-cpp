@@ -349,8 +349,8 @@ endif()
 add_executable(bmc "apps/idpv/bmc-sweeping/bmc.cpp")
 target_link_libraries(bmc wasim-lib)
 
-# add_executable(sweeping "apps/idpv/sweeping/sweeping-miter.cpp")
-# target_link_libraries(sweeping wasim-lib)
+add_executable(sweeping "apps/idpv/sweeping/sweeping-miter.cpp")
+target_link_libraries(sweeping wasim-lib)
 
 # add_executable(sequence "apps/idpv/sequence/sequence.cpp")
 # target_link_libraries(sequence wasim-lib)
