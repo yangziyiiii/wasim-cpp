@@ -27,6 +27,8 @@ int main(int argc, char* argv[]) {
     int property_check_timeout_ms = config.property_check_timeout_ms;
     bool debug = config.debug;
     int bound = config.bound;
+    std::string dump_input_file = config.dump_input_file;
+    std::string load_input_file = config.load_input_file;
 
     //logging solver
     auto program_start_time = std::chrono::high_resolution_clock::now();
@@ -107,7 +109,7 @@ int main(int argc, char* argv[]) {
             auto root = and_vec(prop_at_curr_frame, solver);
 
             initialize_arrays({&sts}, all_luts, substitution_map, debug);
-            simulation(input_terms, num_iterations, node_data_map, solver, constraints);
+            simulation(input_terms, num_iterations, node_data_map, solver, dump_input_file, load_input_file, constraints);
             for(auto i : input_terms){
                 assert(node_data_map[i].get_simulation_data().size() == num_iterations);
                 substitution_map.insert({i, i});
@@ -115,7 +117,7 @@ int main(int argc, char* argv[]) {
             }
             smt::UnorderedTermSet out;
             smt::get_free_symbols(root,out);
-            simulation(out, num_iterations, node_data_map, solver, constraints);
+            simulation(out, num_iterations, node_data_map, solver, dump_input_file, load_input_file, constraints);
             int count = 0;
             int unsat_count = 0;
             int sat_count = 0;
@@ -123,7 +125,7 @@ int main(int argc, char* argv[]) {
             
             //end of init
             
-            // post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations,dump_smt, input_terms, property_check_timeout_ms, debug);
+            post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations,dump_smt, input_terms, property_check_timeout_ms, debug, dump_input_file, load_input_file);
             print_time();
             // root = substitution_map.at(root);
             std::cout<<std::endl;

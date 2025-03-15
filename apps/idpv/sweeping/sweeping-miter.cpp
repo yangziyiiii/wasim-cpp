@@ -28,6 +28,8 @@ int main(int argc, char* argv[]) {
     int solver_timeout_ms = config.solver_timeout_ms;
     int property_check_timeout_ms = config.property_check_timeout_ms;
     bool debug = config.debug;
+    std::string dump_input_file = config.dump_input_file;
+    std::string load_input_file = config.load_input_file;
 
 
     //logging solver
@@ -71,8 +73,9 @@ int main(int argc, char* argv[]) {
     //Array init
     initialize_arrays({&sts}, all_luts, substitution_map, debug);
 
+    std::cout << ">> Dump Path = " << dump_input_file << std::endl;
     //simulation
-    simulation(input_terms, num_iterations, node_data_map, solver, constraints);
+    simulation(input_terms, num_iterations, node_data_map, solver, dump_input_file, load_input_file, constraints);
     for(auto i : input_terms){
         assert(node_data_map[i].get_simulation_data().size() == num_iterations);
         substitution_map.insert({i, i});
@@ -111,7 +114,7 @@ int main(int argc, char* argv[]) {
         std::vector<Term> final_roots(unique_roots.begin(), unique_roots.end());
 
         Term combined_term = solver->make_term(And, final_roots);
-        post_order(combined_term, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, dump_smt, input_terms, property_check_timeout_ms, debug);
+        post_order(combined_term, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, dump_smt, input_terms, property_check_timeout_ms, debug, dump_input_file, load_input_file);
         print_time();
 
         root = substitution_map.at(root);
