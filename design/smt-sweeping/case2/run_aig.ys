@@ -1,8 +1,8 @@
-read_verilog -formal cond_mul.v
+read_verilog -formal cond_div.v
 prep -top alu_miter
 flatten
 memory -nordff
 setundef -undriven -init -expose
 techmap
 abc -fast -g AND
-write_aiger mul_fix_64_input.aig
+write_aiger div_32.aig

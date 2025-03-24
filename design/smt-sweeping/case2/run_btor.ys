@@ -1,4 +1,4 @@
-read_verilog cond_mul.v
+read_verilog cond_div.v
 prep -top alu_miter
 flatten
 # memory -nomap
@@ -6,4 +6,4 @@ hierarchy -check
 proc
 # setundef -undriven -init -expose
 # sim -w alu_miter
-write_btor mul_fix_64.btor2
+write_btor div_32.btor2

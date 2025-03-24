@@ -6,6 +6,8 @@ set(WASIM_MAJOR 0)   # Major component of WASIM version
 set(WASIM_MINOR 1)   # Minor component of WASIM version
 set(WASIM_RELEASE 1) # Release component of WASIM version
 
+add_compile_options(-O3)
+
 
 # handle different versions of CMake
 if (NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0 AND NOT APPLE)
@@ -355,11 +357,17 @@ target_link_libraries(sweeping wasim-lib)
 # add_executable(sequence "apps/idpv/sequence/sequence.cpp")
 # target_link_libraries(sequence wasim-lib)
 
-# add_executable(test_case7 "apps/idpv/case7-hua/sweeping-miter.cpp")
-# target_link_libraries(test_case7 wasim-lib)
+add_executable(test_case1 "apps/idpv/case1/btor_sweeping.cpp")
+target_link_libraries(test_case1 wasim-lib)
 
-# add_executable(test_case10 "apps/idpv/case10/bmc.cpp")
-# target_link_libraries(test_case10 wasim-lib)
+add_executable(test_case3 "apps/idpv/case3/aes.cpp")
+target_link_libraries(test_case3 wasim-lib)
+
+add_executable(test_case4 "apps/idpv/case4/btor_sweeping.cpp")
+target_link_libraries(test_case4 wasim-lib)
+
+add_executable(test_case10 "apps/idpv/case10/naive.cpp")
+target_link_libraries(test_case10 wasim-lib)
 
 # add_executable(unroll "apps/idpv/case10/unroll.cpp")
 # target_link_libraries(unroll wasim-lib)

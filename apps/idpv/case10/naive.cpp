@@ -76,6 +76,7 @@ int main(int argc, char ** argv) {
 
   SymbolicSimulator sim(sts, solver);
   sim.init();
+  sim.set_input({},{});
   // check init condition
   if (! check_prop(
     sim.interpret_state_expr_on_curr_frame(prop, false),
@@ -86,19 +87,23 @@ int main(int argc, char ** argv) {
   }
 
   for (unsigned i = 1; i<=bound; ++i) {
-    sim.set_input({},{});
     sim.sim_one_step();
-    if (check_prop(
-      sim.interpret_state_expr_on_curr_frame(prop, false),
-      sim.all_assumptions(),
-      solver )) {
+    sim.set_input({},{});
+
+    if(i==bound){
+      if (check_prop(
+        sim.interpret_state_expr_on_curr_frame(prop, false),
+        sim.all_assumptions(),
+        solver )) {
+          print_time();
+          std::cout << "[bmc] bound " << i << " passed." << std::endl;
+      } else {
         print_time();
-      std::cout << "[bmc] bound " << i << " passed." << std::endl;
-    } else {
-      print_time();
-      std::cout << "[bmc] failed at bound " << i << std::endl;
-      return 2;
+        std::cout << "[bmc] failed at bound " << i << std::endl;
+        return 2;
+      }
     }
+    
   }
   std::cout << "[bmc] bound " << bound << " is reached. No bounded CEX bound." << std::endl;
 

@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << ">> Dump Path = " << dump_input_file << std::endl;
     //simulation
-    simulation(input_terms, num_iterations, node_data_map, solver, dump_input_file, load_input_file, constraints);
+    simulation(input_terms, num_iterations, node_data_map, dump_input_file, load_input_file, constraints);
     for(auto i : input_terms){
         assert(node_data_map[i].get_simulation_data().size() == num_iterations);
         substitution_map.insert({i, i});
@@ -92,6 +92,8 @@ int main(int argc, char* argv[]) {
     int unsat_count = 0;
     int sat_count = 0;
     int i = 0;
+    std::chrono::milliseconds total_sat_time(0);
+    std::chrono::milliseconds total_unsat_time(0);
 
     std::cout << "============================" << std::endl;
     std::cout << "stage 2 : begin sweeping ... " << std::endl;
@@ -114,7 +116,7 @@ int main(int argc, char* argv[]) {
         std::vector<Term> final_roots(unique_roots.begin(), unique_roots.end());
 
         Term combined_term = solver->make_term(And, final_roots);
-        post_order(combined_term, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, dump_smt, input_terms, property_check_timeout_ms, debug, dump_input_file, load_input_file);
+        post_order(combined_term, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations, dump_smt, input_terms, property_check_timeout_ms, debug, dump_input_file, load_input_file, total_sat_time, total_unsat_time);
         print_time();
 
         root = substitution_map.at(root);
@@ -158,7 +160,7 @@ int main(int argc, char* argv[]) {
             std::cout << "Result : UNKNOWN - likely timed out after " << duration << "ms" << std::endl;
         }
 
-        std::cout << "for this property, " << unsat_count << " UNSAT when merging, and " << sat_count << " SAT when merging" << std::endl;
+        std::cout << "for this property, " << unsat_count << " UNSAT when merging, using " << total_unsat_time.count()/1000 << " s and " << sat_count << " SAT when merging, using " << total_sat_time.count()/1000 << " s" << std::endl;
         cout << "-----------------" << endl;
 
         i++;

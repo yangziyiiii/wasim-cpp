@@ -671,10 +671,10 @@ void initialize_arrays(const std::vector<TransitionSystem*>& systems,
 void match_term_constraint_pattern(const smt::TermVec & constraints,
                                      std::unordered_map<Term, std::string> & constraint_input_map)
 {
-    std::cout << "[Constraint Matching] Raw constraints:\n";
-    for (const auto & c : constraints) {
-        std::cout << c->to_string() << std::endl;
-    }
+    // std::cout << "[Constraint Matching] Raw constraints:\n";
+    // for (const auto & c : constraints) {
+    //     std::cout << c->to_string() << std::endl;
+    // }
 
     auto extract_val = [](const Term & term) -> std::string {
         return term->to_string().substr(2);
@@ -683,7 +683,7 @@ void match_term_constraint_pattern(const smt::TermVec & constraints,
     auto try_add_entry = [&](const Term & sym_term, const Term & const_term) {
         if (!sym_term || !const_term || !sym_term->is_symbolic_const() || !const_term->is_value()) return;
         constraint_input_map[sym_term] = extract_val(const_term);
-        std::cout << "[Constraint Mapping] " << sym_term->to_string() << " == " << extract_val(const_term) << std::endl;
+        // std::cout << "[Constraint Mapping] " << sym_term->to_string() << " == " << extract_val(const_term) << std::endl;
     };
 
     std::function<void(const Term&)> recursive_match;
@@ -733,57 +733,6 @@ void match_term_constraint_pattern(const smt::TermVec & constraints,
         recursive_match(constraint);
 }
 
-// template <typename TermIterable>
-// void simulation(const TermIterable & input_terms,
-//                 int num_iterations,
-//                 std::unordered_map<Term, NodeData> & node_data_map,
-//                 SmtSolver & solver,
-//                 const smt::TermVec & constraints = {})
-// {
-//     GmpRandStateGuard rand_guard;
-//     std::unordered_map<Term, std::string> constraint_input_map;
-//     match_term_constraint_pattern(constraints, constraint_input_map);
-
-//     std::cout << "\n[Simulation] Constraint input map after matching:" << std::endl;
-//     for (const auto & [term, value] : constraint_input_map) {
-//         std::cout << term->to_string() << " -> " << value << std::endl;
-//     }
-
-//     for (int i = 0; i < num_iterations; ++i)
-//     {
-//         for (const auto & term : input_terms)
-//         {
-//             std::string value_str;
-
-//             if (constraint_input_map.find(term) != constraint_input_map.end())
-//             {
-//                 value_str = constraint_input_map[term];
-//                 if (value_str.rfind("EXTRACT_", 0) == 0) {
-//                     value_str = std::string(term->get_sort()->get_width(), '0');
-//                 }
-//             }
-//             else
-//             {
-//                 const auto width = term->get_sort()->get_width();
-//                 mpz_t input_mpz;
-//                 rand_guard.random_input(input_mpz, width);
-//                 std::unique_ptr<char, void (*)(void *)> input_str(
-//                     mpz_get_str(nullptr, 2, input_mpz), free);
-//                 mpz_clear(input_mpz);
-//                 value_str = input_str.get();
-//             }
-
-//             if (value_str.size() < term->get_sort()->get_width())
-//             {
-//                 size_t pad_len = term->get_sort()->get_width() - value_str.size();
-//                 value_str = std::string(pad_len, '0') + value_str;
-//             }
-
-//             auto bv_input = btor_bv_const(value_str.c_str(), term->get_sort()->get_width());
-//             node_data_map[term].get_simulation_data().push_back(*bv_input);
-//         }
-//     }
-// }
 
 template <typename TermIterable>
 void load_simulation_input(const std::string & path,
@@ -833,7 +782,6 @@ template <typename TermIterable>
 void simulation(const TermIterable & input_terms,
                 int num_iterations,
                 std::unordered_map<Term, NodeData> & node_data_map,
-                SmtSolver & solver,
                 std::string & dump_file_path,
                 std::string & load_file_path,
                 const smt::TermVec & constraints = {})          
@@ -969,11 +917,10 @@ void simulate_constant_node(const smt::Term& current,
 void simulate_leaf_node(const smt::Term& current, 
                         int & num_iterations, 
                         std::unordered_map<Term, NodeData>& node_data_map,
-                        SmtSolver & solver,
                         std::string & dump_file_path,
                         std::string & load_file_path) {
     if (node_data_map.find(current) == node_data_map.end()) {
-        simulation(TermVec{current}, num_iterations, node_data_map, solver, dump_file_path, load_file_path);
+        simulation(TermVec{current}, num_iterations, node_data_map, dump_file_path, load_file_path);
     }
     assert(node_data_map[current].get_simulation_data().size() == num_iterations);
 }
@@ -1200,6 +1147,8 @@ bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver)
         solver->assert_formula(a);
     }
     solver->assert_formula(solver->make_term(Not, p));
+    solver->dump_smt2("spi_1_10.smt2"); //FIXME
+
     auto res = solver->check_sat();
     solver->pop();
     return res.is_unsat();
@@ -1290,7 +1239,9 @@ void post_order(smt::Term& root,
                 int & timeout_ms,
                 bool & debug,
                 std::string & dump_file_path,
-                std::string & load_file_path)
+                std::string & load_file_path,
+                std::chrono::milliseconds& total_sat_time,
+                std::chrono::milliseconds& total_unsat_time)
 {
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
@@ -1367,7 +1318,7 @@ void post_order(smt::Term& root,
                 update_progress(LEAF_NODE);
                 assert(TermVec(current->begin(), current->end()).empty());// no children
                 assert(current->get_sort()->get_sort_kind() != ARRAY); // no array
-                simulate_leaf_node(current, num_iterations, node_data_map, solver, dump_file_path, load_file_path);
+                simulate_leaf_node(current, num_iterations, node_data_map, dump_file_path, load_file_path);
                 substitution_map.insert({current, current}); 
                 processed_nodes++;
             }
@@ -1409,7 +1360,7 @@ void post_order(smt::Term& root,
                     substitution_map.insert({current, result.term_eq});
                 else {
                     for(const auto & t : result.terms_for_solving) {
-                        if (unsat_count >= 40 && sat_count >= 100) break; //FIXME magic
+                        if (unsat_count >= 50 && sat_count >= 100) break; //FIXME magic
                         solver->push();
                         try {
                             auto eq = solver->make_term(Equal, t, cnode);
@@ -1437,13 +1388,21 @@ void post_order(smt::Term& root,
                         auto start_time = std::chrono::high_resolution_clock::now();
                         auto solver_result = solver->check_sat(); //FIXME time consuming
                         auto end_time = std::chrono::high_resolution_clock::now();
-                        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+                        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+                        auto elapsed = duration.count();
                         count++;
 
                         if (elapsed >= timeout_ms) {
                             std::cout << "t"; std::cout.flush();
+                            total_sat_time += duration;
                             solver->pop();
                             continue;
+                        }
+
+                        if (solver_result.is_unsat()) {
+                            total_unsat_time += duration;
+                        } else {
+                            total_sat_time += duration;
                         }
 
                         if (solver_result.is_unsat()) {
@@ -1469,7 +1428,7 @@ void post_order(smt::Term& root,
                                 }
                             }
                             //simualtion counter example
-                            // fill_simulation_data_for_all_nodes(node_data_map, solver, num_iterations, substitution_map, all_luts);
+                            fill_simulation_data_for_all_nodes(node_data_map, solver, num_iterations, substitution_map, all_luts);
 
                         }
                         solver->pop();

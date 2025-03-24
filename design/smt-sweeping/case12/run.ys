@@ -1,0 +1,8 @@
+read_verilog -formal miter.v AES_Decrypt.v ./aes-decryption/*.v
+prep -top miter_aes_decrypter
+flatten
+memory -nordff
+uniquify
+hierarchy -check
+setundef -undriven -init -expose
+write_btor -s miter_de.btor2

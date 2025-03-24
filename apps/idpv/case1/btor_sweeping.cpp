@@ -336,6 +336,27 @@ class GmpRandStateGuard
 };
 
 
+void count_total_nodes(const smt::Term& root, int& total_nodes) {
+    std::stack<Term> count_stack;
+    std::unordered_set<Term> visited;
+    count_stack.push(root);
+    while (!count_stack.empty()) {
+        Term current = count_stack.top();
+        count_stack.pop();
+        if (visited.count(current)) continue;
+        visited.insert(current);
+        total_nodes++;
+        for (auto child : current) {
+            if (child->get_sort()->get_sort_kind() == BV || child->get_sort()->get_sort_kind() == BOOL) {
+                count_stack.push(child);
+            }
+        }
+    }
+}
+
+
+
+
 int main() {
     auto program_start_time = std::chrono::high_resolution_clock::now();
     last_time_point = program_start_time;
@@ -375,6 +396,10 @@ int main() {
     }
 
     auto root = solver->make_term(Equal, a_output_term, b_output_term);
+
+    int total_nodes = 0;
+    count_total_nodes(root, total_nodes);
+    
 
     // solver->assert_formula(sts1.init());
     // for (const auto & c : sts1.constraints()) solver->assert_formula(c.first);
@@ -460,6 +485,8 @@ int main() {
     //         std::cout << "Index: " << idx << ", Value: " << val << std::endl;
     //     }
     // }
+
+    cout << "total nodes: " << total_nodes << endl;
 
     //simulation
     GmpRandStateGuard rand_guard;
