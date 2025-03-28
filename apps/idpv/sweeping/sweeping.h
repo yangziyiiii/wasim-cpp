@@ -797,21 +797,25 @@ void simulation(const TermIterable & input_terms,
             std::cerr << "[ERROR] Cannot open simulation input file: " << load_file_path << std::endl;
             return;
         }
+
+        std::unordered_map<std::string, Term> term_lookup;
+        for (const auto & term : input_terms) {
+            term_lookup[term->to_string()] = term;
+        }
+
         std::string line;
-        int idx = 0;
         while (std::getline(infile, line)) {
             if (line.empty() || line[0] == '[') continue;
             size_t pos = line.find(" = ");
             if (pos == std::string::npos) continue;
             std::string term_str = line.substr(0, pos);
             std::string val_str = line.substr(pos + 3);
-            for (const auto & term : input_terms) {
-                if (term->to_string() == term_str) {
-                    auto bv_input = btor_bv_const(val_str.c_str(), term->get_sort()->get_width());
-                    node_data_map[term].get_simulation_data().push_back(*bv_input);
-                }
+            
+            auto it = term_lookup.find(term_str);
+            if (it != term_lookup.end()) {
+                auto bv_input = btor_bv_const(val_str.c_str(), it->second->get_sort()->get_width());
+                node_data_map[it->second].get_simulation_data().push_back(*bv_input);
             }
-            if (++idx >= input_terms.size()) idx = 0;
         }
         return;
     }
@@ -1147,7 +1151,7 @@ bool check_prop(const Term & p, const TermVec & asmpt, SmtSolver & solver)
         solver->assert_formula(a);
     }
     solver->assert_formula(solver->make_term(Not, p));
-    solver->dump_smt2("spi_1_10.smt2"); //FIXME
+    // solver->dump_smt2("spi_1_10.smt2"); //FIXME
 
     auto res = solver->check_sat();
     solver->pop();
@@ -1360,7 +1364,7 @@ void post_order(smt::Term& root,
                     substitution_map.insert({current, result.term_eq});
                 else {
                     for(const auto & t : result.terms_for_solving) {
-                        if (unsat_count >= 50 && sat_count >= 100) break; //FIXME magic
+                        if (unsat_count >= 100 && sat_count >= 100) break; //FIXME magic
                         solver->push();
                         try {
                             auto eq = solver->make_term(Equal, t, cnode);

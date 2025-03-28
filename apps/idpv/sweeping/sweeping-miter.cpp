@@ -120,6 +120,10 @@ int main(int argc, char* argv[]) {
         print_time();
 
         root = substitution_map.at(root);
+        int total_nodes = 0;
+        count_total_nodes(root, total_nodes);
+        cout << "total nodes: " << total_nodes << endl;
+
         cout << "Property ID: " << idvec[i] << " ";
         solver->push();
         auto not_root = solver->make_term(Not, root);

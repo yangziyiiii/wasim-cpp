@@ -1,0 +1,5 @@
+source -s abc.rc
+&r xepic_a03.aig
+&fold
+fold
+xeit
