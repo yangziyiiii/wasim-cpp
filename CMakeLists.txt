@@ -348,26 +348,26 @@ endif()
 # add_executable(test_case2 "apps/idpv/case2/btor_sweeping_mul.cpp")
 # target_link_libraries(test_case2 wasim-lib)
 
-add_executable(bmc "apps/idpv/bmc-sweeping/bmc.cpp")
+add_executable(bmc "apps/classifier/bmc.cpp")
 target_link_libraries(bmc wasim-lib)
 
-add_executable(sweeping "apps/idpv/sweeping/sweeping-miter.cpp")
-target_link_libraries(sweeping wasim-lib)
+# add_executable(sweeping "apps/idpv/sweeping/sweeping-miter.cpp")
+# target_link_libraries(sweeping wasim-lib)
 
 # add_executable(sequence "apps/idpv/sequence/sequence.cpp")
 # target_link_libraries(sequence wasim-lib)
 
-add_executable(test_case1 "apps/idpv/case1/btor_sweeping.cpp")
-target_link_libraries(test_case1 wasim-lib)
+# add_executable(test_case1 "apps/idpv/case1/btor_sweeping.cpp")
+# target_link_libraries(test_case1 wasim-lib)
 
-add_executable(test_case3 "apps/idpv/case3/aes.cpp")
-target_link_libraries(test_case3 wasim-lib)
+# add_executable(test_case3 "apps/idpv/case3/aes.cpp")
+# target_link_libraries(test_case3 wasim-lib)
 
-add_executable(test_case4 "apps/idpv/case4/btor_sweeping.cpp")
-target_link_libraries(test_case4 wasim-lib)
+# add_executable(test_case4 "apps/idpv/case4/btor_sweeping.cpp")
+# target_link_libraries(test_case4 wasim-lib)
 
-add_executable(test_case10 "apps/idpv/case10/naive.cpp")
-target_link_libraries(test_case10 wasim-lib)
+# add_executable(test_case10 "apps/idpv/case10/naive.cpp")
+# target_link_libraries(test_case10 wasim-lib)
 
 # add_executable(unroll "apps/idpv/case10/unroll.cpp")
 # target_link_libraries(unroll wasim-lib)
