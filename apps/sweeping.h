@@ -1227,6 +1227,105 @@ void fill_simulation_data_for_all_nodes(std::unordered_map<Term, NodeData>& node
 }
 
 
+;
+std::string run_dump_and_predict(SmtSolver &solver,
+                                 int &file_counter,
+                                 std::chrono::milliseconds &smt2json_time,
+                                 std::chrono::milliseconds &json2graph_time,
+                                 std::chrono::milliseconds &model_predict_time,
+                                 std::string &smt2_path_out,
+                                 std::string &json_path_out,
+                                 std::string &csv_path_out,
+                                 bool &dump_enable,
+                                 int &count_smt2json,
+                                 int &count_json2graph,
+                                 int &count_test_py)
+{
+    using namespace std::chrono;
+    namespace fs = std::filesystem;
+
+    auto timestamp = high_resolution_clock::now();
+    auto timestamp_ns = duration_cast<nanoseconds>(timestamp.time_since_epoch()).count();
+
+    fs::path directory = fs::current_path() / "generate";
+    fs::create_directories(directory);
+
+    std::string smt2_path = (directory / (std::to_string(timestamp_ns) + "_" + std::to_string(file_counter++) + ".smt2")).string();
+    std::ofstream smt2_file(smt2_path);
+    if (smt2_file.is_open()) {
+        solver->dump_smt2(smt2_path);
+        smt2_file.close();
+    } else {
+        std::cerr << "[ERROR] Unable to open file: " << smt2_path << std::endl;
+        dump_enable = false;
+        return "ERROR";
+    }
+
+    fs::create_directories("./json/");
+    fs::create_directories("./csv/");
+
+    std::string base_filename = fs::path(smt2_path).filename().string();
+    std::string json_path = "./json/" + fs::path(smt2_path).filename().replace_extension(".json").string();
+    std::string csv_path  = "./csv/" + fs::path(smt2_path).filename().replace_extension(".csv").string();
+
+    auto t_start_json = high_resolution_clock::now();
+    std::string cmd_json = "../apps/classifier/smt2json generate ./ true ./json";
+    int ret_json = std::system(cmd_json.c_str());
+    auto t_end_json = high_resolution_clock::now();
+    smt2json_time = duration_cast<milliseconds>(t_end_json - t_start_json);
+
+    if (ret_json != 0) {
+        std::cerr << "[✗] smt2json failed with code " << ret_json << std::endl;
+        dump_enable = false;
+        return "ERROR";
+    } else {
+        count_smt2json++;
+    }
+
+    auto t_start_graph = high_resolution_clock::now();
+    std::string cmd_graph = "python3 ../apps/classifier/json2graph.py " + json_path + " " + csv_path;
+    int ret_graph = std::system(cmd_graph.c_str());
+    auto t_end_graph = high_resolution_clock::now();
+    json2graph_time = duration_cast<milliseconds>(t_end_graph - t_start_graph);
+
+    if (ret_graph != 0) {
+        std::cerr << "[✗] json2graph failed with code " << ret_graph << std::endl;
+        dump_enable = false;
+        return "ERROR";
+    } else {
+        count_json2graph++;
+    }
+
+    auto t_start_predict = high_resolution_clock::now();
+    std::string cmd_predict = "python3 ../apps/classifier/test.py " + csv_path;
+    FILE* pipe = popen(cmd_predict.c_str(), "r");
+    std::string prediction;
+
+    if (!pipe) {
+        std::cerr << "[✗] predict failed" << std::endl;
+        dump_enable = false;
+        return "ERROR";
+    } else {
+        char buffer[128];
+        while (fgets(buffer, sizeof(buffer), pipe)) prediction += buffer;
+        pclose(pipe);
+        count_test_py++;
+    }
+
+    auto t_end_predict = high_resolution_clock::now();
+    model_predict_time = duration_cast<milliseconds>(t_end_predict - t_start_predict);
+
+    std::cout << "[✓] predict: " << prediction << std::endl;
+
+    smt2_path_out = smt2_path;
+    json_path_out = json_path;
+    csv_path_out = csv_path;
+
+    return prediction;
+}
+
+
+
 
 void post_order(smt::Term& root,
                 std::unordered_map<Term, NodeData>& node_data_map,
@@ -1246,7 +1345,13 @@ void post_order(smt::Term& root,
                 std::string & load_file_path,
                 std::chrono::milliseconds& total_sat_time,
                 std::chrono::milliseconds& total_unsat_time,
-                int & predict_sat)
+                int & predict_sat,
+                std::chrono::milliseconds& smt2json_time,
+                std::chrono::milliseconds& json2graph_time,
+                std::chrono::milliseconds& model_predict_time,
+                int &count_smt2json,
+                int &count_json2graph,
+                int &count_test_py) 
 {
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
@@ -1362,10 +1467,10 @@ void post_order(smt::Term& root,
                                                                  debug);
 
                 if(result.found && result.term_eq)
-                    substitution_map.insert({current, result.term_eq});
+                    substitution_map.insert({current, result.term_eq}); // equal to current node
                 else {
-                    for(const auto & t : result.terms_for_solving) {
-                        if (unsat_count >= 100 && sat_count >= 100) break; //FIXME magic
+                    for(const auto &t : result.terms_for_solving){
+                        if (unsat_count >= 30 && sat_count >= 100) break; // FIXME magic
                         solver->push();
                         try {
                             auto eq = solver->make_term(Equal, t, cnode);
@@ -1375,159 +1480,111 @@ void post_order(smt::Term& root,
                             solver->pop();
                             continue;
                         }
-                        std::ostringstream file_name;
-                        
-                        //FIXME
-                        if (dump_enable) {
-                            // 1. 生成唯一 SMT2 文件名
-                            auto timestamp = std::chrono::high_resolution_clock::now();
-                            auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
-                            fs::path directory = fs::current_path() / "generate";
-                            fs::create_directories(directory);
-                        
-                            std::ostringstream file_name;
-                            file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
-                            std::string smt2_path = file_name.str();
-                            std::ofstream smt2_file(smt2_path);
-                        
-                            if (!smt2_file.is_open()) {
-                                std::cerr << "[✗] Failed to create SMT2 file\n";
-                                continue;
-                            }
-                        
-                            solver->dump_smt2(smt2_path);
-                            smt2_file.close();
-                        
-                            // 2. 路径准备
-                            std::string smt2_filename = fs::path(smt2_path).filename().replace_extension("").string();
-                            std::string json_path = "./json/" + smt2_filename + ".json";
-                            std::string csv_path  = "./csv/"  + smt2_filename + ".csv";
-                        
-                            fs::create_directories("./json/");
-                            fs::create_directories("./csv/");
-                        
-                            // 3. 执行 ./smt2json [input_dir] ./ true [json_output_dir]
-                            std::string smt2_dir = fs::path(smt2_path).parent_path().string();
-                            std::string cmd_json = "./smt2json generate ./ true ./json";
-                            std::cout << "[Debug] cmd_json = " << cmd_json << std::endl;
-                        
-                            int ret1 = std::system(cmd_json.c_str());
-                            if (ret1 != 0 || !fs::exists(json_path)) {
-                                std::cerr << "[✗] smt2json failed or output json not found: " << json_path << std::endl;
-                                continue;
-                            }
-                        
-                            // 4. 执行 json2graph.py [json_path] [csv_path]
-                            std::string cmd_graph = "python3 json2graph.py " + json_path + " " + csv_path;
-                            std::cout << "[Debug] cmd_graph = " << cmd_graph << std::endl;
-                        
-                            int ret2 = std::system(cmd_graph.c_str());
-                            if (ret2 != 0 || !fs::exists(csv_path)) {
-                                std::cerr << "[✗] json2graph failed or output csv not found: " << csv_path << std::endl;
-                                continue;
-                            }
-                        
-                            // 5. 调用 test.py [model_path] [csv_path]
-                            std::string model_path = "./xgboost_model.pkl";
-                            std::string cmd_predict = "python3 test.py " + model_path + " " + csv_path;
-                            std::cout << "[Debug] cmd_predict = " << cmd_predict << std::endl;
-                        
-                            FILE* pipe = popen(cmd_predict.c_str(), "r");
-                            bool model_predict_unsat = false;
-                        
-                            if (!pipe) {
-                                std::cerr << "[!] Failed to run test.py\n";
-                                continue;
-                            }
-                        
-                            char buffer[128];
-                            std::string prediction;
-                            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                                prediction += buffer;
-                            }
-                            pclose(pipe);
-                            std::cout << "[✓] Prediction result: " << prediction << std::endl;
-                        
-                            // 🔍 检查是否为 UNSAT
-                            if (prediction.find("UNSAT") != std::string::npos) {
-                                model_predict_unsat = true;
-                            }
-                        
-                            // ❌ 如果预测为 SAT，则跳过 check_sat()
-                            if (!model_predict_unsat) {
-                                std::cout << "[⚡] Model predicts SAT → Skipping solver->check_sat()\n";
-                                predict_sat++;
-                                solver->pop();
-                                continue;
-                            }
-                        }
-                        
-                        
-                        auto start_time = std::chrono::high_resolution_clock::now();
-                        auto solver_result = solver->check_sat(); //FIXME time consuming
-                        auto end_time = std::chrono::high_resolution_clock::now();
-                        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-                        auto elapsed = duration.count();
-                        count++;
 
-                        if (elapsed >= timeout_ms) {
-                            std::cout << "t"; std::cout.flush();
-                            total_sat_time += duration;
-                            solver->pop();
-                            continue;
-                        }
+                        std::chrono::milliseconds single_smt2json_time(0);
+                        std::chrono::milliseconds single_json2graph_time(0);
+                        std::chrono::milliseconds single_model_predict_time(0);
 
-                        if (solver_result.is_unsat()) {
-                            total_unsat_time += duration;
-                        } else {
-                            total_sat_time += duration;
-                        }
+                        if(dump_enable) {
+                            std::string smt2_path, json_path, csv_path;
+                            std::string prediction = run_dump_and_predict(
+                                solver,
+                                file_counter,
+                                single_smt2json_time,
+                                single_json2graph_time,
+                                single_model_predict_time,
+                                smt2_path,
+                                json_path,
+                                csv_path,
+                                dump_enable,
+                                count_smt2json,
+                                count_json2graph,
+                                count_test_py
+                            );
 
-                        if (solver_result.is_unsat()) {
-                            unsat_count++;
-                            term_eq = t;
-                            if (dump_enable) {
-                                std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                if (smt2_file.is_open()) {
-                                    smt2_file << "UNSAT" << std::endl;
-                                    smt2_file.close();
+                            smt2json_time += single_smt2json_time;
+                            json2graph_time += single_json2graph_time;
+                            model_predict_time += single_model_predict_time;
+                            
+                            //delete files
+                            try {
+                                if (fs::exists(smt2_path)) {
+                                    fs::remove(smt2_path);
+                                    std::cout << "[✓] Deleted: " << smt2_path << "\n";
+                                }
+                                if (fs::exists(json_path)) {
+                                    fs::remove(json_path);
+                                    std::cout << "[✓] Deleted: " << json_path << "\n";
+                                }
+                                if (fs::exists(csv_path)) {
+                                    fs::remove(csv_path);
+                                    std::cout << "[✓] Deleted: " << csv_path << "\n";
+                                }
+                            } catch (const std::exception& e) {
+                                std::cerr << "[✗] 删除文件失败: " << e.what() << "\n";
+                            }
+
+                            std::string clean_result;
+                            std::istringstream iss(prediction);
+                            for (std::string line; std::getline(iss, line); ) {
+                                if (line == "SAT" || line == "UNSAT") {
+                                    clean_result = line;
+                                    break;
                                 }
                             }
+
+                            if (clean_result == "SAT") {
+                                predict_sat++;
+                                count++;
+                                solver->pop();
+                                substitution_map.insert({current, cnode});
+                                node_data_map[cnode] = sim_data;
+                                hash_term_map[current_hash].push_back(cnode);
+                                break;
+                            } 
+                        }
+                        auto solver_start = std::chrono::high_resolution_clock::now();
+                        auto solver_result = solver->check_sat();
+                        auto solver_end = std::chrono::high_resolution_clock::now();
+                        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(solver_end - solver_start);
+                        count++;
+                        if (solver_result.is_unsat()) {
+                            unsat_count++;
+                            total_unsat_time += elapsed;
+                            term_eq = t;
+                            // if (dump_enable) {
+                            //     std::ofstream out(smt2_path, std::ios::app);
+                            //     out << "UNSAT\n";
+                            // }
                             solver->pop();
                             break;
                         } else {
-                            update_progress(RESULT_SAT);
                             sat_count++;
-                            if (dump_enable) {
-                                std::ofstream smt2_file(file_name.str(), std::ios::app);
-                                if (smt2_file.is_open()) {
-                                    smt2_file << "SAT" << std::endl;
-                                    smt2_file.close();
-                                }
-                            }
-                            //simualtion counter example
-                            fill_simulation_data_for_all_nodes(node_data_map, solver, num_iterations, substitution_map, all_luts);
-
+                            total_sat_time += elapsed;
+                            // if (dump_enable) {
+                            //     std::ofstream out(smt2_path, std::ios::app);
+                            //     out << "SAT\n";
+                            // }
+                            fill_simulation_data_for_all_nodes(node_data_map, solver, num_iterations, substitution_map, all_luts);        
                         }
                         solver->pop();
                     }
-                }
+                    
 
-                
-                if (term_eq && term_eq != nullptr) {
-                    substitution_map.insert({current, term_eq});
-                } else {
-                    substitution_map.insert({current, cnode});
-                    hash_term_map[current_hash].push_back(cnode);
-                    node_data_map[cnode] = sim_data;
-                }
-                update_progress(MAP_UPDATE);
-                processed_nodes++;
-            } // end if it has children
-            node_stack.pop();            
-        } // end of if visited
-    } // end of traversal
-    
+                    if (term_eq && term_eq != nullptr) {
+                        substitution_map.insert({current, term_eq});
+                    } else {
+                        substitution_map.insert({current, cnode});
+                        hash_term_map[current_hash].push_back(cnode);
+                        node_data_map[cnode] = sim_data;
+                    }
+                    update_progress(MAP_UPDATE);
+                    processed_nodes++;
+                } // end if it has children
+                node_stack.pop();            
+            } // end of if visited
+        } // end of traversal
+    }
     // End of processing - Print summary statistics
     std::cout << std::endl;
     print_hash(hash_term_map);

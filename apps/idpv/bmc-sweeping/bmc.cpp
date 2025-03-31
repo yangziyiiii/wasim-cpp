@@ -119,19 +119,19 @@ int main(int argc, char* argv[]) {
             count_total_nodes(root, total_nodes);
             cout << "total nodes: " << total_nodes << endl;
             std::cout<<std::endl;
-            // if (check_prop(
-            //     root,
-            //     sim.all_assumptions(),
-            //     solver )) {
-            //     print_time();
-            //     std::cout << "[bmc] bound " << i << " passed." << std::endl;
-            //     cout << "total: " << count << " , unsat: " << unsat_count << " , sat: " << sat_count << ", unsat_time: "<< total_unsat_time.count() << " ms, sat_time: " << total_sat_time.count() << " ms" << endl;
-            // } else {
-            //     print_time();
-            //     std::cout << "[bmc] failed at bound " << i << std::endl;
-            //     cout << "total: " << count << " , unsat: " << unsat_count << " , sat: " << sat_count << ", unsat_time: "<< total_unsat_time.count() << " ms , sat_time: " << total_sat_time.count() << " ms" << endl;
-            //     return 2;
-            // }
+            if (check_prop(
+                root,
+                sim.all_assumptions(),
+                solver )) {
+                print_time();
+                std::cout << "[bmc] bound " << i << " passed." << std::endl;
+                cout << "total: " << count << " , unsat: " << unsat_count << " , sat: " << sat_count << ", unsat_time: "<< total_unsat_time.count() << " ms, sat_time: " << total_sat_time.count() << " ms" << endl;
+            } else {
+                print_time();
+                std::cout << "[bmc] failed at bound " << i << std::endl;
+                cout << "total: " << count << " , unsat: " << unsat_count << " , sat: " << sat_count << ", unsat_time: "<< total_unsat_time.count() << " ms , sat_time: " << total_sat_time.count() << " ms" << endl;
+                return 2;
+            }
 
             node_data_map.clear();
             substitution_map.clear();

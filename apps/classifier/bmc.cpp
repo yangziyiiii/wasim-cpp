@@ -110,11 +110,13 @@ int main(int argc, char* argv[]) {
             int sat_count = 0;
             int total_nodes = 0;
             int predict_sat = 0;
+            int smt2json_calls = 0, json2graph_calls = 0, test_py_calls = 0;
             std::chrono::milliseconds total_sat_time(0);
             std::chrono::milliseconds total_unsat_time(0); 
+            std::chrono::milliseconds smt2json_time(0), json2graph_time(0), model_predict_time(0);
             
             //end of init
-            post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations,dump_smt, input_terms, property_check_timeout_ms, debug, dump_input_file, load_input_file, total_sat_time,  total_unsat_time, predict_sat);
+            post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations,dump_smt, input_terms, property_check_timeout_ms, debug, dump_input_file, load_input_file, total_sat_time,  total_unsat_time, predict_sat, smt2json_time, json2graph_time, model_predict_time, smt2json_calls, json2graph_calls, test_py_calls);
             print_time();
             root = substitution_map.at(root);
             count_total_nodes(root, total_nodes);
@@ -127,10 +129,18 @@ int main(int argc, char* argv[]) {
                 print_time();
                 std::cout << "[bmc] bound " << i << " passed." << std::endl;
                 cout << "total: " << count << " , unsat: " << unsat_count << " , sat: " << sat_count << ", unsat_time: "<< total_unsat_time.count() << " ms, sat_time: " << total_sat_time.count() << " ms" << endl;
+                std::cout << "smt2json: " << smt2json_time.count() << "ms\n";
+                std::cout << "json2graph: " << json2graph_time.count() << "ms\n";
+                std::cout << "model predict: " << model_predict_time.count() << "ms\n";
+                std::cout << "predict sat: " << predict_sat << std::endl;
             } else {
                 print_time();
                 std::cout << "[bmc] failed at bound " << i << std::endl;
                 cout << "total: " << count << " , unsat: " << unsat_count << " , sat: " << sat_count << ", unsat_time: "<< total_unsat_time.count() << " ms , sat_time: " << total_sat_time.count() << " ms" << endl;
+                std::cout << "smt2json: " << smt2json_time.count() << "ms\n";
+                std::cout << "json2graph: " << json2graph_time.count() << "ms\n";
+                std::cout << "model predict: " << model_predict_time.count() << "ms\n";
+                std::cout << "predict sat: " << predict_sat << std::endl;
                 return 2;
             }
 
