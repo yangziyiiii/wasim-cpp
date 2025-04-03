@@ -1364,7 +1364,7 @@ void post_order(smt::Term& root,
                     substitution_map.insert({current, result.term_eq});
                 else {
                     for(const auto & t : result.terms_for_solving) {
-                        if (unsat_count >= 100 && sat_count >= 100) break; //FIXME magic
+                        if (unsat_count >= 200 && sat_count >= 300) break; //FIXME magic
                         solver->push();
                         try {
                             auto eq = solver->make_term(Equal, t, cnode);

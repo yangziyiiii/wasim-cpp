@@ -1,0 +1,8 @@
+read -sv vector_add_cmp_4.v
+prep -top vector_add_cmp_4
+flatten
+memory -nomap
+hierarchy -check
+setundef -undriven -init -expose
+sim -clock ap_clk -reset ap_rst -rstlen 1 -n 1 -w vector_add_cmp_4
+write_btor  -s top.btor

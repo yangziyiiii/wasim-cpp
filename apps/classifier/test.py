@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
         # 输出结果（每一行一个预测结果）
         for pred in y_pred:
-            print("SAT" if int(pred) == 1 else "UNSAT")
+            print("SAT" if int(pred) == 0 else "UNSAT")
 
     except Exception as e:
         print(f"[✗] 预测失败: {e}")

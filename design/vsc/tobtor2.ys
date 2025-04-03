@@ -1,0 +1,8 @@
+read -sv top.v
+prep -top top
+flatten
+memory -nomap
+hierarchy -check
+setundef -undriven -init -expose
+sim -clock ap_clk -reset ap_rst -rstlen 1 -n 1 -w top
+write_btor  -s top.btor

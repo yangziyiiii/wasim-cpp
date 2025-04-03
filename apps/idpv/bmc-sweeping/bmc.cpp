@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
         sim.sim_one_step();
         sim.set_input({},{});
         
-        // if(i == bound) {
+        if(i == bound) {
 
             // init for each bound
             std::unordered_map<Term, NodeData> node_data_map; // term -> sim_data
@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
             node_data_map.clear();
             substitution_map.clear();
             hash_term_map.clear();
-        // }
+        }
     }
 
     auto program_end_time = std::chrono::high_resolution_clock::now();
