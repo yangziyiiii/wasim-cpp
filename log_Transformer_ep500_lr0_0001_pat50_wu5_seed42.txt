@@ -1,0 +1,442 @@
+Epoch 1 - Val Loss: 554.9720, Test Loss: 547.3574
+Best - Val Loss: 554.9721, Test Loss: 547.3574
+Epoch 2 - Val Loss: 548.4485, Test Loss: 540.7099
+Best - Val Loss: 548.4485, Test Loss: 540.7099
+Epoch 3 - Val Loss: 540.7761, Test Loss: 532.6149
+Best - Val Loss: 540.7761, Test Loss: 532.6148
+Epoch 4 - Val Loss: 531.5361, Test Loss: 522.7977
+Best - Val Loss: 531.5361, Test Loss: 522.7978
+Epoch 5 - Val Loss: 521.7137, Test Loss: 512.6177
+Best - Val Loss: 521.7138, Test Loss: 512.6177
+Epoch 6 - Val Loss: 511.5033, Test Loss: 501.7364
+Best - Val Loss: 511.5033, Test Loss: 501.7363
+Epoch 7 - Val Loss: 505.8421, Test Loss: 496.7689
+Best - Val Loss: 505.8421, Test Loss: 496.7689
+Epoch 8 - Val Loss: 500.4136, Test Loss: 490.7027
+Best - Val Loss: 500.4136, Test Loss: 490.7027
+Epoch 9 - Val Loss: 495.9554, Test Loss: 486.2863
+Best - Val Loss: 495.9553, Test Loss: 486.2863
+Epoch 10 - Val Loss: 491.7061, Test Loss: 481.9865
+Best - Val Loss: 491.7061, Test Loss: 481.9864
+Epoch 11 - Val Loss: 488.7670, Test Loss: 477.7856
+Best - Val Loss: 488.7670, Test Loss: 477.7855
+Epoch 12 - Val Loss: 484.5398, Test Loss: 474.6631
+Best - Val Loss: 484.5398, Test Loss: 474.6630
+Epoch 13 - Val Loss: 482.2855, Test Loss: 471.9737
+Best - Val Loss: 482.2854, Test Loss: 471.9737
+Epoch 14 - Val Loss: 478.6061, Test Loss: 467.0812
+Best - Val Loss: 478.6061, Test Loss: 467.0811
+Epoch 15 - Val Loss: 475.0359, Test Loss: 464.9836
+Best - Val Loss: 475.0359, Test Loss: 464.9837
+Epoch 16 - Val Loss: 470.0908, Test Loss: 458.5194
+Best - Val Loss: 470.0908, Test Loss: 458.5194
+Epoch 17 - Val Loss: 468.8859, Test Loss: 457.3990
+Best - Val Loss: 468.8859, Test Loss: 457.3990
+Epoch 18 - Val Loss: 464.2488, Test Loss: 453.4292
+Best - Val Loss: 464.2488, Test Loss: 453.4292
+Epoch 19 - Val Loss: 462.4093, Test Loss: 450.3582
+Best - Val Loss: 462.4093, Test Loss: 450.3582
+Epoch 20 - Val Loss: 458.0475, Test Loss: 447.0460
+Best - Val Loss: 458.0475, Test Loss: 447.0460
+Epoch 21 - Val Loss: 455.0810, Test Loss: 443.8581
+Best - Val Loss: 455.0810, Test Loss: 443.8581
+Epoch 22 - Val Loss: 452.1171, Test Loss: 439.6969
+Best - Val Loss: 452.1170, Test Loss: 439.6969
+Epoch 23 - Val Loss: 447.8663, Test Loss: 435.6126
+Best - Val Loss: 447.8663, Test Loss: 435.6126
+Epoch 24 - Val Loss: 444.8553, Test Loss: 431.3797
+Best - Val Loss: 444.8553, Test Loss: 431.3797
+Epoch 25 - Val Loss: 440.4658, Test Loss: 427.8206
+Best - Val Loss: 440.4658, Test Loss: 427.8206
+Epoch 26 - Val Loss: 438.4332, Test Loss: 424.6355
+Best - Val Loss: 438.4332, Test Loss: 424.6355
+Epoch 27 - Val Loss: 435.5365, Test Loss: 423.0905
+Best - Val Loss: 435.5365, Test Loss: 423.0905
+Epoch 28 - Val Loss: 429.5625, Test Loss: 414.4418
+Best - Val Loss: 429.5625, Test Loss: 414.4418
+Epoch 29 - Val Loss: 426.8836, Test Loss: 413.6028
+Best - Val Loss: 426.8836, Test Loss: 413.6028
+Epoch 30 - Val Loss: 424.1219, Test Loss: 407.3131
+Best - Val Loss: 424.1218, Test Loss: 407.3131
+Epoch 31 - Val Loss: 422.2667, Test Loss: 406.2517
+Best - Val Loss: 422.2667, Test Loss: 406.2517
+Epoch 32 - Val Loss: 419.8649, Test Loss: 403.7508
+Best - Val Loss: 419.8649, Test Loss: 403.7508
+Epoch 33 - Val Loss: 414.9114, Test Loss: 398.9279
+Best - Val Loss: 414.9114, Test Loss: 398.9279
+Epoch 34 - Val Loss: 412.8761, Test Loss: 396.4338
+Best - Val Loss: 412.8761, Test Loss: 396.4338
+Epoch 35 - Val Loss: 409.3128, Test Loss: 393.4661
+Best - Val Loss: 409.3128, Test Loss: 393.4661
+Epoch 36 - Val Loss: 405.6589, Test Loss: 390.0529
+Best - Val Loss: 405.6589, Test Loss: 390.0529
+Epoch 37 - Val Loss: 400.7411, Test Loss: 384.1987
+Best - Val Loss: 400.7411, Test Loss: 384.1987
+Epoch 38 - Val Loss: 397.6091, Test Loss: 379.8445
+Best - Val Loss: 397.6091, Test Loss: 379.8445
+Epoch 39 - Val Loss: 395.6979, Test Loss: 379.1575
+Best - Val Loss: 395.6979, Test Loss: 379.1575
+Epoch 40 - Val Loss: 393.9741, Test Loss: 375.0862
+Best - Val Loss: 393.9741, Test Loss: 375.0862
+Epoch 41 - Val Loss: 391.9731, Test Loss: 375.6883
+Best - Val Loss: 391.9731, Test Loss: 375.6882
+Epoch 42 - Val Loss: 388.9474, Test Loss: 369.9715
+Best - Val Loss: 388.9474, Test Loss: 369.9715
+Epoch 43 - Val Loss: 385.0376, Test Loss: 368.5666
+Best - Val Loss: 385.0376, Test Loss: 368.5666
+Epoch 44 - Val Loss: 382.2766, Test Loss: 365.3352
+Best - Val Loss: 382.2766, Test Loss: 365.3352
+Epoch 45 - Val Loss: 381.9323, Test Loss: 364.1576
+Best - Val Loss: 381.9323, Test Loss: 364.1576
+Epoch 46 - Val Loss: 377.7518, Test Loss: 361.5563
+Best - Val Loss: 377.7519, Test Loss: 361.5562
+Epoch 47 - Val Loss: 373.6575, Test Loss: 354.8835
+Best - Val Loss: 373.6575, Test Loss: 354.8836
+Epoch 48 - Val Loss: 375.4838, Test Loss: 357.0716
+Epoch 49 - Val Loss: 368.8875, Test Loss: 349.9396
+Best - Val Loss: 368.8874, Test Loss: 349.9396
+Epoch 50 - Val Loss: 371.4835, Test Loss: 352.2766
+Epoch 51 - Val Loss: 368.9521, Test Loss: 349.4656
+Epoch 52 - Val Loss: 361.2682, Test Loss: 340.2406
+Best - Val Loss: 361.2682, Test Loss: 340.2406
+Epoch 53 - Val Loss: 361.7548, Test Loss: 343.3195
+Epoch 54 - Val Loss: 360.3873, Test Loss: 339.0468
+Best - Val Loss: 360.3873, Test Loss: 339.0467
+Epoch 55 - Val Loss: 359.6426, Test Loss: 339.6056
+Best - Val Loss: 359.6426, Test Loss: 339.6056
+Epoch 56 - Val Loss: 355.9258, Test Loss: 335.2509
+Best - Val Loss: 355.9258, Test Loss: 335.2509
+Epoch 57 - Val Loss: 350.7170, Test Loss: 331.1235
+Best - Val Loss: 350.7170, Test Loss: 331.1235
+Epoch 58 - Val Loss: 349.1661, Test Loss: 329.1974
+Best - Val Loss: 349.1661, Test Loss: 329.1974
+Epoch 59 - Val Loss: 351.4058, Test Loss: 327.3969
+Epoch 60 - Val Loss: 346.6533, Test Loss: 326.5995
+Best - Val Loss: 346.6532, Test Loss: 326.5994
+Epoch 61 - Val Loss: 346.9560, Test Loss: 324.7798
+Epoch 62 - Val Loss: 344.0197, Test Loss: 320.9235
+Best - Val Loss: 344.0197, Test Loss: 320.9235
+Epoch 63 - Val Loss: 343.0288, Test Loss: 320.0664
+Best - Val Loss: 343.0288, Test Loss: 320.0664
+Epoch 64 - Val Loss: 339.6831, Test Loss: 317.4562
+Best - Val Loss: 339.6832, Test Loss: 317.4562
+Epoch 65 - Val Loss: 339.2411, Test Loss: 316.4174
+Best - Val Loss: 339.2411, Test Loss: 316.4175
+Epoch 66 - Val Loss: 336.7258, Test Loss: 314.4840
+Best - Val Loss: 336.7258, Test Loss: 314.4840
+Epoch 67 - Val Loss: 336.9183, Test Loss: 313.6499
+Epoch 68 - Val Loss: 336.7915, Test Loss: 312.9064
+Epoch 69 - Val Loss: 333.6884, Test Loss: 309.7575
+Best - Val Loss: 333.6884, Test Loss: 309.7575
+Epoch 70 - Val Loss: 334.4937, Test Loss: 308.1385
+Epoch 71 - Val Loss: 330.9203, Test Loss: 307.2280
+Best - Val Loss: 330.9202, Test Loss: 307.2280
+Epoch 72 - Val Loss: 330.9980, Test Loss: 307.4561
+Epoch 73 - Val Loss: 329.8571, Test Loss: 306.4532
+Best - Val Loss: 329.8571, Test Loss: 306.4531
+Epoch 74 - Val Loss: 328.4658, Test Loss: 304.8335
+Best - Val Loss: 328.4658, Test Loss: 304.8335
+Epoch 75 - Val Loss: 327.6547, Test Loss: 301.9763
+Best - Val Loss: 327.6547, Test Loss: 301.9763
+Epoch 76 - Val Loss: 326.5966, Test Loss: 302.4673
+Best - Val Loss: 326.5966, Test Loss: 302.4672
+Epoch 77 - Val Loss: 324.1180, Test Loss: 299.4247
+Best - Val Loss: 324.1179, Test Loss: 299.4248
+Epoch 78 - Val Loss: 323.3562, Test Loss: 300.1464
+Best - Val Loss: 323.3562, Test Loss: 300.1465
+Epoch 79 - Val Loss: 323.4333, Test Loss: 299.4974
+Epoch 80 - Val Loss: 322.1124, Test Loss: 298.5184
+Best - Val Loss: 322.1124, Test Loss: 298.5183
+Epoch 81 - Val Loss: 322.3352, Test Loss: 297.9906
+Epoch 82 - Val Loss: 318.5025, Test Loss: 293.2267
+Best - Val Loss: 318.5025, Test Loss: 293.2267
+Epoch 83 - Val Loss: 318.9575, Test Loss: 293.9688
+Epoch 84 - Val Loss: 316.1612, Test Loss: 290.4371
+Best - Val Loss: 316.1612, Test Loss: 290.4371
+Epoch 85 - Val Loss: 317.0097, Test Loss: 292.1097
+Epoch 86 - Val Loss: 312.8636, Test Loss: 289.8739
+Best - Val Loss: 312.8636, Test Loss: 289.8739
+Epoch 87 - Val Loss: 311.9390, Test Loss: 289.0064
+Best - Val Loss: 311.9390, Test Loss: 289.0064
+Epoch 88 - Val Loss: 313.2757, Test Loss: 290.0417
+Epoch 89 - Val Loss: 314.1328, Test Loss: 287.9313
+Epoch 90 - Val Loss: 311.8598, Test Loss: 286.3351
+Best - Val Loss: 311.8598, Test Loss: 286.3351
+Epoch 91 - Val Loss: 315.4193, Test Loss: 288.5964
+Epoch 92 - Val Loss: 310.7847, Test Loss: 286.2766
+Best - Val Loss: 310.7847, Test Loss: 286.2766
+Epoch 93 - Val Loss: 312.9561, Test Loss: 287.5476
+Epoch 94 - Val Loss: 308.6067, Test Loss: 283.1467
+Best - Val Loss: 308.6067, Test Loss: 283.1467
+Epoch 95 - Val Loss: 309.7762, Test Loss: 284.7206
+Epoch 96 - Val Loss: 309.4312, Test Loss: 282.6334
+Epoch 97 - Val Loss: 307.0781, Test Loss: 283.4597
+Best - Val Loss: 307.0781, Test Loss: 283.4597
+Epoch 98 - Val Loss: 308.1708, Test Loss: 283.5497
+Epoch 99 - Val Loss: 306.2732, Test Loss: 280.5350
+Best - Val Loss: 306.2732, Test Loss: 280.5350
+Epoch 100 - Val Loss: 310.9858, Test Loss: 281.5842
+Epoch 101 - Val Loss: 306.5217, Test Loss: 281.8277
+Epoch 102 - Val Loss: 307.0518, Test Loss: 280.9281
+Epoch 103 - Val Loss: 309.9101, Test Loss: 280.3693
+Epoch 104 - Val Loss: 306.6860, Test Loss: 282.3104
+Epoch 105 - Val Loss: 305.8429, Test Loss: 276.8698
+Best - Val Loss: 305.8429, Test Loss: 276.8698
+Epoch 106 - Val Loss: 302.8753, Test Loss: 276.4378
+Best - Val Loss: 302.8753, Test Loss: 276.4378
+Epoch 107 - Val Loss: 303.9102, Test Loss: 277.0521
+Epoch 108 - Val Loss: 303.8365, Test Loss: 278.2876
+Epoch 109 - Val Loss: 304.2029, Test Loss: 276.9945
+Epoch 110 - Val Loss: 304.1401, Test Loss: 277.4134
+Epoch 111 - Val Loss: 303.5620, Test Loss: 276.7223
+Epoch 112 - Val Loss: 303.8105, Test Loss: 275.5679
+Epoch 113 - Val Loss: 301.9834, Test Loss: 276.1747
+Best - Val Loss: 301.9834, Test Loss: 276.1747
+Epoch 114 - Val Loss: 300.0583, Test Loss: 273.7344
+Best - Val Loss: 300.0583, Test Loss: 273.7344
+Epoch 115 - Val Loss: 301.5638, Test Loss: 273.3121
+Epoch 116 - Val Loss: 302.4902, Test Loss: 273.5093
+Epoch 117 - Val Loss: 301.5325, Test Loss: 273.7820
+Epoch 118 - Val Loss: 301.3880, Test Loss: 273.7599
+Epoch 119 - Val Loss: 304.2326, Test Loss: 272.7465
+Epoch 120 - Val Loss: 304.8920, Test Loss: 273.2041
+Epoch 121 - Val Loss: 301.7545, Test Loss: 273.7947
+Epoch 122 - Val Loss: 301.3069, Test Loss: 273.9493
+Epoch 123 - Val Loss: 299.4341, Test Loss: 270.4471
+Best - Val Loss: 299.4341, Test Loss: 270.4471
+Epoch 124 - Val Loss: 300.8499, Test Loss: 271.6071
+Epoch 125 - Val Loss: 298.8333, Test Loss: 271.3552
+Best - Val Loss: 298.8334, Test Loss: 271.3552
+Epoch 126 - Val Loss: 297.4099, Test Loss: 269.7024
+Best - Val Loss: 297.4099, Test Loss: 269.7024
+Epoch 127 - Val Loss: 298.3823, Test Loss: 269.0668
+Epoch 128 - Val Loss: 298.5698, Test Loss: 271.8668
+Epoch 129 - Val Loss: 297.6458, Test Loss: 269.4977
+Epoch 130 - Val Loss: 299.7752, Test Loss: 268.4735
+Epoch 131 - Val Loss: 298.0523, Test Loss: 267.5985
+Epoch 132 - Val Loss: 296.9594, Test Loss: 268.0507
+Best - Val Loss: 296.9594, Test Loss: 268.0507
+Epoch 133 - Val Loss: 297.9286, Test Loss: 268.5767
+Epoch 134 - Val Loss: 297.8961, Test Loss: 268.8846
+Epoch 135 - Val Loss: 299.6340, Test Loss: 269.2238
+Epoch 136 - Val Loss: 295.7676, Test Loss: 266.5674
+Best - Val Loss: 295.7676, Test Loss: 266.5673
+Epoch 137 - Val Loss: 298.5977, Test Loss: 270.1007
+Epoch 138 - Val Loss: 296.5760, Test Loss: 268.5040
+Epoch 139 - Val Loss: 297.6638, Test Loss: 265.7883
+Epoch 140 - Val Loss: 296.8985, Test Loss: 267.6453
+Epoch 141 - Val Loss: 296.0761, Test Loss: 265.7621
+Epoch 142 - Val Loss: 297.6212, Test Loss: 265.2749
+Epoch 143 - Val Loss: 293.4423, Test Loss: 265.6974
+Best - Val Loss: 293.4423, Test Loss: 265.6974
+Epoch 144 - Val Loss: 297.0385, Test Loss: 268.1201
+Epoch 145 - Val Loss: 294.5232, Test Loss: 265.5518
+Epoch 146 - Val Loss: 296.3131, Test Loss: 267.1295
+Epoch 147 - Val Loss: 295.4560, Test Loss: 265.0587
+Epoch 148 - Val Loss: 295.8890, Test Loss: 263.4396
+Epoch 149 - Val Loss: 295.8340, Test Loss: 265.8596
+Epoch 150 - Val Loss: 296.8311, Test Loss: 266.4827
+Epoch 151 - Val Loss: 294.4263, Test Loss: 264.2336
+Epoch 152 - Val Loss: 295.8812, Test Loss: 265.9829
+Epoch 153 - Val Loss: 295.2322, Test Loss: 266.7775
+Epoch 154 - Val Loss: 294.7962, Test Loss: 265.2587
+Epoch 155 - Val Loss: 295.4780, Test Loss: 265.7126
+Epoch 156 - Val Loss: 296.2341, Test Loss: 264.9124
+Epoch 157 - Val Loss: 292.9669, Test Loss: 263.5231
+Best - Val Loss: 292.9669, Test Loss: 263.5231
+Epoch 158 - Val Loss: 294.3593, Test Loss: 263.6673
+Epoch 159 - Val Loss: 294.4785, Test Loss: 262.7618
+Epoch 160 - Val Loss: 294.8681, Test Loss: 267.5659
+Epoch 161 - Val Loss: 294.1134, Test Loss: 262.3119
+Epoch 162 - Val Loss: 293.8740, Test Loss: 263.0705
+Epoch 163 - Val Loss: 292.2956, Test Loss: 260.6093
+Best - Val Loss: 292.2956, Test Loss: 260.6093
+Epoch 164 - Val Loss: 293.8262, Test Loss: 261.0290
+Epoch 165 - Val Loss: 292.4811, Test Loss: 262.9977
+Epoch 166 - Val Loss: 291.9844, Test Loss: 261.8290
+Best - Val Loss: 291.9844, Test Loss: 261.8290
+Epoch 167 - Val Loss: 291.6410, Test Loss: 261.1797
+Best - Val Loss: 291.6409, Test Loss: 261.1797
+Epoch 168 - Val Loss: 292.1292, Test Loss: 261.9588
+Epoch 169 - Val Loss: 293.3278, Test Loss: 263.1857
+Epoch 170 - Val Loss: 292.6703, Test Loss: 261.0560
+Epoch 171 - Val Loss: 295.2025, Test Loss: 263.0940
+Epoch 172 - Val Loss: 292.2350, Test Loss: 262.2006
+Epoch 173 - Val Loss: 294.5678, Test Loss: 261.0815
+Epoch 174 - Val Loss: 293.8045, Test Loss: 262.3481
+Epoch 175 - Val Loss: 292.0537, Test Loss: 261.3660
+Epoch 176 - Val Loss: 291.5522, Test Loss: 261.0561
+Best - Val Loss: 291.5523, Test Loss: 261.0561
+Epoch 177 - Val Loss: 296.1945, Test Loss: 263.2691
+Epoch 178 - Val Loss: 292.8468, Test Loss: 260.7710
+Epoch 179 - Val Loss: 292.4646, Test Loss: 260.4016
+Epoch 180 - Val Loss: 292.3856, Test Loss: 258.9230
+Epoch 181 - Val Loss: 292.2072, Test Loss: 260.0333
+Epoch 182 - Val Loss: 291.2415, Test Loss: 260.6423
+Best - Val Loss: 291.2415, Test Loss: 260.6423
+Epoch 183 - Val Loss: 289.4050, Test Loss: 260.1902
+Best - Val Loss: 289.4050, Test Loss: 260.1901
+Epoch 184 - Val Loss: 292.0959, Test Loss: 259.8715
+Epoch 185 - Val Loss: 294.1441, Test Loss: 259.8257
+Epoch 186 - Val Loss: 293.6396, Test Loss: 260.6030
+Epoch 187 - Val Loss: 292.2715, Test Loss: 262.7318
+Epoch 188 - Val Loss: 292.1860, Test Loss: 258.6654
+Epoch 189 - Val Loss: 292.0952, Test Loss: 261.1986
+Epoch 190 - Val Loss: 291.7461, Test Loss: 260.0597
+Epoch 191 - Val Loss: 290.7521, Test Loss: 258.6516
+Epoch 192 - Val Loss: 291.8720, Test Loss: 261.2926
+Epoch 193 - Val Loss: 292.0354, Test Loss: 262.1068
+Epoch 194 - Val Loss: 292.1201, Test Loss: 260.4048
+Epoch 195 - Val Loss: 290.8395, Test Loss: 259.5324
+Epoch 196 - Val Loss: 293.5560, Test Loss: 260.1714
+Epoch 197 - Val Loss: 290.4057, Test Loss: 258.1930
+Epoch 198 - Val Loss: 292.5158, Test Loss: 261.4312
+Epoch 199 - Val Loss: 294.5206, Test Loss: 259.7044
+Epoch 200 - Val Loss: 293.7207, Test Loss: 259.6479
+Epoch 201 - Val Loss: 293.4318, Test Loss: 260.0435
+Epoch 202 - Val Loss: 290.8442, Test Loss: 259.3886
+Epoch 203 - Val Loss: 290.9258, Test Loss: 259.2745
+Epoch 204 - Val Loss: 291.5235, Test Loss: 257.3435
+Epoch 205 - Val Loss: 291.1977, Test Loss: 260.2092
+Epoch 206 - Val Loss: 291.2106, Test Loss: 257.4053
+Epoch 207 - Val Loss: 289.7928, Test Loss: 259.2747
+Epoch 208 - Val Loss: 293.6971, Test Loss: 260.0475
+Epoch 209 - Val Loss: 291.0262, Test Loss: 259.0631
+Epoch 210 - Val Loss: 291.7454, Test Loss: 258.1721
+Epoch 211 - Val Loss: 291.1010, Test Loss: 259.3987
+Epoch 212 - Val Loss: 291.5454, Test Loss: 259.1222
+Epoch 213 - Val Loss: 289.3886, Test Loss: 259.9994
+Best - Val Loss: 289.3886, Test Loss: 259.9994
+Epoch 214 - Val Loss: 289.4348, Test Loss: 259.0948
+Epoch 215 - Val Loss: 290.3763, Test Loss: 259.3565
+Epoch 216 - Val Loss: 289.6335, Test Loss: 257.7158
+Epoch 217 - Val Loss: 290.9197, Test Loss: 258.3674
+Epoch 218 - Val Loss: 289.2934, Test Loss: 259.2925
+Best - Val Loss: 289.2934, Test Loss: 259.2926
+Epoch 219 - Val Loss: 290.1178, Test Loss: 258.4203
+Epoch 220 - Val Loss: 289.0430, Test Loss: 257.4170
+Best - Val Loss: 289.0430, Test Loss: 257.4170
+Epoch 221 - Val Loss: 291.3377, Test Loss: 259.0938
+Epoch 222 - Val Loss: 292.5468, Test Loss: 258.8200
+Epoch 223 - Val Loss: 289.5677, Test Loss: 256.6150
+Epoch 224 - Val Loss: 289.5416, Test Loss: 258.3998
+Epoch 225 - Val Loss: 289.6758, Test Loss: 257.7750
+Epoch 226 - Val Loss: 289.1617, Test Loss: 256.1246
+Epoch 227 - Val Loss: 288.4940, Test Loss: 256.2045
+Best - Val Loss: 288.4941, Test Loss: 256.2045
+Epoch 228 - Val Loss: 289.8951, Test Loss: 257.0655
+Epoch 229 - Val Loss: 288.6531, Test Loss: 255.9684
+Epoch 230 - Val Loss: 290.1566, Test Loss: 255.7836
+Epoch 231 - Val Loss: 291.1297, Test Loss: 256.4364
+Epoch 232 - Val Loss: 289.8580, Test Loss: 255.0282
+Epoch 233 - Val Loss: 287.4760, Test Loss: 256.7065
+Best - Val Loss: 287.4760, Test Loss: 256.7065
+Epoch 234 - Val Loss: 288.8316, Test Loss: 256.7360
+Epoch 235 - Val Loss: 289.2415, Test Loss: 258.0521
+Epoch 236 - Val Loss: 287.6139, Test Loss: 257.6504
+Epoch 237 - Val Loss: 288.1114, Test Loss: 256.8873
+Epoch 238 - Val Loss: 287.2005, Test Loss: 257.0050
+Best - Val Loss: 287.2005, Test Loss: 257.0050
+Epoch 239 - Val Loss: 286.5657, Test Loss: 257.7343
+Best - Val Loss: 286.5656, Test Loss: 257.7342
+Epoch 240 - Val Loss: 287.8505, Test Loss: 257.3307
+Epoch 241 - Val Loss: 289.7180, Test Loss: 258.3399
+Epoch 242 - Val Loss: 289.6672, Test Loss: 258.2714
+Epoch 243 - Val Loss: 288.2891, Test Loss: 256.3414
+Epoch 244 - Val Loss: 286.8226, Test Loss: 255.9403
+Epoch 245 - Val Loss: 289.1019, Test Loss: 257.4887
+Epoch 246 - Val Loss: 287.1224, Test Loss: 256.4275
+Epoch 247 - Val Loss: 287.0479, Test Loss: 256.9259
+Epoch 248 - Val Loss: 286.1267, Test Loss: 254.9184
+Best - Val Loss: 286.1267, Test Loss: 254.9184
+Epoch 249 - Val Loss: 287.7042, Test Loss: 254.7295
+Epoch 250 - Val Loss: 287.2364, Test Loss: 256.3137
+Epoch 251 - Val Loss: 288.1223, Test Loss: 255.4959
+Epoch 252 - Val Loss: 287.9508, Test Loss: 254.3896
+Epoch 253 - Val Loss: 288.4120, Test Loss: 254.9297
+Epoch 254 - Val Loss: 288.5659, Test Loss: 258.0066
+Epoch 255 - Val Loss: 288.6568, Test Loss: 256.3670
+Epoch 256 - Val Loss: 287.1899, Test Loss: 256.0947
+Epoch 257 - Val Loss: 288.8175, Test Loss: 255.2150
+Epoch 258 - Val Loss: 285.8193, Test Loss: 254.9911
+Best - Val Loss: 285.8193, Test Loss: 254.9911
+Epoch 259 - Val Loss: 286.9033, Test Loss: 254.9561
+Epoch 260 - Val Loss: 288.3939, Test Loss: 255.9342
+Epoch 261 - Val Loss: 287.6935, Test Loss: 255.5560
+Epoch 262 - Val Loss: 288.3126, Test Loss: 255.2350
+Epoch 263 - Val Loss: 289.3637, Test Loss: 255.3015
+Epoch 264 - Val Loss: 288.2567, Test Loss: 254.8569
+Epoch 265 - Val Loss: 286.6946, Test Loss: 255.0591
+Epoch 266 - Val Loss: 289.2259, Test Loss: 255.9188
+Epoch 267 - Val Loss: 287.7963, Test Loss: 255.1005
+Epoch 268 - Val Loss: 287.4808, Test Loss: 254.9359
+Epoch 269 - Val Loss: 288.7170, Test Loss: 254.7685
+Epoch 270 - Val Loss: 287.4971, Test Loss: 255.7614
+Epoch 271 - Val Loss: 287.2255, Test Loss: 255.0484
+Epoch 272 - Val Loss: 288.1075, Test Loss: 255.9641
+Epoch 273 - Val Loss: 287.8196, Test Loss: 255.3388
+Epoch 274 - Val Loss: 287.2680, Test Loss: 255.9814
+Epoch 275 - Val Loss: 287.3253, Test Loss: 255.4843
+Epoch 276 - Val Loss: 289.2586, Test Loss: 255.4285
+Epoch 277 - Val Loss: 286.8640, Test Loss: 254.4075
+Epoch 278 - Val Loss: 286.8334, Test Loss: 256.5643
+Epoch 279 - Val Loss: 287.9866, Test Loss: 255.6287
+Epoch 280 - Val Loss: 288.1723, Test Loss: 255.0380
+Epoch 281 - Val Loss: 287.2924, Test Loss: 254.7131
+Epoch 282 - Val Loss: 286.4829, Test Loss: 255.8368
+Epoch 283 - Val Loss: 286.1704, Test Loss: 254.3081
+Epoch 284 - Val Loss: 288.2122, Test Loss: 254.2825
+Epoch 285 - Val Loss: 287.9901, Test Loss: 254.3991
+Epoch 286 - Val Loss: 286.2486, Test Loss: 254.5848
+Epoch 287 - Val Loss: 286.7039, Test Loss: 255.3929
+Epoch 288 - Val Loss: 286.6596, Test Loss: 254.0126
+Epoch 289 - Val Loss: 287.5556, Test Loss: 254.8132
+Epoch 290 - Val Loss: 286.4398, Test Loss: 254.7926
+Epoch 291 - Val Loss: 286.6398, Test Loss: 254.3089
+Epoch 292 - Val Loss: 286.1774, Test Loss: 254.6082
+Epoch 293 - Val Loss: 285.8193, Test Loss: 254.9037
+Epoch 294 - Val Loss: 286.7072, Test Loss: 254.7043
+Epoch 295 - Val Loss: 286.8873, Test Loss: 256.1046
+Epoch 296 - Val Loss: 286.6756, Test Loss: 256.1801
+Epoch 297 - Val Loss: 287.6422, Test Loss: 254.3627
+Epoch 298 - Val Loss: 286.3110, Test Loss: 253.4681
+Epoch 299 - Val Loss: 286.8176, Test Loss: 254.3571
+Epoch 300 - Val Loss: 285.4812, Test Loss: 255.4615
+Best - Val Loss: 285.4812, Test Loss: 255.4615
+Epoch 301 - Val Loss: 284.6922, Test Loss: 253.5711
+Best - Val Loss: 284.6922, Test Loss: 253.5711
+Epoch 302 - Val Loss: 285.9913, Test Loss: 254.0740
+Epoch 303 - Val Loss: 287.1085, Test Loss: 254.4354
+Epoch 304 - Val Loss: 287.3545, Test Loss: 253.5375
+Epoch 305 - Val Loss: 286.0511, Test Loss: 253.3984
+Epoch 306 - Val Loss: 285.7853, Test Loss: 252.4742
+Epoch 307 - Val Loss: 285.4347, Test Loss: 254.2131
+Epoch 308 - Val Loss: 285.0181, Test Loss: 253.6262
+Epoch 309 - Val Loss: 286.5256, Test Loss: 255.2163
+Epoch 310 - Val Loss: 284.7420, Test Loss: 253.5385
+Epoch 311 - Val Loss: 284.6446, Test Loss: 253.3186
+Best - Val Loss: 284.6446, Test Loss: 253.3186
+Epoch 312 - Val Loss: 285.2607, Test Loss: 253.7198
+Epoch 313 - Val Loss: 285.1962, Test Loss: 253.9850
+Epoch 314 - Val Loss: 285.6143, Test Loss: 253.0648
+Epoch 315 - Val Loss: 285.5260, Test Loss: 253.8741
+Epoch 316 - Val Loss: 284.5696, Test Loss: 253.4295
+Best - Val Loss: 284.5696, Test Loss: 253.4295
+Epoch 317 - Val Loss: 284.1780, Test Loss: 253.9389
+Best - Val Loss: 284.1780, Test Loss: 253.9389
+Epoch 318 - Val Loss: 285.2596, Test Loss: 253.4842
+Epoch 319 - Val Loss: 285.4672, Test Loss: 254.9280
+Epoch 320 - Val Loss: 286.4060, Test Loss: 254.2202
+Epoch 321 - Val Loss: 285.6066, Test Loss: 253.3399
+Epoch 322 - Val Loss: 285.4995, Test Loss: 253.1129
+Epoch 323 - Val Loss: 284.2411, Test Loss: 253.6318
+Epoch 324 - Val Loss: 285.2487, Test Loss: 253.4038
+Epoch 325 - Val Loss: 284.0663, Test Loss: 253.9918
+Best - Val Loss: 284.0663, Test Loss: 253.9918
+Epoch 326 - Val Loss: 284.5850, Test Loss: 253.4248
+Epoch 327 - Val Loss: 286.1604, Test Loss: 254.0649
+Epoch 328 - Val Loss: 284.5585, Test Loss: 253.7964
+Epoch 329 - Val Loss: 284.1498, Test Loss: 253.6541
+Epoch 330 - Val Loss: 285.2758, Test Loss: 254.8265
+Epoch 331 - Val Loss: 285.8327, Test Loss: 254.3483
+Epoch 332 - Val Loss: 284.2848, Test Loss: 253.5997

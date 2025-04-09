@@ -32,6 +32,8 @@ using namespace smt;
 using namespace std;
 using namespace wasim;
 
+#include "json.hpp"
+using json = nlohmann::json;
 
 struct Config {
     std::string btor2_file;
@@ -879,7 +881,10 @@ void simulation(const TermIterable & input_terms,
 
 
 
-void count_total_nodes(const smt::Term& root, int& total_nodes) {
+void count_total_nodes(const smt::Term& root, 
+                        int& total_nodes,
+                        const std::unordered_map<Term, int>& terms_to_id_
+) {
     std::stack<Term> count_stack;
     std::unordered_set<Term> visited;
     count_stack.push(root);
@@ -888,6 +893,11 @@ void count_total_nodes(const smt::Term& root, int& total_nodes) {
         count_stack.pop();
         if (visited.count(current)) continue;
         visited.insert(current);
+        if (terms_to_id_.find(current) == terms_to_id_.end()) {
+            std::cerr << "[Error] term not found in terms_to_id_: " << current->to_string() << std::endl;
+            continue;
+        }
+        cout << "[sim] " << terms_to_id_.at(current) << " : " << current->to_string() << endl;
         total_nodes++;
         for (auto child : current) {
             if (child->get_sort()->get_sort_kind() == BV || child->get_sort()->get_sort_kind() == BOOL) {
@@ -973,7 +983,7 @@ TryFindResult try_find_equiv_term(const Term & cnode,
     }
     else {
         size_t prefix_count = 0, suffix_count = 0, max_middle_sample = 0, cap = 20;
-
+    
         if (size <= 30) {
             prefix_count = std::min(size_t(4), size);
             suffix_count = std::min(size_t(4), size - prefix_count);
@@ -995,25 +1005,28 @@ TryFindResult try_find_equiv_term(const Term & cnode,
             max_middle_sample = std::min(size_t(10), size - prefix_count - suffix_count);
             cap = 20;
         }
-
+    
         smt::TermVec prefix, suffix, middle_sample;
-
+    
         prefix.insert(prefix.end(), terms_to_check.begin(), terms_to_check.begin() + prefix_count);
         suffix.insert(suffix.end(), terms_to_check.end() - suffix_count, terms_to_check.end());
-
+    
         auto middle_start = terms_to_check.begin() + prefix_count;
         auto middle_end   = terms_to_check.end() - suffix_count;
         smt::TermVec middle(middle_start, middle_end);
-
-        std::sample(middle.begin(), middle.end(),
-                    std::back_inserter(middle_sample),
-                    max_middle_sample, rng);
-
+    
+        if (!middle.empty() && max_middle_sample > 0) {
+            size_t step = std::max(size_t(1), middle.size() / max_middle_sample);
+            for (size_t idx = 0; idx < middle.size() && middle_sample.size() < max_middle_sample; idx += step) {
+                middle_sample.push_back(middle[idx]);
+            }
+        }
+    
         filtered_terms.reserve(prefix.size() + middle_sample.size() + suffix.size());
         filtered_terms.insert(filtered_terms.end(), prefix.begin(), prefix.end());
         filtered_terms.insert(filtered_terms.end(), middle_sample.begin(), middle_sample.end());
         filtered_terms.insert(filtered_terms.end(), suffix.begin(), suffix.end());
-
+    
         if (filtered_terms.size() > cap) {
             filtered_terms.resize(cap);
         }
@@ -1226,105 +1239,11 @@ void fill_simulation_data_for_all_nodes(std::unordered_map<Term, NodeData>& node
     }
 }
 
-
-;
-std::string run_dump_and_predict(SmtSolver &solver,
-                                 int &file_counter,
-                                 std::chrono::milliseconds &smt2json_time,
-                                 std::chrono::milliseconds &json2graph_time,
-                                 std::chrono::milliseconds &model_predict_time,
-                                 std::string &smt2_path_out,
-                                 std::string &json_path_out,
-                                 std::string &csv_path_out,
-                                 bool &dump_enable,
-                                 int &count_smt2json,
-                                 int &count_json2graph,
-                                 int &count_test_py)
-{
-    using namespace std::chrono;
-    namespace fs = std::filesystem;
-
-    auto timestamp = high_resolution_clock::now();
-    auto timestamp_ns = duration_cast<nanoseconds>(timestamp.time_since_epoch()).count();
-
-    fs::path directory = fs::current_path() / "generate";
-    fs::create_directories(directory);
-
-    std::string smt2_path = (directory / (std::to_string(timestamp_ns) + "_" + std::to_string(file_counter++) + ".smt2")).string();
-    std::ofstream smt2_file(smt2_path);
-    if (smt2_file.is_open()) {
-        solver->dump_smt2(smt2_path);
-        smt2_file.close();
-    } else {
-        std::cerr << "[ERROR] Unable to open file: " << smt2_path << std::endl;
-        dump_enable = false;
-        return "ERROR";
+void ensure_term_id(const Term & term, std::unordered_map<Term, int> & terms_to_id_, int & next_term_id) {
+    if (terms_to_id_.find(term) == terms_to_id_.end()) {
+        terms_to_id_[term] = next_term_id++;
     }
-
-    fs::create_directories("./json/");
-    fs::create_directories("./csv/");
-
-    std::string base_filename = fs::path(smt2_path).filename().string();
-    std::string json_path = "./json/" + fs::path(smt2_path).filename().replace_extension(".json").string();
-    std::string csv_path  = "./csv/" + fs::path(smt2_path).filename().replace_extension(".csv").string();
-
-    auto t_start_json = high_resolution_clock::now();
-    std::string cmd_json = "../apps/classifier/smt2json generate ./ true ./json";
-    int ret_json = std::system(cmd_json.c_str());
-    auto t_end_json = high_resolution_clock::now();
-    smt2json_time = duration_cast<milliseconds>(t_end_json - t_start_json);
-
-    if (ret_json != 0) {
-        std::cerr << "[✗] smt2json failed with code " << ret_json << std::endl;
-        dump_enable = false;
-        return "ERROR";
-    } else {
-        count_smt2json++;
-    }
-
-    auto t_start_graph = high_resolution_clock::now();
-    std::string cmd_graph = "python3 ../apps/classifier/json2graph.py " + json_path + " " + csv_path;
-    int ret_graph = std::system(cmd_graph.c_str());
-    auto t_end_graph = high_resolution_clock::now();
-    json2graph_time = duration_cast<milliseconds>(t_end_graph - t_start_graph);
-
-    if (ret_graph != 0) {
-        std::cerr << "[✗] json2graph failed with code " << ret_graph << std::endl;
-        dump_enable = false;
-        return "ERROR";
-    } else {
-        count_json2graph++;
-    }
-
-    auto t_start_predict = high_resolution_clock::now();
-    std::string cmd_predict = "python3 ../apps/classifier/test.py " + csv_path;
-    FILE* pipe = popen(cmd_predict.c_str(), "r");
-    std::string prediction;
-
-    if (!pipe) {
-        std::cerr << "[✗] predict failed" << std::endl;
-        dump_enable = false;
-        return "ERROR";
-    } else {
-        char buffer[128];
-        while (fgets(buffer, sizeof(buffer), pipe)) prediction += buffer;
-        pclose(pipe);
-        count_test_py++;
-    }
-
-    auto t_end_predict = high_resolution_clock::now();
-    model_predict_time = duration_cast<milliseconds>(t_end_predict - t_start_predict);
-
-    std::cout << "[✓] predict: " << prediction << std::endl;
-
-    smt2_path_out = smt2_path;
-    json_path_out = json_path;
-    csv_path_out = csv_path;
-
-    return prediction;
 }
-
-
 
 
 void post_order(smt::Term& root,
@@ -1345,13 +1264,9 @@ void post_order(smt::Term& root,
                 std::string & load_file_path,
                 std::chrono::milliseconds& total_sat_time,
                 std::chrono::milliseconds& total_unsat_time,
-                int & predict_sat,
-                std::chrono::milliseconds& smt2json_time,
-                std::chrono::milliseconds& json2graph_time,
-                std::chrono::milliseconds& model_predict_time,
-                int &count_smt2json,
-                int &count_json2graph,
-                int &count_test_py) 
+                json& json_results,
+                std::unordered_map<Term, int>& terms_to_id_,
+                int& next_term_id)
 {
     std::stack<std::pair<Term,bool>> node_stack;
     node_stack.push({root,false});
@@ -1375,7 +1290,8 @@ void post_order(smt::Term& root,
     };
 
     // First pass to count total nodes (optional but gives more accurate progress)
-    count_total_nodes(root, total_nodes); //FIXME this may causes more time
+
+    count_total_nodes(root, total_nodes, terms_to_id_); //FIXME this may causes more time
     std::cout << "Begin sweeping with " << total_nodes << " nodes..." << std::endl;
 
     // Function to update and display progress
@@ -1451,6 +1367,11 @@ void post_order(smt::Term& root,
                 auto op_type = current->get_op();
                 Term cnode = substitution_happened ? solver->make_term(op_type, children_substituted) : current;
 
+                if(substitution_happened) {
+                    next_term_id++;
+                    terms_to_id_.emplace(cnode, next_term_id);     
+                }
+
                 NodeData sim_data;
                 Term term_eq = nullptr; 
                 compute_simulation(children_substituted, num_iterations, op_type, node_data_map, all_luts, sim_data);
@@ -1458,19 +1379,19 @@ void post_order(smt::Term& root,
 
                 update_progress(EQUIV_CHECK);
                 TryFindResult result = try_find_equiv_term(cnode, 
-                                                                 current_hash, 
-                                                                 sim_data, 
-                                                                 num_iterations, 
-                                                                 hash_term_map, 
-                                                                 node_data_map, 
-                                                                 substitution_map, 
-                                                                 debug);
+                                                           current_hash, 
+                                                           sim_data, 
+                                                           num_iterations, 
+                                                           hash_term_map, 
+                                                           node_data_map, 
+                                                           substitution_map, 
+                                                           debug);
 
                 if(result.found && result.term_eq)
-                    substitution_map.insert({current, result.term_eq}); // equal to current node
+                    substitution_map.insert({current, result.term_eq});
                 else {
-                    for(const auto &t : result.terms_for_solving){
-                        if (unsat_count >= 30 && sat_count >= 100) break; // FIXME magic
+                    for(const auto & t : result.terms_for_solving) {
+                        if (unsat_count >= 100 && sat_count >= 100) break; //FIXME magic
                         solver->push();
                         try {
                             auto eq = solver->make_term(Equal, t, cnode);
@@ -1480,111 +1401,111 @@ void post_order(smt::Term& root,
                             solver->pop();
                             continue;
                         }
-
-                        std::chrono::milliseconds single_smt2json_time(0);
-                        std::chrono::milliseconds single_json2graph_time(0);
-                        std::chrono::milliseconds single_model_predict_time(0);
-
-                        if(dump_enable) {
-                            std::string smt2_path, json_path, csv_path;
-                            std::string prediction = run_dump_and_predict(
-                                solver,
-                                file_counter,
-                                single_smt2json_time,
-                                single_json2graph_time,
-                                single_model_predict_time,
-                                smt2_path,
-                                json_path,
-                                csv_path,
-                                dump_enable,
-                                count_smt2json,
-                                count_json2graph,
-                                count_test_py
-                            );
-
-                            smt2json_time += single_smt2json_time;
-                            json2graph_time += single_json2graph_time;
-                            model_predict_time += single_model_predict_time;
-                            
-                            //delete files
-                            try {
-                                if (fs::exists(smt2_path)) {
-                                    fs::remove(smt2_path);
-                                    std::cout << "[✓] Deleted: " << smt2_path << "\n";
-                                }
-                                if (fs::exists(json_path)) {
-                                    fs::remove(json_path);
-                                    std::cout << "[✓] Deleted: " << json_path << "\n";
-                                }
-                                if (fs::exists(csv_path)) {
-                                    fs::remove(csv_path);
-                                    std::cout << "[✓] Deleted: " << csv_path << "\n";
-                                }
-                            } catch (const std::exception& e) {
-                                std::cerr << "[✗] 删除文件失败: " << e.what() << "\n";
+                        std::ostringstream file_name;
+                        
+                        if (dump_enable) {
+                            auto timestamp = std::chrono::high_resolution_clock::now();
+                            auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count();
+                            fs::path directory = fs::current_path() / "generate";
+                            if (!fs::exists(directory)) fs::create_directory(directory);
+                            file_name << directory.string() << "/" << timestamp_ns << "_" << file_counter++ << ".smt2";
+                            std::ofstream smt2_file(file_name.str());
+                            if (smt2_file.is_open()) {
+                                solver->dump_smt2(file_name.str());
+                                smt2_file.close();
                             }
-
-                            std::string clean_result;
-                            std::istringstream iss(prediction);
-                            for (std::string line; std::getline(iss, line); ) {
-                                if (line == "SAT" || line == "UNSAT") {
-                                    clean_result = line;
-                                    break;
-                                }
-                            }
-
-                            if (clean_result == "SAT") {
-                                predict_sat++;
-                                count++;
-                                solver->pop();
-                                substitution_map.insert({current, cnode});
-                                node_data_map[cnode] = sim_data;
-                                hash_term_map[current_hash].push_back(cnode);
-                                break;
-                            } 
                         }
-                        auto solver_start = std::chrono::high_resolution_clock::now();
-                        auto solver_result = solver->check_sat();
-                        auto solver_end = std::chrono::high_resolution_clock::now();
-                        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(solver_end - solver_start);
+                        
+                        auto start_time = std::chrono::high_resolution_clock::now();
+                        auto solver_result = solver->check_sat(); //FIXME time consuming
+                        auto end_time = std::chrono::high_resolution_clock::now();
+                        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+                        auto elapsed = duration.count();
                         count++;
+
+                        if (elapsed >= timeout_ms) {
+                            std::cout << "t"; std::cout.flush();
+                            total_sat_time += duration;
+                            solver->pop();
+                            continue;
+                        }
+
+                        auto ensure_term_id = [&terms_to_id_, &next_term_id](const smt::Term & term) -> int {
+                            auto [it, inserted] = terms_to_id_.emplace(term, next_term_id);
+                            if (inserted) {
+                                return next_term_id++;
+                            } else {
+                                return it->second;
+                            }
+                        };
+                        
+                        int term1_id = ensure_term_id(current);
+                        int term2_id = ensure_term_id(t);
+
+   
+                        assert(terms_to_id_.find(current) != terms_to_id_.end());
+                        assert(terms_to_id_.find(t) != terms_to_id_.end());
                         if (solver_result.is_unsat()) {
+                            //id -> json file 
+                            json_results.push_back({
+                                {"term1", terms_to_id_.at(current)},
+                                {"term2", terms_to_id_.at(t)},
+                                {"result", "UNSAT"}
+                            });
+
+                            total_unsat_time += duration;
                             unsat_count++;
-                            total_unsat_time += elapsed;
                             term_eq = t;
-                            // if (dump_enable) {
-                            //     std::ofstream out(smt2_path, std::ios::app);
-                            //     out << "UNSAT\n";
-                            // }
+                            if (dump_enable) {
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "UNSAT" << std::endl;
+                                    smt2_file.close();
+                                }
+                            }
                             solver->pop();
                             break;
                         } else {
+                            //id -> json file
+                            json_results.push_back({
+                                {"term1", terms_to_id_.at(current)},
+                                {"term2", terms_to_id_.at(t)},
+                                {"result", "SAT"}
+                            });
+
+                            total_sat_time += duration;
+                            update_progress(RESULT_SAT);
                             sat_count++;
-                            total_sat_time += elapsed;
-                            // if (dump_enable) {
-                            //     std::ofstream out(smt2_path, std::ios::app);
-                            //     out << "SAT\n";
-                            // }
-                            fill_simulation_data_for_all_nodes(node_data_map, solver, num_iterations, substitution_map, all_luts);        
+                            if (dump_enable) {
+                                std::ofstream smt2_file(file_name.str(), std::ios::app);
+                                if (smt2_file.is_open()) {
+                                    smt2_file << "SAT" << std::endl;
+                                    smt2_file.close();
+                                }
+                            }
+                            //simualtion counter example
+                            fill_simulation_data_for_all_nodes(node_data_map, solver, num_iterations, substitution_map, all_luts);
+
                         }
                         solver->pop();
                     }
-                    
+                }
 
-                    if (term_eq && term_eq != nullptr) {
-                        substitution_map.insert({current, term_eq});
-                    } else {
-                        substitution_map.insert({current, cnode});
-                        hash_term_map[current_hash].push_back(cnode);
-                        node_data_map[cnode] = sim_data;
-                    }
-                    update_progress(MAP_UPDATE);
-                    processed_nodes++;
-                } // end if it has children
-                node_stack.pop();            
-            } // end of if visited
-        } // end of traversal
-    }
+                
+                if (term_eq && term_eq != nullptr) {
+                    substitution_map.insert({current, term_eq});
+                } else {
+                    substitution_map.insert({current, cnode});
+                    hash_term_map[current_hash].push_back(cnode);
+                    node_data_map[cnode] = sim_data;
+                }
+                update_progress(MAP_UPDATE);
+                processed_nodes++;
+            } // end if it has children
+            node_stack.pop();            
+        } // end of if visited
+    } // end of traversal
+    
     // End of processing - Print summary statistics
     std::cout << std::endl;
     print_hash(hash_term_map);

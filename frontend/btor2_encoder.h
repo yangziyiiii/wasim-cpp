@@ -57,6 +57,14 @@ class BTOR2Encoder
   const smt::TermVec & statesvec() const { return statesvec_; }
   const std::vector<int64_t> & idvec() const { return idvec_; }
 
+  const std::unordered_map<smt::Term, int> & get_term_to_id_map() const {
+    return term_to_id_;
+  }
+
+  const std::unordered_map<int, smt::Term>& get_terms() const {
+    return terms_;
+  }
+
 
  protected:
   // converts booleans to bitvector of size one
@@ -89,6 +97,16 @@ class BTOR2Encoder
   smt::TermVec termargs_;
   std::unordered_map<int, smt::Sort> sorts_;
   std::unordered_map<int, smt::Term> terms_;
+
+  // for classifier
+  std::unordered_map<smt::Term, int> term_to_id_;
+  #define REGISTER_TERM(term, id) \
+    do { \
+        terms_[id] = term; \
+        term_to_id_[term] = id; \
+    } while (0)
+
+
   std::string symbol_;
 
   smt::TermVec propvec_;

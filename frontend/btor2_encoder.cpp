@@ -308,7 +308,8 @@ void BTOR2Encoder::parse(const std::string filename)
         }
 
         Term state = ts_.make_statevar(symbol_, linesort_); // make_statevar will name_term
-        terms_[l_->id] = state;
+        // terms_[l_->id] = state;
+        REGISTER_TERM(state, l_->id);
         statesvec_.push_back(state);
         id2statenum[l_->id] = num_states;
         num_states++;
@@ -321,7 +322,8 @@ void BTOR2Encoder::parse(const std::string filename)
           std::cout << "STATE --> INVAR: " << l_->id << std::endl;
         }
         Term input = ts_.make_inputvar(symbol_, linesort_); // make_inputvar will name_term
-        terms_[l_->id] = input;
+        // terms_[l_->id] = input;
+        REGISTER_TERM(input, l_->id);
         inputsvec_.push_back(input);
       }
     } else if (l_->tag == BTOR2_TAG_input) {
@@ -332,7 +334,8 @@ void BTOR2Encoder::parse(const std::string filename)
         symbol_ = name_prefix + "input" + to_string(l_->id);
       }
       Term input = ts_.make_inputvar(symbol_, linesort_); // make_inputvar will name_term
-      terms_[l_->id] = input;
+      // terms_[l_->id] = input;
+      REGISTER_TERM(input, l_->id);
       inputsvec_.push_back(input);
     } else if (l_->tag == BTOR2_TAG_output) {
       if (l_->symbol) {
@@ -346,7 +349,8 @@ void BTOR2Encoder::parse(const std::string filename)
       catch (SimulatorException & e) {
         ts_.name_term("_out_" + symbol_, termargs_[0]);
       }
-      terms_[l_->id] = termargs_[0];
+      // terms_[l_->id] = termargs_[0];
+      REGISTER_TERM(termargs_[0], l_->id);
       output_terms_.push_back(termargs_[0]); // new: record output term
     } else if (l_->tag == BTOR2_TAG_sort) {
       switch (l_->sort.tag) {
@@ -385,7 +389,8 @@ void BTOR2Encoder::parse(const std::string filename)
       // }
 
       ts_.add_constraint(constraint);
-      terms_[l_->id] = constraint;
+      // terms_[l_->id] = constraint;
+      REGISTER_TERM(constraint, l_->id);
     } else if (l_->tag == BTOR2_TAG_init) {
       if (termargs_.size() != 2) {
         throw SimulatorException("Expecting two term arguments to init");
@@ -410,7 +415,8 @@ void BTOR2Encoder::parse(const std::string filename)
                             + termargs_[0]->get_sort()->to_string());
       }
       ts_.constrain_init(init_eq);
-      terms_[l_->id] = init_eq;
+      // terms_[l_->id] = init_eq;
+      REGISTER_TERM(init_eq, l_->id);
 
     } else if (l_->tag == BTOR2_TAG_next) {
       if (termargs_.size() != 2) {
@@ -426,12 +432,14 @@ void BTOR2Encoder::parse(const std::string filename)
 
       if (s0 == s1) {
         ts_.assign_next(t0, t1);
-        terms_[l_->id] = t1;
+        // terms_[l_->id] = t1;
+        REGISTER_TERM(t1, l_->id);
       } else if (((sk0 == BV) && (sk1 == BOOL))
                  || ((sk0 == BOOL) && (sk1 == BV))) {
         // need to cast
         ts_.assign_next(bool_to_bv(t0), bool_to_bv(t1));
-        terms_[l_->id] = bool_to_bv(t1);
+        // terms_[l_->id] = bool_to_bv(t1);
+        REGISTER_TERM(bool_to_bv(t1), l_->id);
       } else {
         throw SimulatorException("Got two different sorts in next update.");
       }
@@ -440,25 +448,34 @@ void BTOR2Encoder::parse(const std::string filename)
       idvec_.push_back(l_->id);
       Term prop = solver_->make_term(Not, bad);
       propvec_.push_back(prop);
-      terms_[l_->id] = prop;
+      // terms_[l_->id] = prop;
+      REGISTER_TERM(prop, l_->id);
     } else if (l_->tag == BTOR2_TAG_justice) {
       std::cout << "Warning: ignoring justice term" << std::endl;
       justicevec_.push_back(termargs_[0]);
-      terms_[l_->id] = termargs_[0];
+      // terms_[l_->id] = termargs_[0];
+      REGISTER_TERM(termargs_[0], l_->id);
     } else if (l_->tag == BTOR2_TAG_fair) {
       std::cout << "Warning: ignoring fair term" << std::endl;
       fairvec_.push_back(termargs_[0]);
-      terms_[l_->id] = termargs_[0];
+      // terms_[l_->id] = termargs_[0];
+      REGISTER_TERM(termargs_[0], l_->id);
     } else if (l_->constant) {
-      terms_[l_->id] =
-          solver_->make_term(l_->constant, linesort_, basemap.at(l_->tag));
+      // terms_[l_->id] =
+          // solver_->make_term(l_->constant, linesort_, basemap.at(l_->tag));
+      REGISTER_TERM(solver_->make_term(
+          l_->constant, linesort_, basemap.at(l_->tag)), l_->id);
     } else if (l_->tag == BTOR2_TAG_one) {
-      terms_[l_->id] = solver_->make_term(1, linesort_);
+      // terms_[l_->id] = solver_->make_term(1, linesort_);
+      REGISTER_TERM(solver_->make_term(1, linesort_), l_->id);
     } else if (l_->tag == BTOR2_TAG_ones) {
-      terms_[l_->id] =
-          solver_->make_term(string(linesort_->get_width(), '1'), linesort_, 2);
+      // terms_[l_->id] =
+          // solver_->make_term(string(linesort_->get_width(), '1'), linesort_, 2);
+      REGISTER_TERM(solver_->make_term(
+          string(linesort_->get_width(), '1'), linesort_, 2), l_->id);
     } else if (l_->tag == BTOR2_TAG_zero) {
-      terms_[l_->id] = solver_->make_term(0, linesort_);
+      // terms_[l_->id] = solver_->make_term(0, linesort_);
+      REGISTER_TERM(solver_->make_term(0, linesort_), l_->id);
     } else if (l_->tag == BTOR2_TAG_eq) {
       if (termargs_.size() != 2) {
         throw SimulatorException("Expecting two arguments to eq");
@@ -484,9 +501,11 @@ void BTOR2Encoder::parse(const std::string filename)
       }
 
       if (sk0 == BV) {
-        terms_[l_->id] = solver_->make_term(BVComp, t0, t1);
+        // terms_[l_->id] = solver_->make_term(BVComp, t0, t1);
+        REGISTER_TERM(solver_->make_term(BVComp, t0, t1), l_->id);
       } else {
-        terms_[l_->id] = solver_->make_term(Equal, t0, t1);
+        // terms_[l_->id] = solver_->make_term(Equal, t0, t1);
+        REGISTER_TERM(solver_->make_term(Equal, t0, t1), l_->id);
       }
     } else if (l_->tag == BTOR2_TAG_neq) {
       if (termargs_.size() != 2) {
@@ -513,34 +532,57 @@ void BTOR2Encoder::parse(const std::string filename)
       }
 
       if (sk0 == BV) {
-        terms_[l_->id] =
-            solver_->make_term(BVNot, solver_->make_term(BVComp, t0, t1));
+        // terms_[l_->id] =
+            // solver_->make_term(BVNot, solver_->make_term(BVComp, t0, t1));
+        REGISTER_TERM(
+            solver_->make_term(BVNot, solver_->make_term(BVComp, t0, t1)), l_->id);
       } else {
-        terms_[l_->id] = solver_->make_term(Distinct, t0, t1);
+        // terms_[l_->id] = solver_->make_term(Distinct, t0, t1);
+        REGISTER_TERM(solver_->make_term(Distinct, t0, t1), l_->id);
       }
     } else if (l_->tag == BTOR2_TAG_slice) {
-      terms_[l_->id] = solver_->make_term(Op(Extract, l_->args[1], l_->args[2]),
-                                          bool_to_bv(termargs_[0]));
+      // terms_[l_->id] = solver_->make_term(Op(Extract, l_->args[1], l_->args[2]),
+                                          // bool_to_bv(termargs_[0]));
+      assert(l_->args[1] >= 0 && l_->args[2] >= 0 && "Extract indices must be non-negative");
+      REGISTER_TERM(
+        solver_->make_term(
+            Op{Extract, static_cast<uint64_t>(l_->args[1]), static_cast<uint64_t>(l_->args[2])},
+            bool_to_bv(termargs_[0])
+        ),
+        l_->id
+      );
     } else if (l_->tag == BTOR2_TAG_sext) {
-      terms_[l_->id] = solver_->make_term(Op(Sign_Extend, l_->args[1]),
-                                          bool_to_bv(termargs_[0]));
+      // terms_[l_->id] = solver_->make_term(Op(Sign_Extend, l_->args[1]),
+                                          // bool_to_bv(termargs_[0]));
+      assert(l_->args[1] >= 0 && "Extract indices must be non-negative");
+      REGISTER_TERM(solver_->make_term(Op{Sign_Extend,static_cast<uint64_t>(l_->args[1])}, bool_to_bv(termargs_[0])), l_->id);
     } else if (l_->tag == BTOR2_TAG_uext) {
-      terms_[l_->id] = solver_->make_term(Op(Zero_Extend, l_->args[1]),
-                                          bool_to_bv(termargs_[0]));
+      // terms_[l_->id] = solver_->make_term(Op(Zero_Extend, l_->args[1]),
+                                          // bool_to_bv(termargs_[0]));
+      assert(l_->args[1] >= 0 && "Extract indices must be non-negative");
+      REGISTER_TERM(solver_->make_term(Op{Zero_Extend, static_cast<uint64_t>(l_->args[1])}, bool_to_bv(termargs_[0])), l_->id);
     } else if (l_->tag == BTOR2_TAG_rol) {
-      terms_[l_->id] = solver_->make_term(Op(Rotate_Left, l_->args[1]),
-                                          bool_to_bv(termargs_[0]));
+      // terms_[l_->id] = solver_->make_term(Op(Rotate_Left, l_->args[1]),
+                                          // bool_to_bv(termargs_[0]));
+      assert(l_->args[1] >= 0 && "Extract indices must be non-negative");
+      REGISTER_TERM(solver_->make_term(Op{Rotate_Left, static_cast<uint64_t>(l_->args[1])}, bool_to_bv(termargs_[0])), l_->id);
     } else if (l_->tag == BTOR2_TAG_ror) {
-      terms_[l_->id] = solver_->make_term(Op(Rotate_Right, l_->args[1]),
-                                          bool_to_bv(termargs_[0]));
+      // terms_[l_->id] = solver_->make_term(Op(Rotate_Right, l_->args[1]),
+                                          // bool_to_bv(termargs_[0]));
+      assert(l_->args[1] >= 0 && "Extract indices must be non-negative");
+      REGISTER_TERM(solver_->make_term(Op{Rotate_Right, static_cast<uint64_t>(l_->args[1])}, bool_to_bv(termargs_[0])), l_->id);
     } else if (l_->tag == BTOR2_TAG_inc) {
       Term t = bool_to_bv(termargs_[0]);
-      terms_[l_->id] =
-          solver_->make_term(BVAdd, t, solver_->make_term(1, t->get_sort()));
+      // terms_[l_->id] =
+          // solver_->make_term(BVAdd, t, solver_->make_term(1, t->get_sort()));
+      REGISTER_TERM(
+          solver_->make_term(BVAdd, t, solver_->make_term(1, t->get_sort())), l_->id);
     } else if (l_->tag == BTOR2_TAG_dec) {
       Term t = bool_to_bv(termargs_[0]);
-      terms_[l_->id] =
-          solver_->make_term(BVSub, t, solver_->make_term(1, t->get_sort()));
+      // terms_[l_->id] =
+          // solver_->make_term(BVSub, t, solver_->make_term(1, t->get_sort()));
+      REGISTER_TERM(
+          solver_->make_term(BVSub, t, solver_->make_term(1, t->get_sort())), l_->id);
     } else if (l_->tag == BTOR2_TAG_implies) {
       if (termargs_.size() != 2) {
         throw SimulatorException("Expecting two arguments to implies");
@@ -566,20 +608,25 @@ void BTOR2Encoder::parse(const std::string filename)
       }
 
       if (sk0 == BV) {
-        terms_[l_->id] =
-            solver_->make_term(BVOr, solver_->make_term(BVNot, t0), t1);
+        // terms_[l_->id] =
+        //     solver_->make_term(BVOr, solver_->make_term(BVNot, t0), t1);
+        REGISTER_TERM(
+            solver_->make_term(BVOr, solver_->make_term(BVNot, t0), t1), l_->id);
       } else {
-        terms_[l_->id] = solver_->make_term(Implies, t0, t1);
+        // terms_[l_->id] = solver_->make_term(Implies, t0, t1);
+        REGISTER_TERM(solver_->make_term(Implies, t0, t1), l_->id);
       }
     } else if (l_->tag == BTOR2_TAG_redand) {
       Term t = bool_to_bv(termargs_[0]);
       Term ones = solver_->make_term(
           std::string(t->get_sort()->get_width(), '1'), t->get_sort(), 2);
-      terms_[l_->id] = solver_->make_term(BVComp, t, ones);
+      // terms_[l_->id] = solver_->make_term(BVComp, t, ones);
+      REGISTER_TERM(solver_->make_term(BVComp, t, ones), l_->id);
     } else if (l_->tag == BTOR2_TAG_redor) {
       Term t = bool_to_bv(termargs_[0]);
       Term zero = solver_->make_term(0, t->get_sort());
-      terms_[l_->id] = solver_->make_term(Distinct, t, zero);
+      // terms_[l_->id] = solver_->make_term(Distinct, t, zero);
+      REGISTER_TERM(solver_->make_term(Distinct, t, zero), l_->id);
     } else if (l_->tag == BTOR2_TAG_redxor) {
       Term t = bool_to_bv(termargs_[0]);
       unsigned int width = t->get_sort()->get_width();
@@ -588,14 +635,16 @@ void BTOR2Encoder::parse(const std::string filename)
         res = solver_->make_term(
             BVXor, res, solver_->make_term(Op(Extract, i, i), t));
       }
-      terms_[l_->id] = res;
+      // terms_[l_->id] = res;
+      REGISTER_TERM(res, l_->id);
     } else if (l_->tag == BTOR2_TAG_ite) {
       Term cond = bv_to_bool(termargs_[0]);
       // Always cast to bit-vectors because mathsat doesn't support ite over
       // bools
       Term t1 = bool_to_bv(termargs_[1]);
       Term t2 = bool_to_bv(termargs_[2]);
-      terms_[l_->id] = solver_->make_term(Ite, cond, t1, t2);
+      // terms_[l_->id] = solver_->make_term(Ite, cond, t1, t2);
+      REGISTER_TERM (solver_->make_term(Ite, cond, t1, t2), l_->id);
     } else if (l_->tag == BTOR2_TAG_uaddo) {
       Term t0 = bool_to_bv(termargs_[0]);
       Term t1 = bool_to_bv(termargs_[1]);
@@ -607,8 +656,10 @@ void BTOR2Encoder::parse(const std::string filename)
 
       Term sum = solver_->make_term(BVAdd, t0, t1);
       // overflow occurs if there's a carry out bit
-      terms_[l_->id] =
-          solver_->make_term(Op(Extract, orig_width, orig_width), sum);
+      // terms_[l_->id] =
+      //     solver_->make_term(Op(Extract, orig_width, orig_width), sum);
+      REGISTER_TERM(
+          solver_->make_term(Op(Extract, orig_width, orig_width), sum), l_->id);
     } else if (l_->tag == BTOR2_TAG_saddo) {
       // From https://www.doc.ic.ac.uk/~eedwards/compsys/arithmetic/index.html
       Term t0 = bool_to_bv(termargs_[0]);
@@ -621,10 +672,15 @@ void BTOR2Encoder::parse(const std::string filename)
       Term t0_top = solver_->make_term(Op(Extract, width - 1, width - 1), t0);
       Term t1_top = solver_->make_term(Op(Extract, width - 1, width - 1), t1);
       Term sum_top = solver_->make_term(Op(Extract, width - 1, width - 1), sum);
-      terms_[l_->id] =
+      // terms_[l_->id] =
+      //     solver_->make_term(Equal,
+      //                        solver_->make_term(Equal, t0_top, t1_top),
+      //                        solver_->make_term(Distinct, t0_top, sum_top));
+      REGISTER_TERM(
           solver_->make_term(Equal,
                              solver_->make_term(Equal, t0_top, t1_top),
-                             solver_->make_term(Distinct, t0_top, sum_top));
+                             solver_->make_term(Distinct, t0_top, sum_top)),
+          l_->id);
     } else if (l_->tag == BTOR2_TAG_sdivo) {
       Term t0 = bool_to_bv(termargs_[0]);
       Term t1 = bool_to_bv(termargs_[1]);
@@ -639,10 +695,15 @@ void BTOR2Encoder::parse(const std::string filename)
       std::string snegone = std::string(width, '1');
       Term int_min = solver_->make_term(sint_min, sort, 2);
       Term negone = solver_->make_term(snegone, sort, 2);
-      terms_[l_->id] =
+      // terms_[l_->id] =
+      //     solver_->make_term(And,
+      //                        solver_->make_term(Equal, t0, int_min),
+      //                        solver_->make_term(Equal, t1, negone));
+      REGISTER_TERM(
           solver_->make_term(And,
                              solver_->make_term(Equal, t0, int_min),
-                             solver_->make_term(Equal, t1, negone));
+                             solver_->make_term(Equal, t1, negone)),
+          l_->id);
     } else if (l_->tag == BTOR2_TAG_umulo) {
       // from Hacker's Delight
       // overflow if hi(x*y) != 0
@@ -656,10 +717,17 @@ void BTOR2Encoder::parse(const std::string filename)
 
       Term prod = solver_->make_term(BVMul, t0, t1);
       // overflow occurs if the upper bits are non-zero
-      terms_[l_->id] = solver_->make_term(
-          Distinct,
-          solver_->make_term(Op(Extract, 2 * orig_width - 1, orig_width), prod),
-          solver_->make_term(0, solver_->make_sort(BV, orig_width)));
+      // terms_[l_->id] = solver_->make_term(
+      //     Distinct,
+      //     solver_->make_term(Op(Extract, 2 * orig_width - 1, orig_width), prod),
+      //     solver_->make_term(0, solver_->make_sort(BV, orig_width)));
+      REGISTER_TERM(
+          solver_->make_term(Distinct,
+                             solver_->make_term(Op(Extract, 2 * orig_width - 1,
+                                                   orig_width),
+                                                prod),
+                             solver_->make_term(0, solver_->make_sort(BV, orig_width))),
+          l_->id);
     } else if (l_->tag == BTOR2_TAG_smulo) {
       // from Hacker's Delight
       // overflow if hi(x*y) != (lo(x*y) >>s (width-1))
@@ -675,14 +743,23 @@ void BTOR2Encoder::parse(const std::string filename)
       Term hi =
           solver_->make_term(Op(Extract, 2 * orig_width - 1, orig_width), prod);
       Term lo = solver_->make_term(Op(Extract, orig_width - 1, 0), prod);
-      terms_[l_->id] = solver_->make_term(
-          Distinct,
-          hi,
-          solver_->make_term(
-              BVAshr,
-              lo,
-              solver_->make_term(orig_width - 1,
-                                 solver_->make_sort(BV, orig_width))));
+      // terms_[l_->id] = solver_->make_term(
+      //     Distinct,
+      //     hi,
+      //     solver_->make_term(
+      //         BVAshr,
+      //         lo,
+      //         solver_->make_term(orig_width - 1,
+      //                            solver_->make_sort(BV, orig_width))));
+      REGISTER_TERM(
+          solver_->make_term(Distinct,
+                             hi,
+                             solver_->make_term(
+                                 BVAshr,
+                                 lo,
+                                 solver_->make_term(orig_width - 1,
+                                                    solver_->make_sort(BV, orig_width)))),
+          l_->id);
     } else if (l_->tag == BTOR2_TAG_usubo) {
       // From
       // https://github.com/Boolector/boolector/blob/cd757d099433d95ffdb2a839504b220eff18ee51/src/btorexp.c#L1236
@@ -695,8 +772,10 @@ void BTOR2Encoder::parse(const std::string filename)
       Term one = solver_->make_term(1, sort);
       Term add1 = solver_->make_term(BVAdd, t1, one);
       Term add2 = solver_->make_term(BVAdd, t0, add1);
-      terms_[l_->id] = solver_->make_term(
-          BVNot, solver_->make_term(Op(Extract, width, width), add2));
+      // terms_[l_->id] = solver_->make_term(
+      //     BVNot, solver_->make_term(Op(Extract, width, width), add2));
+      REGISTER_TERM(
+          solver_->make_term(BVNot, solver_->make_term(Op(Extract, width, width), add2)), l_->id);
     } else if (l_->tag == BTOR2_TAG_ssubo) {
       // From https://www.doc.ic.ac.uk/~eedwards/compsys/arithmetic/index.html
       // overflow occurs if signs are different and subtrahend sign matches
@@ -714,19 +793,26 @@ void BTOR2Encoder::parse(const std::string filename)
       Term t1_top = solver_->make_term(Op(Extract, width - 1, width - 1), t1);
       Term diff_top =
           solver_->make_term(Op(Extract, width - 1, width - 1), diff);
-      terms_[l_->id] =
+      // terms_[l_->id] =
+      //     solver_->make_term(And,
+      //                        solver_->make_term(Distinct, t0_top, t1_top),
+      //                        solver_->make_term(Equal, t1_top, diff_top));
+      REGISTER_TERM(
           solver_->make_term(And,
                              solver_->make_term(Distinct, t0_top, t1_top),
-                             solver_->make_term(Equal, t1_top, diff_top));
+                             solver_->make_term(Equal, t1_top, diff_top)),
+          l_->id);
     } else if (l_->tag == BTOR2_TAG_read) {
       Term arr = termargs_[0];
       Term idx = bool_to_bv(termargs_[1]);
-      terms_[l_->id] = solver_->make_term(Select, arr, idx);
+      // terms_[l_->id] = solver_->make_term(Select, arr, idx);
+      REGISTER_TERM(solver_->make_term(Select, arr, idx), l_->id);
     } else if (l_->tag == BTOR2_TAG_write) {
       Term arr = termargs_[0];
       Term idx = bool_to_bv(termargs_[1]);
       Term elem = bool_to_bv(termargs_[2]);
-      terms_[l_->id] = solver_->make_term(Store, arr, idx, elem);
+      // terms_[l_->id] = solver_->make_term(Store, arr, idx, elem);
+      REGISTER_TERM(solver_->make_term(Store, arr, idx, elem), l_->id);
     }
     /******************************** Handle general case
      ********************************/
@@ -750,9 +836,11 @@ void BTOR2Encoder::parse(const std::string filename)
 
         SortKind sk = termargs_[0]->get_sort()->get_sort_kind();
         if (sk == BV) {
-          terms_[l_->id] = solver_->make_term(bvopmap.at(l_->tag), termargs_);
+          // terms_[l_->id] = solver_->make_term(bvopmap.at(l_->tag), termargs_);
+          REGISTER_TERM(solver_->make_term(bvopmap.at(l_->tag), termargs_), l_->id);
         } else if (sk == BOOL) {
-          terms_[l_->id] = solver_->make_term(boolopmap.at(l_->tag), termargs_);
+          // terms_[l_->id] = solver_->make_term(boolopmap.at(l_->tag), termargs_);
+          REGISTER_TERM(solver_->make_term(boolopmap.at(l_->tag), termargs_), l_->id);
         } else {
           throw SimulatorException("Unexpected sort");
         }
@@ -760,7 +848,8 @@ void BTOR2Encoder::parse(const std::string filename)
         for (int i = 0; i < termargs_.size(); i++) {
           termargs_[i] = bool_to_bv(termargs_[i]);
         }
-        terms_[l_->id] = solver_->make_term(bvopmap.at(l_->tag), termargs_);
+        // terms_[l_->id] = solver_->make_term(bvopmap.at(l_->tag), termargs_);
+        REGISTER_TERM(solver_->make_term(bvopmap.at(l_->tag), termargs_), l_->id);
       }
     }
 

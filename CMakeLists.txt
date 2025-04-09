@@ -351,8 +351,8 @@ endif()
 add_executable(bmc "apps/classifier/bmc.cpp")
 target_link_libraries(bmc wasim-lib)
 
-add_executable(pre_bmc "apps/idpv/bmc-sweeping/bmc.cpp")
-target_link_libraries(pre_bmc wasim-lib)
+# add_executable(pre_bmc "apps/idpv/bmc-sweeping/bmc.cpp")
+# target_link_libraries(pre_bmc wasim-lib)
 
 # add_executable(sequence "apps/idpv/sequence/sequence.cpp")
 # target_link_libraries(sequence wasim-lib)
@@ -366,8 +366,8 @@ target_link_libraries(pre_bmc wasim-lib)
 # add_executable(test_case4 "apps/idpv/case4/btor_sweeping.cpp")
 # target_link_libraries(test_case4 wasim-lib)
 
-add_executable(test_case10 "apps/idpv/case10/naive.cpp")
-target_link_libraries(test_case10 wasim-lib)
+# add_executable(test_case10 "apps/idpv/case10/naive.cpp")
+# target_link_libraries(test_case10 wasim-lib)
 
 # add_executable(unroll "apps/idpv/case10/unroll.cpp")
 # target_link_libraries(unroll wasim-lib)

@@ -1,5 +1,6 @@
 #include "../sweeping.h"
 
+
 int main(int argc, char* argv[]) {
     Config config;
 
@@ -47,8 +48,10 @@ int main(int argc, char* argv[]) {
     const auto& input_terms = btor_parser.inputsvec(); // all input here
     const auto& output_terms = btor_parser.get_output_terms(); // all output here
     const auto& constraints = btor_parser.get_const_terms(); // all constraints here
-    const auto& property = btor_parser.propvec(); // all properties here
-    const auto& idvec = btor_parser.idvec();
+    
+    const auto& terms_num = btor_parser.get_terms();
+    cout << terms_num.size() << " terms in total" << endl;
+    
 
     SymbolicSimulator sim(sts, solver);
     const auto & propvec = sts.prop();
@@ -84,7 +87,28 @@ int main(int argc, char* argv[]) {
             std::unordered_map<uint32_t, TermVec> hash_term_map; // hash -> TermVec
             std::unordered_map<Term, Term> substitution_map; // term -> term, for substitution
             std::unordered_map<Term, std::unordered_map<std::string, std::string>> all_luts; // state -> lookup table
-            auto root = sim.interpret_state_expr_on_curr_frame(prop, false);
+            auto root = sim.interpret_state_expr_on_curr_frame(prop, false); // root node to check
+            auto term_to_id_map = btor_parser.get_term_to_id_map(); // term-> btor id
+            
+            //record id for classifier
+            std::unordered_map<string, int> term_id_map;
+            json json_results = json::array();
+            int next_term_id = 0;
+            std::ifstream btor2_file_stream(btor2_file);
+            if (btor2_file_stream.is_open()) {
+                std::string line;
+                while (std::getline(btor2_file_stream, line)) {
+                    ++next_term_id;
+                }
+                btor2_file_stream.close();
+            } else {
+                std::cerr << "Error: Could not open BTOR2 file to count lines." << std::endl;
+                return EXIT_FAILURE;
+            }
+            
+            cout << "next term id (from btor2 lines): " << next_term_id << endl;
+
+
 
             initialize_arrays({&sts}, all_luts, substitution_map, debug);
             smt::TermVec combined_terms = input_terms;
@@ -109,17 +133,14 @@ int main(int argc, char* argv[]) {
             int unsat_count = 0;
             int sat_count = 0;
             int total_nodes = 0;
-            int predict_sat = 0;
-            int smt2json_calls = 0, json2graph_calls = 0, test_py_calls = 0;
             std::chrono::milliseconds total_sat_time(0);
-            std::chrono::milliseconds total_unsat_time(0); 
-            std::chrono::milliseconds smt2json_time(0), json2graph_time(0), model_predict_time(0);
+            std::chrono::milliseconds total_unsat_time(0);
             
             //end of init
-            post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations,dump_smt, input_terms, property_check_timeout_ms, debug, dump_input_file, load_input_file, total_sat_time,  total_unsat_time, predict_sat, smt2json_time, json2graph_time, model_predict_time, smt2json_calls, json2graph_calls, test_py_calls);
+            post_order(root, node_data_map, hash_term_map, substitution_map, all_luts, count, unsat_count, sat_count, solver, num_iterations,dump_smt, input_terms, property_check_timeout_ms, debug, dump_input_file, load_input_file, total_sat_time,  total_unsat_time, json_results, term_to_id_map, next_term_id);
             print_time();
             root = substitution_map.at(root);
-            count_total_nodes(root, total_nodes);
+            count_total_nodes(root, total_nodes, term_to_id_map);
             cout << "total nodes: " << total_nodes << endl;
             std::cout<<std::endl;
             if (check_prop(
@@ -129,24 +150,40 @@ int main(int argc, char* argv[]) {
                 print_time();
                 std::cout << "[bmc] bound " << i << " passed." << std::endl;
                 cout << "total: " << count << " , unsat: " << unsat_count << " , sat: " << sat_count << ", unsat_time: "<< total_unsat_time.count() << " ms, sat_time: " << total_sat_time.count() << " ms" << endl;
-                std::cout << "smt2json: " << smt2json_time.count() << "ms\n";
-                std::cout << "json2graph: " << json2graph_time.count() << "ms\n";
-                std::cout << "model predict: " << model_predict_time.count() << "ms\n";
-                std::cout << "predict sat: " << predict_sat << std::endl;
             } else {
                 print_time();
                 std::cout << "[bmc] failed at bound " << i << std::endl;
                 cout << "total: " << count << " , unsat: " << unsat_count << " , sat: " << sat_count << ", unsat_time: "<< total_unsat_time.count() << " ms , sat_time: " << total_sat_time.count() << " ms" << endl;
-                std::cout << "smt2json: " << smt2json_time.count() << "ms\n";
-                std::cout << "json2graph: " << json2graph_time.count() << "ms\n";
-                std::cout << "model predict: " << model_predict_time.count() << "ms\n";
-                std::cout << "predict sat: " << predict_sat << std::endl;
                 return 2;
             }
+
+            fs::path output_dir = fs::current_path() / "results";
+            fs::create_directories(output_dir);
+            fs::path input_path(btor2_file);
+            std::string filename_stem = input_path.stem().string();
+            std::ostringstream json_filename;
+            fs::path output_file = output_dir / (filename_stem + "_bound_" + std::to_string(i) + ".json");
+            std::ofstream out_json(output_file);
+            out_json << std::setw(4) << json_results << std::endl;
+            out_json.close();
+            std::cout << "[INFO] Equivalence results written to " << output_file.string() << std::endl;
+
+            fs::path mapping_file = output_dir / (filename_stem + "_term_id_mapping_for_bound_" + std::to_string(i) + ".txt");
+            std::ofstream out_mapping(mapping_file);
+            for (const auto &entry : term_id_map) {
+                out_mapping << entry.first << " " << entry.second << std::endl;
+            }
+            out_mapping.close();
+            std::cout << "[INFO] Term mapping written to " << mapping_file.string() << std::endl;
+
 
             node_data_map.clear();
             substitution_map.clear();
             hash_term_map.clear();
+            term_id_map.clear();
+            all_luts.clear();
+
+        
         // }
     }
 
